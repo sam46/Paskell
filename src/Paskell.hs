@@ -27,25 +27,55 @@ data Statement = Statement deriving (Show) -- todo
 
 ------------------------------------------------------
 
-parseReserved :: Parser Reserved
-parseReserved = undefined -- todo
+comments :: Parser ()
+comments = spaces -- todo change to actual comment parser
 
-parseIdent :: Parser Ident
-parseIdent = do
-    l <- letter
-    rest <- many alphaNum
-    return $ Ident $ [l] ++ rest
-    -- todo exclude Reserved keywords
+whitespace :: Parser ()
+whitespace = do {spaces; comments; spaces; comments}
+
+tok :: Parser a -> Parser a
+tok p = p >>= \x -> spaces >>= \_ -> return x 
+
+charTok :: Char -> Parser Char
+charTok = tok . char  
+
+commaTok :: Parser Char
+commaTok = charTok ','
+
+semicolTok :: Parser Char
+semicolTok = charTok ';'
+
+charIgnoreCaseTok :: Char -> Parser Char
+charIgnoreCaseTok = charTok (toUpper c) <|> charTok (toLower c)
+
+stringIgnoreCaseTok :: String -> Parser String
+stringIgnoreCaseTok = 
 
 charIgnoreCase :: Char -> Parser Char
 charIgnoreCase c = char (toUpper c) <|> char (toLower c)
 
 stringIgnoreCase :: String -> Parser String
 stringIgnoreCase [] = return []
-stringIgnoreCase (x:xs) = do
-    c <- charIgnoreCase x
-    cs <- stringIgnoreCase xs
-    return $ [c] ++ cs
+stringIgnoreCase (x:xs) = do {c <- charIgnoreCase x; cs <- stringIgnoreCase xs; return $ [c] ++ cs}
+
+
+
+
+------------------------------------------------------
+reserved = ["var", "char"]
+
+parseReserved :: Parser Reserved
+parseReserved = undefined -- todo
+
+parseIdent :: Parser Ident
+parseIdent = fff -- <?> "reserved kw " --  <|> (unexpected $ "error: " ++ " is a reserved keyword")
+    where fff = do
+                l <- letter
+                rest <- many alphaNum
+                if not (elem ([l] ++ rest) reserved) then return $ Ident $ [l] ++ rest else parserZero
+    -- todo exclude Reserved keywords
+
+
 
 parserType :: Parser Type
 parserType = 
@@ -62,22 +92,28 @@ parseIdentList = IdentList <$> sepBy1 parseIdent sep
 
 parseVarDecl :: Parser [VarDecl]
 parseVarDecl = do
-    between spaces (many1 space) (stringIgnoreCase "var")
+    try $ between spaces (many1 space) (stringIgnoreCase "var")
     many1 $ do
-        idents <- parseIdentList
+        -- spaces
+        idents <- parseIdent -- parseIdentList
         between spaces spaces (char ':')
         t <- parserType
-        between spaces spaces (char ';')
-        return $ VarDecl idents t
+        -- between spaces spaces (char ';')
+        spaces
+        char ';'
+        return $ VarDecl (IdentList [idents]) t
 
 parseTypeDecl :: Parser [TypeDecl]
 parseTypeDecl = do
     between spaces (many1 space) (stringIgnoreCase "type")
     many1 $ do
+        spaces
         ident <- parseIdent
         between spaces spaces (char '=')
         t <- parserType
-        between spaces spaces (char ';')
+        -- between spaces spaces (char ';')
+        spaces 
+        (char ';')
         return $ TypeDecl ident t
 
 parseConstDecl :: Parser [ConstDecl]
@@ -91,6 +127,8 @@ parseProgram = do
     between spaces spaces (char ';')
     block <- parseBlock
     between spaces spaces (char '.')
+    -- try (spaces >> char '.')
+    -- try (char '.')
     return $ Program ident block
 
 parseBlock :: Parser Block
@@ -101,9 +139,9 @@ parseBlock = do
 
 parseDecl :: Parser [Decl]
 parseDecl = many $
-    (parseTypeDecl >>= \xs -> return $ DeclType xs) <|>
-    (parseVarDecl >>= \xs -> return $ DeclVar xs) <|>
-    (parseConstDecl >>= \xs -> return $ DeclConst xs)
+    -- (parseTypeDecl >>= \xs -> return $ DeclType xs) <|>
+    (parseVarDecl >>= \xs -> return $ DeclVar xs) -- <|>
+    -- (parseConstDecl >>= \xs -> return $ DeclConst xs)
 
 
 parserStatement :: Parser Statement
