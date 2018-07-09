@@ -1,4 +1,6 @@
 module Main where
+import Paskell
+import Utils (parse')
 
 main :: IO ()
-main = putStrLn "Hello, Haskell!"
+main = putStrLn "W.I.P!"
