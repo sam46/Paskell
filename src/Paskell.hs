@@ -6,9 +6,8 @@ import Text.Parsec.Combinator
 import Data.Char
 import Utils (parse')
 
-data Reserved = KWvar | KWtype | KWconst | KWbegin | KWend
-    | KWprogram deriving (Show)
-
+data Reserved = KWvar | KWtype | KWconst | KWbegin | KWend |
+    KWprogram deriving (Show)
 data Ident = Ident String deriving (Show)
 data Type = TYident Ident | TYchar | TYboolean |
     TYinteger | TYreal | TYstring deriving (Show)
@@ -50,13 +49,15 @@ parseIdentList :: Parser IdentList
 parseIdentList = IdentList <$> sepBy1 parseIdent sep
     where sep = try (spaces >> char ',' >> spaces)
 
-parseVarDecl :: Parser VarDecl
+parseVarDecl :: Parser [VarDecl]
 parseVarDecl = do
     between spaces (many1 space) (stringIgnoreCase "var")
-    idents <- parseIdentList
-    between spaces spaces (char ':')
-    t <- parserType
-    try spaces
-    return $ VarDecl idents t
+    many1 $ do
+        idents <- parseIdentList
+        between spaces spaces (char ':')
+        t <- parserType
+        between spaces spaces (char ';')
+        return $ VarDecl idents t
+    
 
 -- parseDecl :: Parser Decl
