@@ -14,7 +14,7 @@ data Type = TYident Ident | TYchar | TYboolean |
 data IdentList = IdentList [Ident]     deriving (Show)
 data Decl = DeclVar [VarDecl] | DeclType [TypeDecl]  deriving (Show)
 data VarDecl = VarDecl IdentList Type     deriving (Show)
-data TypeDecl = TypeDecl IdentList Type     deriving (Show)
+data TypeDecl = TypeDecl Ident Type     deriving (Show)
 
 parseReserved :: Parser Reserved
 parseReserved = undefined -- todo
@@ -58,6 +58,14 @@ parseVarDecl = do
         t <- parserType
         between spaces spaces (char ';')
         return $ VarDecl idents t
-    
 
--- parseDecl :: Parser Decl
+
+parseTypeDecl :: Parser [TypeDecl]
+parseTypeDecl = do
+    between spaces (many1 space) (stringIgnoreCase "type")
+    many1 $ do
+        ident <- parseIdent
+        between spaces spaces (char '=')
+        t <- parserType
+        between spaces spaces (char ';')
+        return $ TypeDecl ident t
