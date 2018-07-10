@@ -10,8 +10,8 @@ import ExtraParsers
 import Utils (p')
 
 parseReserved :: String -> Reserved -> Parser Reserved
-parseReserved kw ctor = 
-    try (do {x <- stringIgnoreCase kw; notFollowedBy alphaNum; whitespace; return ctor})
+parseReserved kw ctor = tok . try $ 
+    do { stringIgnoreCase kw; notFollowedBy alphaNum; return ctor }
 
 parseKWand       = parseReserved "and" KWand
 parseKWdownto    = parseReserved "downto" KWdownto

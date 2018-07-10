@@ -11,14 +11,15 @@ comments :: Parser ()
 comments = spaces -- todo change to actual comment parser
 
 whitespace :: Parser ()
-whitespace = do {spaces; comments; spaces; comments}
+-- whitespace = do {spaces; many comments} -- todo un-comment once comments parser is done 
+whitespace = spaces >> comments 
 
 charIgnoreCase :: Char -> Parser Char
 charIgnoreCase c = char (toUpper c) <|> char (toLower c)
 
 stringIgnoreCase :: String -> Parser String
 stringIgnoreCase [] = return []
-stringIgnoreCase (x:xs) = do {c <- charIgnoreCase x; cs <- stringIgnoreCase xs; return $ [c] ++ cs}
+stringIgnoreCase (x:xs) = do {c <- charIgnoreCase x; cs <- stringIgnoreCase xs; return (c:cs)}
 
 tok :: Parser a -> Parser a
 tok p = p >>= \x -> whitespace >>= \_ -> return x 
