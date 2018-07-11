@@ -11,17 +11,7 @@ import KeywordParse
 import Utils (p')
 
 ------------------------------------------------------
--- make sure keywords are lower-cased
-keywords = ["and","downto","if","or",
-    "then","array","else","in","packed",
-    "to","begin","end","label","procedure",
-    "type","case","file","mod","program","until",
-    "const","for","nil","record","var",
-    "div","function","not","repeat","while",
-    "do","goto","of","set","with"]
-special = [":=","+","-","*","/","="
-    ,"<",">","<>","<=",">=","(",")","[",
-    "]",",",".",";",":","..","^"]
+
 
 
 
@@ -61,16 +51,13 @@ parseTypeDecl = (parseKWtype <?> "expecting keyword 'type'")
 parseConstDecl :: Parser [ConstDecl]
 parseConstDecl = undefined -- todo
 
--- parseProgram :: Parser Program
--- parseProgram = do
---     between spaces (many1 space) (stringIgnoreCase "program")
---     ident <- parseIdent
---     between spaces spaces (char ';')
---     block <- parseBlock
---     between spaces spaces (char '.')
---     -- try (spaces >> char '.')
---     -- try (char '.')
---     return $ Program ident block
+
+parseProgram :: Parser Program
+parseProgram = spaces >> between parseKWprogram (charTok '.') 
+    (do prog <- parseIdent
+        semicolTok
+        blk <- parseBlock
+        return $ Program prog blk)
 
 parseBlock :: Parser Block
 parseBlock = do

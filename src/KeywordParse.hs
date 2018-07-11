@@ -9,6 +9,18 @@ import Grammar
 import ExtraParsers
 import Utils (p')
 
+-- make sure keywords are lower-cased
+keywords = ["and","downto","if","or",
+    "then","array","else","in","packed",
+    "to","begin","end","label","procedure",
+    "type","case","file","mod","program","until",
+    "const","for","nil","record","var",
+    "div","function","not","repeat","while",
+    "do","goto","of","set","with"]
+special = [":=","+","-","*","/","="
+    ,"<",">","<>","<=",">=","(",")","[",
+    "]",",",".",";",":","..","^"]
+
 parseReserved :: String -> Reserved -> Parser Reserved
 parseReserved kw ctor = tok . try $ 
     do { stringIgnoreCase kw; notFollowedBy alphaNum; return ctor }

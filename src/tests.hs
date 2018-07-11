@@ -115,6 +115,19 @@ tparseBlock = do
         "var x:char; type y:char;",
         "var x:char; type var=char;" ]
 
+tparseProgram = do
+    testParser parseProgram True [    
+        "program mypro; var x:char;.", 
+        "  program   mypro  ;   var x : char;. ", 
+        "program mypro;.", 
+        "program mypro; var x:char; type t=boolean; ." ]
+    testParser parseProgram False [    
+        "program mypro; var x:char;",  
+        " mypro; var x:char;", 
+        "  program   mypro   var x : char;. ", 
+        "program var;.", 
+        "program mypro; var x:char; var." ]
+
 testAll = do
     tparseKeywords
     tparseIdent
@@ -122,3 +135,4 @@ testAll = do
     tparseVarDecl
     tparseTypeDecl
     tparseBlock
+    tparseProgram
