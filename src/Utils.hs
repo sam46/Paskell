@@ -1,7 +1,9 @@
-module Utils (parse') where
+module Utils where
 
 import Text.Parsec
 import Text.Parsec.String
 
-parse' :: Parser a -> String -> Either ParseError a
-parse' p = parse p ""
+p' :: Parser a -> String -> Either ParseError a
+p' p = parse p ""
+
+enumerate = zip [0..]
