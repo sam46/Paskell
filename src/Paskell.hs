@@ -49,26 +49,17 @@ parseIdentList = IdentList <$> sepBy1 parseIdent commaTok
 parseVarDecl :: Parser [VarDecl]
 parseVarDecl = (parseKWvar <?> "expecting keyword 'var'") 
     >> ((many1 $ try  -- todo try separating many1 into initial parse and then many for better error messages
-        (do {l <- parseIdentList; charTok ':'; t <- parserType; semicolTok; return $ VarDecl l t})
+            (do {l <- parseIdentList; charTok ':'; t <- parserType; semicolTok; return $ VarDecl l t})
         ) <?> "Missing or incorrect variable declaration")
 
+parseTypeDecl :: Parser [TypeDecl]
+parseTypeDecl = (parseKWtype <?> "expecting keyword 'type'") 
+    >> ((many1 $ try  -- todo try separating many1 into initial parse and then many for better error messages
+            (do {l <- parseIdentList; charTok '='; t <- parserType; semicolTok; return $ TypeDecl l t})
+        ) <?> "Missing or incorrect type declaration")
 
--- parseTypeDecl :: Parser [TypeDecl]
--- parseTypeDecl = do
---     between spaces (many1 space) (stringIgnoreCase "type")
---     many1 $ do
---         spaces
---         ident <- parseIdent
---         between spaces spaces (char '=')
---         t <- parserType
---         -- between spaces spaces (char ';')
---         spaces 
---         (char ';')
---         return $ TypeDecl ident t
-
--- parseConstDecl :: Parser [ConstDecl]
--- parseConstDecl = undefined -- todo
-
+parseConstDecl :: Parser [ConstDecl]
+parseConstDecl = undefined -- todo
 
 -- parseProgram :: Parser Program
 -- parseProgram = do
@@ -81,18 +72,19 @@ parseVarDecl = (parseKWvar <?> "expecting keyword 'var'")
 --     -- try (char '.')
 --     return $ Program ident block
 
--- parseBlock :: Parser Block
--- parseBlock = do
---     decls <- between spaces spaces parseDecl
---     return $ Block decls [] -- todo [Statements]
+parseBlock :: Parser Block
+parseBlock = do
+    decls <- many parseDecl
+    -- todo [Statements]
+    return $ Block decls [{- todo -}]
 
 
--- parseDecl :: Parser [Decl]
--- parseDecl = many $
---     -- (parseTypeDecl >>= \xs -> return $ DeclType xs) <|>
---     (parseVarDecl >>= \xs -> return $ DeclVar xs) -- <|>
---     -- (parseConstDecl >>= \xs -> return $ DeclConst xs)
+parseDecl :: Parser Decl
+parseDecl = 
+    (parseTypeDecl >>= \xs -> return $ DeclType xs) <|>
+    (parseVarDecl >>= \xs -> return $ DeclVar xs) -- <|>
+    -- (parseConstDecl >>= \xs -> return $ DeclConst xs)
 
 
--- parserStatement :: Parser Statement
--- parserStatement = undefined -- todo
+parserStatement :: Parser Statement
+parserStatement = undefined -- todo

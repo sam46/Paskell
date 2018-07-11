@@ -25,7 +25,7 @@ data Block = Block [Decl] [Statement] deriving (Show)
 data Decl = DeclVar [VarDecl] | DeclType [TypeDecl] |
     DeclConst [ConstDecl] deriving (Show)
 data VarDecl = VarDecl IdentList Type     deriving (Show)
-data TypeDecl = TypeDecl Ident Type     deriving (Show)
+data TypeDecl = TypeDecl IdentList Type     deriving (Show)
 data ConstDecl = ConstDecl deriving (Show) -- todo 
 
 data Statement = Statement deriving (Show) -- todo
