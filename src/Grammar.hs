@@ -6,7 +6,8 @@ data Reserved = KWand | KWdownto | KWif | KWor | KWthen |
     KWfile | KWmod | KWprogram | KWuntil | KWconst | 
     KWfor | KWnil | KWrecord | KWvar | KWdiv | KWfunction |
     KWnot | KWrepeat | KWwhile | KWdo | KWgoto | KWof | 
-    KWset | KWwith deriving (Show)
+    KWset | KWwith | KWboolean | KWreal | KWinteger |
+    KWstring | KWchar deriving (Show)
 
 data OP = OPplus | OPminus | OPstar | OPdiv | OPidiv | OPmod | 
     OPand | OPeq | OPneq | OPless | OPgreater | OPle | OPge | 

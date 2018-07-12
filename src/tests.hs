@@ -72,6 +72,7 @@ tparseVarDecl = do
     testParser parseVarDecl True [
         "var x,y:char;",
         "var x,y:char; ",
+        "var x,y:char1; ",
         "var x,y:char;abc",
         "var x , y : char ; abc",
         "var x,y:char; var1 , var2, var3: char ; abc",
@@ -79,12 +80,14 @@ tparseVarDecl = do
     testParser parseVarDecl False [
         "var",
         "x,y:char;",
+        "var x,y:char@;",
         "var x,var:char;",
         "var :char; x2:char;" ]
 
 tparseTypeDecl = do
     testParser parseTypeDecl True [
         "type x,y=char;",
+        "type x,y=char1;",
         "type x,y=char; ",
         "type x,y=char;abc",
         "type x , y = char ; abc",
@@ -94,6 +97,8 @@ tparseTypeDecl = do
     testParser parseTypeDecl False [
         "type",
         "x,y=char;",
+        "x,y=char;",
+        "type x,y=char@;",
         "type x,type=char;",
         "type =char; x2=char;" ]
 
@@ -118,15 +123,25 @@ tparseBlock = do
 tparseProgram = do
     testParser parseProgram True [    
         "program mypro; var x:char;.", 
+        "program mypro; var x:char1;.", 
         "  program   mypro  ;   var x : char;. ", 
         "program mypro;.", 
         "program mypro; var x:char; type t=boolean; ." ]
     testParser parseProgram False [    
-        "program mypro; var x:char;",  
-        " mypro; var x:char;", 
+        "program mypro; var x:char;", 
+        "program mypro; var x:char@;.",  
+        " mypro; var x:char;.", 
         "  program   mypro   var x : char;. ", 
         "program var;.", 
         "program mypro; var x:char; var." ]
+
+tparseOP = do
+    testParser parseOP True $ (map fst operators) ++ [
+        "+123",
+        "== ", -- should work! only consumes "="
+        "divxyz ", -- works too!
+        "<> " ]
+    testParser parseOP False ["", "@", ":", " +"]
 
 testAll = do
     tparseKeywords
@@ -136,3 +151,4 @@ testAll = do
     tparseTypeDecl
     tparseBlock
     tparseProgram
+    tparseOP

@@ -16,10 +16,19 @@ keywords = ["and","downto","if","or",
     "type","case","file","mod","program","until",
     "const","for","nil","record","var",
     "div","function","not","repeat","while",
-    "do","goto","of","set","with"]
+    "do","goto","of","set","with",
+    "boolean", "integer", "char", "string", "real"]
 special = [":=","+","-","*","/","="
     ,"<",">","<>","<=",">=","(",")","[",
     "]",",",".",";",":","..","^"]
+operators = zip 
+    ["+", "-", "*", "/", "div", "mod", "and", "=", 
+    "<>",  "<=", ">=", "<", ">", "in"] 
+    [OPplus, OPminus, OPstar, OPdiv, OPidiv, OPmod, 
+    OPand, OPeq, OPneq,  OPle, OPge, OPless, 
+    OPgreater, OPin]
+
+
 
 parseReserved :: String -> Reserved -> Parser Reserved
 parseReserved kw ctor = tok . try $ 
@@ -60,3 +69,11 @@ parseKWgoto      = parseReserved "goto" KWgoto
 parseKWof        = parseReserved "of" KWof
 parseKWset       = parseReserved "set" KWset
 parseKWwith      = parseReserved "with" KWwith
+parseKWboolean   = parseReserved "boolean" KWboolean
+parseKWstring    = parseReserved "string" KWstring
+parseKWchar      = parseReserved "char" KWchar
+parseKWinteger   = parseReserved "integer" KWinteger
+parseKWreal      = parseReserved "real" KWreal
+
+    
+

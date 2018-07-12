@@ -10,10 +10,6 @@ import ExtraParsers
 import KeywordParse
 import Utils (p')
 
-------------------------------------------------------
-
-
-
 
 parseIdent :: Parser Ident
 parseIdent = tok . try $ do
@@ -26,12 +22,12 @@ parseIdent = tok . try $ do
 
 parserType :: Parser Type
 parserType = tok $ 
+    (parseIdent >>= \x -> return $ TYident x) <|>
     (stringIgnoreCase "boolean" >> return TYboolean) <|>
     (stringIgnoreCase "integer" >> return TYinteger) <|>
     (stringIgnoreCase "real" >> return TYreal) <|>
     (stringIgnoreCase "char" >> return TYchar) <|>
-    (stringIgnoreCase "string" >> return TYstring) <|>
-    (parseIdent >>= \x -> return $ TYident x)
+    (stringIgnoreCase "string" >> return TYstring)
 
 parseIdentList :: Parser IdentList
 parseIdentList = IdentList <$> sepBy1 parseIdent commaTok
@@ -62,8 +58,8 @@ parseProgram = spaces >> between parseKWprogram (charTok '.')
 parseBlock :: Parser Block
 parseBlock = do
     decls <- many parseDecl
-    -- todo [Statements]
-    return $ Block decls [{- todo -}]
+    -- todo StatementList [...]
+    return $ Block decls (StatementList [{- todo -}])
 
 
 parseDecl :: Parser Decl
@@ -73,5 +69,12 @@ parseDecl =
     -- (parseConstDecl >>= \xs -> return $ DeclConst xs)
 
 
+parserStatementList :: Parser StatementList
+parserStatementList = undefined -- todo
 parserStatement :: Parser Statement
 parserStatement = undefined -- todo
+
+
+parseOP :: Parser OP
+parseOP = let f (x, y) = try (stringTok x >> return y) in 
+    foldr (<|>) (fail "Expecting operator") (map f operators)
