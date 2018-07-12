@@ -55,7 +55,7 @@ data DesigProp = DesigPropIdent Ident | DesigPropExprList ExprList |
     DesigPropPtr | DesigProp [DesigProp] deriving (Show)
 
 data Expr  = Expr SimpleExpr (Maybe OPrelation) (Maybe SimpleExpr) deriving (Show)
-data ExprList = ExprList deriving (Show)
+data ExprList = ExprList [Expr] deriving (Show)
 data SimpleExpr = SimpleExpr (Maybe OPunary) Term [OPadd] [Term] deriving (Show)
 data Term = Term Factor [OPmult] [Factor] deriving (Show)
 data Factor = FactorNum Number | FactorStr String | FactorTrue | 
