@@ -35,15 +35,15 @@ parseVarDecl :: Parser [VarDecl]
 parseVarDecl = (parseKWvar <?> "expecting keyword 'var'") >>
     ((many1 $ try  -- todo try separating many1 into initial parse and then many for better error messages
         (do {l <- parseIdentList; charTok ':';
-             t <- parserType; semicolTok; return $ VarDecl l t})
-     ) <?> "Missing or incorrect variable declaration")
+                t <- parserType; semicolTok; return $ VarDecl l t})
+        ) <?> "Missing or incorrect variable declaration")
 
 parseTypeDecl :: Parser [TypeDecl]
 parseTypeDecl = (parseKWtype <?> "expecting keyword 'type'") >> 
     ((many1 $ try  -- todo try separating many1 into initial parse and then many for better error messages
         (do {l <- parseIdentList; charTok '=';
-             t <- parserType; semicolTok; return $ TypeDecl l t})
-     ) <?> "Missing or incorrect type declaration")
+                t <- parserType; semicolTok; return $ TypeDecl l t})
+        ) <?> "Missing or incorrect type declaration")
 
 parseConstDecl :: Parser [ConstDecl]
 parseConstDecl = undefined -- todo
@@ -80,13 +80,20 @@ parseOPrelation = makeOPparser relationops
 parseOP         = makeOPparser operators -- any OP (relation, additive, mult, unary)
 
 parseDesignator :: Parser Designator
-parseDesignator = undefined
+parseDesignator = parseIdent 
+    >>= \x -> (optionMaybe $ try parseDesigProp)
+    >>= \y -> return $ Designator x y
 
 parseDesigProp :: Parser DesigProp
-parseDesigProp = undefined
+parseDesigProp = 
+    (charTok '.' >> DesigPropIdent <$> parseIdent) <|>
+    (charTok '^' >> return DesigPropPtr)           <|>
+    (DesigPropExprList <$> betweenCharTok 
+        '[' ']' parseExprList)                     <|>
+    (DesigProp         <$> many parseDesigProp)
 
 parseDesigList :: Parser DesigList
-parseDesigList = undefined
+parseDesigList = DesigList <$> many1 parseDesignator
 
 parseExpr :: Parser Expr
 parseExpr = undefined
@@ -132,3 +139,4 @@ parseProcCall = undefined
 
 parseStmntIO :: Parser Statement
 parseStmntIO = undefined
+    
