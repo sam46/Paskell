@@ -18,22 +18,23 @@ keywords = ["and","downto","if","or",
     "div","function","not","repeat","while",
     "do","goto","of","set","with",
     "boolean", "integer", "char", "string", "real"]
-special = [":=","+","-","*","/","="
-    ,"<",">","<>","<=",">=","(",")","[",
+special  = [":=","+","-","*","/","=",
+    "<",">","<>","<=",">=","(",")","[",
     "]",",",".",";",":","..","^"]
-operators = zip 
-    ["+", "-", "*", "/", "div", "mod", "and", "=", 
-    "<>",  "<=", ">=", "<", ">", "in"] 
-    [OPplus, OPminus, OPstar, OPdiv, OPidiv, OPmod, 
-    OPand, OPeq, OPneq,  OPle, OPge, OPless, 
-    OPgreater, OPin]
 
+unaryops    = [("+", OPplus), ("-", OPminus)]
+addops      = [("+", OPplus), ("-", OPminus), ("or", OPor)]
+multops     = [("*", OPstar), ("/", OPdiv), ("div", OPidiv),
+               ("mod", OPmod), ("and", OPand)]
+relationops = [("=", OPeq), ("<>", OPneq), ("<=", OPle),
+               (">=", OPge), ("<", OPless), (">", OPgreater),
+               ("in", OPin)]
+operators   = addops ++ multops ++ relationops
 
 
 parseReserved :: String -> Reserved -> Parser Reserved
 parseReserved kw ctor = tok . try $ 
     do { stringIgnoreCase kw; notFollowedBy alphaNum; return ctor }
-
 parseKWand       = parseReserved "and" KWand
 parseKWdownto    = parseReserved "downto" KWdownto
 parseKWif        = parseReserved "if" KWif
@@ -74,6 +75,3 @@ parseKWstring    = parseReserved "string" KWstring
 parseKWchar      = parseReserved "char" KWchar
 parseKWinteger   = parseReserved "integer" KWinteger
 parseKWreal      = parseReserved "real" KWreal
-
-    
-

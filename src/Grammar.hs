@@ -11,7 +11,7 @@ data Reserved = KWand | KWdownto | KWif | KWor | KWthen |
 
 data OP = OPplus | OPminus | OPstar | OPdiv | OPidiv | OPmod | 
     OPand | OPeq | OPneq | OPless | OPgreater | OPle | OPge | 
-    OPin deriving (Show)
+    OPin | OPor deriving (Show)
 data OPunary = OPunary OP deriving (Show)
 data OPadd = OPadd OP deriving (Show)
 data OPmult = OPmult OP deriving (Show)

@@ -75,6 +75,11 @@ parserStatement :: Parser Statement
 parserStatement = undefined -- todo
 
 
-parseOP :: Parser OP
-parseOP = let f (x, y) = try (stringTok x >> return y) in 
-    foldr (<|>) (fail "Expecting operator") (map f operators)
+makeOPparser :: [(String, OP)] -> Parser OP
+makeOPparser xs = let f (a, b) = try (stringTok a >> return b)  
+    in foldr (<|>) (fail "Expecting operator") (map f xs)
+parseOPunary    = makeOPparser unaryops
+parseOPadd      = makeOPparser addops
+parseOPmult     = makeOPparser multops
+parseOPrelation = makeOPparser relationops
+parseOP         = makeOPparser operators -- any OP (relation, additive, mult, unary)
