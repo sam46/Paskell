@@ -81,16 +81,15 @@ parseOP         = makeOPparser operators -- any OP (relation, additive, mult, un
 
 parseDesignator :: Parser Designator
 parseDesignator = parseIdent 
-    >>= \x -> (optionMaybe $ try parseDesigProp)
+    >>= \x -> try (many parseDesigProp)
     >>= \y -> return $ Designator x y
 
 parseDesigProp :: Parser DesigProp
-parseDesigProp = 
+parseDesigProp =
     (charTok '.' >> DesigPropIdent <$> parseIdent) <|>
     (charTok '^' >> return DesigPropPtr)           <|>
     (DesigPropExprList <$> betweenCharTok 
-        '[' ']' parseExprList)                     <|>
-    (DesigProp         <$> many parseDesigProp)
+        '[' ']' parseExprList)
 
 parseDesigList :: Parser DesigList
 parseDesigList = DesigList <$> many1 parseDesignator
@@ -105,7 +104,14 @@ parseTerm :: Parser Term
 parseTerm = undefined
 
 parseFactor :: Parser Factor
-parseFactor = undefined
+parseFactor = 
+    (parseKWnil >> return FactorNil)
+    <|> (parseKWnot >> FactorNot <$> parseFactor)
+    <|> (exactTok "false" >> return FactorFalse) 
+    <|> (exactTok "true"  >> return FactorTrue)
+    <|> (FactorFuncCall <$> parseFuncCall)
+    <|> (FactorExpr <$> (betweenCharTok '[' ']' parseExpr))
+    <|> (FactorDesig <$> parseDesignator)
 
 parserStmntList :: Parser StatementList -- non-empty
 parserStmntList = undefined
@@ -139,4 +145,6 @@ parseProcCall = undefined
 
 parseStmntIO :: Parser Statement
 parseStmntIO = undefined
-    
+
+parseFuncCall :: Parser FuncCall
+parseFuncCall = undefined

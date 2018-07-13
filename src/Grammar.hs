@@ -49,15 +49,17 @@ data StatementIO = StatmentRead DesigList | StatementReadLn DesigList |
 data Mem = MemNew | MemDispose deriving (Show) 
 type ToDownTo = Bool
 
-data Designator = Designator Ident (Maybe DesigProp) deriving (Show)
+data Designator = Designator Ident [DesigProp] deriving (Show)
 data DesigList = DesigList [Designator] deriving (Show)
 data DesigProp = DesigPropIdent Ident | DesigPropExprList ExprList | 
-    DesigPropPtr | DesigProp [DesigProp] deriving (Show)
+    DesigPropPtr deriving (Show)
 
 data Expr  = Expr SimpleExpr (Maybe OPrelation) (Maybe SimpleExpr) deriving (Show)
 data ExprList = ExprList [Expr] deriving (Show)
 data SimpleExpr = SimpleExpr (Maybe OPunary) Term [OPadd] [Term] deriving (Show)
 data Term = Term Factor [OPmult] [Factor] deriving (Show)
 data Factor = FactorNum Number | FactorStr String | FactorTrue | 
-    FactorFalse | FactorNil | FactorDesignator | FactorNot Factor |
-    FactorExpr Expr | FactorFuncCall deriving (Show)
+    FactorFalse | FactorNil | FactorDesig Designator | FactorNot Factor |
+    FactorExpr Expr | FactorFuncCall FuncCall deriving (Show)
+
+data FuncCall = FuncCall Ident ExprList deriving (Show)
