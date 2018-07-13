@@ -73,11 +73,11 @@ parseDecl =
 makeOPparser :: [(String, OP)] -> Parser OP
 makeOPparser xs = let f (a, b) = try (stringTok a >> return b) 
     in foldr (<|>) (fail "Expecting operator") (map f xs)
-parseOPunary    = makeOPparser unaryops
-parseOPadd      = makeOPparser addops
-parseOPmult     = makeOPparser multops
-parseOPrelation = makeOPparser relationops
 parseOP         = makeOPparser operators -- any OP (relation, additive, mult, unary)
+parseOPunary    = OPunary    <$> makeOPparser unaryops
+parseOPadd      = OPadd      <$> makeOPparser addops
+parseOPmult     = OPmult     <$> makeOPparser multops
+parseOPrelation = OPrelation <$> makeOPparser relationops
 
 parseDesignator :: Parser Designator
 parseDesignator = parseIdent 
@@ -101,7 +101,14 @@ parseExprList :: Parser ExprList -- non-empty
 parseExprList = undefined
 
 parseTerm :: Parser Term
-parseTerm = undefined
+parseTerm = parseFactor 
+    >>= \x  -> many ((,) <$> parseOPmult <*> parseFactor)
+    >>= \xs -> return $ uncurry (Term x) (unzip xs)
+    --     do
+    -- opmult <- parseOPmult
+    -- fact   <- parseFactor
+    -- return (opmult, fact)) 
+    -- >>
 
 parseFactor :: Parser Factor
 parseFactor = 
@@ -114,11 +121,12 @@ parseFactor =
     <|> (FactorDesig <$> parseDesignator)
     <|> (FactorFuncCall <$> parseFuncCall)
 
-parserStmntList :: Parser StatementList -- non-empty
-parserStmntList = undefined
+parseStmntList :: Parser StatementList -- non-empty
+parseStmntList = undefined
 
-parserStatement :: Parser Statement 
-parserStatement = undefined
+parseStatement :: Parser Statement 
+parseStatement = undefined
+
 
 parseIf :: Parser Statement
 parseIf = undefined
@@ -144,17 +152,20 @@ parseAssignment = undefined
 parseProcCall :: Parser Statement
 parseProcCall = undefined
 
+parseStmntMem :: Parser Statement
+parseStmntMem = undefined
+
 parseStmntIO :: Parser Statement
 parseStmntIO = undefined
 
 parseFuncCall :: Parser FuncCall
-parseFuncCall = undefined
+parseFuncCall = fail ""
 
 
 parseString :: Parser String
-parseString = between (char '"') (charTok '"') $ 
-    many $ (noneOf ['\\', '"']) <|>
+parseString = between (char '"') (charTok '"') $ many $
+    (noneOf ['\\', '"']) <|>
     ((char '\\') >> anyChar >>= \c -> case toSpecialChar c 
-    of Just x   -> return (fromSpecialChar x)
-       Nothing  -> if c == 'u' then undefined  -- todo hex
-                   else unexpected ("char in string " ++ [c]))
+    of Just x  -> return (fromSpecialChar x)
+       Nothing -> if c == 'u' then undefined  -- todo hex
+                  else unexpected ("char in string " ++ [c]))

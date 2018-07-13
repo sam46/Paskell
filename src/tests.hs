@@ -143,6 +143,52 @@ tparseOP = do
         "<> " ]
     testParser parseOP False ["", "@", ":", " +"]
 
+tparseDesigProp = do
+    testParser parseDesigProp True [
+        ".x",
+        ". x abcd ",
+        ".var123"    ]
+
+tparseDesignator = undefined
+
+tparseTerm = do
+    testParser parseTerm True [
+        "nil ",
+        "true",
+        "x",
+        "true and x",
+        "\"hello\"",
+        "\"hello\" * \"123\"",
+        "true and false ",
+        "true mod \"hello\"",
+        -- follwing cases will succeed by only consuming some of the input
+        "true abcd",
+        "true + false",
+        "\"hello\" \"123\"",
+        "true false"]
+    testParser parseTerm False [
+        "",
+        "* true"]
+
+-- tparseString = do 
+--     testParser parseString True [
+        -- ]
+
+--     mapM (\s -> putStrLn $ s ++ " :\n" ++ show (p' parseString s)) [
+--         "\"\"",
+--         "\" \" ",
+--         "\"abc\" ",
+--         "\" ab \" ",
+--         "\" \\\\abc\" ",
+--         "\" \ \nabc\" ",
+--         "\" \\xyz\" ",
+--         "\" \\\\ \" ",
+--         "\"\\ab\\\\c\" " ]
+    
+--     -- testParser parseString False [
+--     --     "\" \\abc\" ",
+--     -- ]
+
 testAll = do
     tparseKeywords
     tparseIdent
