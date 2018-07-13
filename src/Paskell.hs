@@ -95,10 +95,21 @@ parseDesigList :: Parser DesigList
 parseDesigList = DesigList <$> many1 parseDesignator
 
 parseExpr :: Parser Expr
-parseExpr = undefined
+parseExpr = parseSimpleExpr
+    >>= \se -> (optionMaybe $
+        parseOPrelation >>= \x -> parseSimpleExpr 
+                        >>= \y -> return (x, y))
+    >>= \m -> return $ case m of Just (x,y) -> Expr se (Just x) (Just y)
+                                 Nothing    -> Expr se Nothing Nothing
 
 parseExprList :: Parser ExprList -- non-empty
-parseExprList = undefined
+parseExprList = ExprList <$> many1 parseExpr
+
+parseSimpleExpr :: Parser SimpleExpr
+parseSimpleExpr = tok $ (optionMaybe parseOPunary) 
+    >>= \m -> parseTerm 
+    >>= \t -> (try (many ((,) <$> parseOPadd <*> parseTerm)) <|> (return []))
+    >>= \xs -> return $ uncurry (SimpleExpr m t) (unzip xs)
 
 parseTerm :: Parser Term
 parseTerm = parseFactor 
@@ -123,14 +134,22 @@ parseFactor =
     <|> (FactorFuncCall <$> parseFuncCall)
 
 parseStmntList :: Parser StatementList -- non-empty
-parseStmntList = undefined
+parseStmntList = parseKWbegin
+    >>  (many1 parseStatement) 
+    >>= \stmts -> parseKWend 
+    >>= \_     -> return $ StatementList stmts
 
 parseStatement :: Parser Statement 
 parseStatement = undefined
 
-
 parseIf :: Parser Statement
-parseIf = undefined
+parseIf = do 
+    parseKWif
+    expr  <- parseExpr
+    parseKWthen
+    stmt  <- parseStatement
+    mstmt <- optionMaybe $ parseKWelse >> parseStatement
+    return $ StatementIF expr stmt mstmt
 
 parseCase :: Parser Statement
 parseCase = undefined
@@ -148,7 +167,9 @@ parseMem :: Parser Mem
 parseMem = undefined
 
 parseAssignment :: Parser Statement
-parseAssignment = undefined
+parseAssignment = parseDesignator >>= \x -> exactTok ":="
+    >>= \_     -> parseExpr
+    >>= \expr  -> return $ Assignment x expr
 
 parseProcCall :: Parser Statement
 parseProcCall = undefined
