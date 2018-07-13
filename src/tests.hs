@@ -190,12 +190,22 @@ tparseTerm = do
 --     --     "\" \\abc\" ",
 --     -- ]
 
+tparseSimpleExpr = undefined
+
+tparseExpr = undefined
+
+tparseStmntList = undefined
+
+tparseIf = undefined
+
+tparseStatement = undefined
+
 tparseNumber = do
     testParser parseNumber True [
         "123",
         "0123",
         "12.3",
-        "123 ",
+        "123   ",
         "0123abc",
         "12.3 ",
         "12.3abc"]
@@ -203,6 +213,20 @@ tparseNumber = do
         "123.",
         ".123",
         "a123"]
+
+tparseFor = do
+    testParser parseFor True [
+        "for x:= 2 downto 10 do y := 3 ",
+        "for x:= 2 downto 10 do y :=3",
+        "for x:= w downto 10.5 do y :=3",
+        "for x123:= 3+3 to 5-5 do begin y:=3;z:=10+5end"]
+    testParser parseFor False [
+        "",
+        "x:= 2 downto 10 do y := 3 ",
+        "for x : 2 downto 10 do y :=3",
+        "for123 x:= 3+3 to 5-5 do begin y:=3;z:=10+5end",
+        "for x:= 3+3 down 5-5 do y:=true"]
+
 
 testAll = do
     tparseKeywords
@@ -218,3 +242,8 @@ testAll = do
     -- tparseDesigProp
     -- tparseDesignator
     -- tparseString
+
+testFiles = do
+    let path = "f:/Paskell/pascal-src/"
+    parseFromFile parseProgram $ path ++ "p1.pas"
+    

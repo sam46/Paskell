@@ -19,8 +19,8 @@ parseIdent = tok . try $ do
     then fail ("Expecting identifier but found keyword " ++ ident)
     else return (Ident ident)
 
-parserType :: Parser Type
-parserType = tok $ 
+parseType :: Parser Type
+parseType = tok $ 
     (parseIdent >>= \x -> return $ TYident x)        <|>
     (stringIgnoreCase "boolean" >> return TYboolean) <|>
     (stringIgnoreCase "integer" >> return TYinteger) <|>
@@ -35,14 +35,14 @@ parseVarDecl :: Parser [VarDecl]
 parseVarDecl = (parseKWvar <?> "expecting keyword 'var'") >>
     ((many1 $ try  -- todo try separating many1 into initial parse and then many for better error messages
         (do {l <- parseIdentList; charTok ':';
-                t <- parserType; semicolTok; return $ VarDecl l t})
+                t <- parseType; semicolTok; return $ VarDecl l t})
         ) <?> "Missing or incorrect variable declaration")
 
 parseTypeDecl :: Parser [TypeDecl]
 parseTypeDecl = (parseKWtype <?> "expecting keyword 'type'") >> 
     ((many1 $ try  -- todo try separating many1 into initial parse and then many for better error messages
         (do {l <- parseIdentList; charTok '=';
-                t <- parserType; semicolTok; return $ TypeDecl l t})
+                t <- parseType; semicolTok; return $ TypeDecl l t})
         ) <?> "Missing or incorrect type declaration")
 
 parseConstDecl :: Parser [ConstDecl]
@@ -59,8 +59,8 @@ parseProgram = spaces >> between parseKWprogram (charTok '.')
 parseBlock :: Parser Block
 parseBlock = do
     decls <- many parseDecl
-    -- todo StatementList [...]
-    return $ Block decls (StatementList [{- todo -}])
+    stmts <- parseStmntList
+    return $ Block decls stmts
 
 
 parseDecl :: Parser Decl
@@ -125,7 +125,7 @@ parseFactor :: Parser Factor
 parseFactor = 
         (parseKWnil >> return FactorNil)
     <|> (parseKWnot >> FactorNot <$> parseFactor)
-    <|> (exactTok "true"  >> return FactorTrue)
+    <|> (exactTok "true"  >> return FactorTrue) -- todo double check exactTok is the right choice
     <|> (exactTok "false" >> return FactorFalse) 
     <|> (FactorStr <$> parseString)
     <|> (FactorNum <$> parseNumber)
@@ -134,22 +134,21 @@ parseFactor =
     <|> (FactorFuncCall <$> parseFuncCall)
 
 parseStmntList :: Parser StatementList -- non-empty
-parseStmntList = parseKWbegin
-    >>  (many1 parseStatement) 
+parseStmntList = parseKWbegin 
+    >>  (sepBy1 parseStatement semicolTok)
     >>= \stmts -> parseKWend 
     >>= \_     -> return $ StatementList stmts
 
 parseStatement :: Parser Statement 
-parseStatement = undefined
+parseStatement = Statement <$> parseStmntList <|>
+    parseAssignment <|> parseIf <|> pure StatementEmpty
 
 parseIf :: Parser Statement
 parseIf = do 
-    parseKWif
-    expr  <- parseExpr
-    parseKWthen
+    expr  <- between parseKWif parseKWthen parseExpr 
     stmt  <- parseStatement
     mstmt <- optionMaybe $ parseKWelse >> parseStatement
-    return $ StatementIF expr stmt mstmt
+    return $ StatementIf expr stmt mstmt
 
 parseCase :: Parser Statement
 parseCase = undefined
@@ -161,13 +160,23 @@ parseWhile :: Parser Statement
 parseWhile = undefined
 
 parseFor :: Parser Statement
-parseFor = undefined
+parseFor = do
+    parseKWfor
+    x     <- parseIdent
+    stringTok ":="
+    expr  <- parseExpr
+    direc <- (parseKWto >> pure True) <|> (parseKWdownto >> pure False)
+    expr2 <- parseExpr
+    parseKWdo
+    stmt  <- parseStatement
+    return $ StatementFor x expr direc expr2 stmt
+
 
 parseMem :: Parser Mem
 parseMem = undefined
 
 parseAssignment :: Parser Statement
-parseAssignment = parseDesignator >>= \x -> exactTok ":="
+parseAssignment = parseDesignator >>= \x -> stringTok ":="
     >>= \_     -> parseExpr
     >>= \expr  -> return $ Assignment x expr
 

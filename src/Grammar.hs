@@ -36,7 +36,7 @@ data StatementList = StatementList [Statement] deriving (Show)
 data Statement = Statement StatementList |
     Assignment Designator Expr |
     ProcCall Ident (Maybe ExprList) |
-    StatementIF Expr Statement (Maybe Statement) |
+    StatementIf Expr Statement (Maybe Statement) |
     StatementCase | -- todo
     StatementWhile Expr Statement |
     StatementRepeat StatementList Expr |
