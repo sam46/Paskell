@@ -165,7 +165,8 @@ tparseTerm = do
         "true abcd",
         "true + false",
         "\"hello\" \"123\"",
-        "true false"]
+        "true false",
+        "true *"]
     testParser parseTerm False [
         "",
         "* true"]
@@ -198,3 +199,7 @@ testAll = do
     tparseBlock
     tparseProgram
     tparseOP
+    tparseTerm
+    -- tparseDesigProp
+    -- tparseDesignator
+    -- tparseString

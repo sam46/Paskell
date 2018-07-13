@@ -102,7 +102,7 @@ parseExprList = undefined
 
 parseTerm :: Parser Term
 parseTerm = parseFactor 
-    >>= \x  -> many ((,) <$> parseOPmult <*> parseFactor)
+    >>= \x  -> (try (many ((,) <$> parseOPmult <*> parseFactor)) <|> (return []))
     >>= \xs -> return $ uncurry (Term x) (unzip xs)
     --     do
     -- opmult <- parseOPmult
