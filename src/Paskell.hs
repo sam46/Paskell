@@ -117,6 +117,7 @@ parseFactor =
     <|> (exactTok "true"  >> return FactorTrue)
     <|> (exactTok "false" >> return FactorFalse) 
     <|> (FactorStr <$> parseString)
+    <|> (FactorNum <$> parseNumber)
     <|> (FactorExpr <$> (betweenCharTok '[' ']' parseExpr))
     <|> (FactorDesig <$> parseDesignator)
     <|> (FactorFuncCall <$> parseFuncCall)
@@ -162,13 +163,13 @@ parseFuncCall :: Parser FuncCall
 parseFuncCall = fail ""
 
 parseNumber :: Parser Number
-parseNumber = do -- (NUMint . (read)) <$> tok (many1 digit)
+parseNumber = tok $ do
     pre  <- many1 digit
     post <- ((try $ char '.') >> ('.':) <$> many1 digit) <|> pure ""
     let xs = pre ++ post
     return $ if '.' `elem` xs
             then NUMreal $ read xs
-            else NUMint  $ read xs 
+            else NUMint  $ read xs
 
 parseString :: Parser String
 parseString = between (char '"') (charTok '"') $ many $
