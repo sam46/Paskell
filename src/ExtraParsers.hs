@@ -4,7 +4,7 @@ import Text.Parsec
 import Text.Parsec.String
 import Text.Parsec.Combinator
 import Data.Char
-
+import Data.List (find)
 import Utils (p')
 
 comments :: Parser ()
@@ -48,3 +48,7 @@ betweenCharTok c1 c2 p = between (charTok c1) (charTok c2) p
 betweenSepbyComma :: Char -> Char -> Parser a -> Parser [a]
 betweenSepbyComma c1 c2 p = betweenCharTok c1 c2 $
   sepBy p (charTok ',')
+
+exactTok :: String -> Parser String -- case is ignored!
+exactTok s = tok . try $ 
+  do {stringIgnoreCase s; notFollowedBy alphaNum; return s}

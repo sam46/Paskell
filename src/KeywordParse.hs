@@ -4,7 +4,7 @@ import Text.Parsec
 import Text.Parsec.String
 import Text.Parsec.Combinator
 import Data.Char
-
+import Data.List (find)
 import Grammar
 import ExtraParsers
 import Utils (p')
@@ -22,6 +22,36 @@ special  = [":=","+","-","*","/","=",
     "<",">","<>","<=",">=","(",")","[",
     "]",",",".",";",":","..","^"]
 
+
+----------------------------------------------------
+-- specialEscape  =  [chr 0x08, chr 0x0C, '\n', '\r',
+--     '\t', '\v', '\'', '"',  '\\']
+-- isEscapeChar c = c `elem` specialEscape
+
+data SpecialChar = BackSpace | FormFeed
+    | NewLine | CarriageReturn | Tab | VerticalTab 
+    | SingleQuote | DoubleQuote  | Backslash 
+    deriving (Eq, Ord, Show)
+
+fromSpecialChar :: SpecialChar -> Char
+fromSpecialChar BackSpace = chr 0x08
+fromSpecialChar FormFeed = chr 0x0C
+fromSpecialChar NewLine = '\n'
+fromSpecialChar CarriageReturn = '\r'
+fromSpecialChar Tab = '\t'
+fromSpecialChar VerticalTab = '\v'
+fromSpecialChar SingleQuote = '\''
+fromSpecialChar DoubleQuote = '"'
+fromSpecialChar Backslash = '\\'
+
+toSpecialChar :: Char -> Maybe SpecialChar
+toSpecialChar c =  snd <$> find ((==) c . fst) table
+    where table = [('b', BackSpace), ('"' , DoubleQuote),
+            ('f', FormFeed), ('n', NewLine), ('t', Tab),
+            ('r', CarriageReturn), ('\\', Backslash),
+            ('v', VerticalTab), ('\'', SingleQuote)]
+----------------------------------------------------
+
 unaryops    = [("+", OPplus), ("-", OPminus)]
 addops      = [("+", OPplus), ("-", OPminus), ("or", OPor)]
 multops     = [("*", OPstar), ("/", OPdiv), ("div", OPidiv),
@@ -33,8 +63,7 @@ operators   = addops ++ multops ++ relationops
 
 
 parseReserved :: String -> Reserved -> Parser Reserved
-parseReserved kw ctor = tok . try $ 
-    do { stringIgnoreCase kw; notFollowedBy alphaNum; return ctor }
+parseReserved kw ctor = exactTok kw >> return ctor
 parseKWand       = parseReserved "and" KWand
 parseKWdownto    = parseReserved "downto" KWdownto
 parseKWif        = parseReserved "if" KWif

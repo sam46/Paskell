@@ -148,3 +148,11 @@ parseStmntIO = undefined
 
 parseFuncCall :: Parser FuncCall
 parseFuncCall = undefined
+
+
+parseString :: Parser String
+parseString = between (char '"') (charTok '"') $ many $ (noneOf ['\\', '"']) 
+    <|> ((char '\\') >>= \_ -> anyChar >>= \c -> case toSpecialChar c 
+        of Just x   -> return (fromSpecialChar x)
+           Nothing  -> if c == 'u' then undefined  -- todo hex
+                       else unexpected ("char in string " ++ [c]))
