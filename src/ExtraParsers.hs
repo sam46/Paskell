@@ -4,7 +4,6 @@ import Text.Parsec
 import Text.Parsec.String
 import Text.Parsec.Combinator
 import Data.Char
-import Data.List (find)
 import Utils (p')
 
 comments :: Parser ()

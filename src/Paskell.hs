@@ -105,13 +105,14 @@ parseTerm = undefined
 
 parseFactor :: Parser Factor
 parseFactor = 
-    (parseKWnil >> return FactorNil)
+        (parseKWnil >> return FactorNil)
     <|> (parseKWnot >> FactorNot <$> parseFactor)
-    <|> (exactTok "false" >> return FactorFalse) 
     <|> (exactTok "true"  >> return FactorTrue)
-    <|> (FactorFuncCall <$> parseFuncCall)
+    <|> (exactTok "false" >> return FactorFalse) 
+    <|> (FactorStr <$> parseString)
     <|> (FactorExpr <$> (betweenCharTok '[' ']' parseExpr))
     <|> (FactorDesig <$> parseDesignator)
+    <|> (FactorFuncCall <$> parseFuncCall)
 
 parserStmntList :: Parser StatementList -- non-empty
 parserStmntList = undefined
@@ -151,8 +152,9 @@ parseFuncCall = undefined
 
 
 parseString :: Parser String
-parseString = between (char '"') (charTok '"') $ many $ (noneOf ['\\', '"']) 
-    <|> ((char '\\') >>= \_ -> anyChar >>= \c -> case toSpecialChar c 
-        of Just x   -> return (fromSpecialChar x)
-           Nothing  -> if c == 'u' then undefined  -- todo hex
-                       else unexpected ("char in string " ++ [c]))
+parseString = between (char '"') (charTok '"') $ 
+    many $ (noneOf ['\\', '"']) <|>
+    ((char '\\') >> anyChar >>= \c -> case toSpecialChar c 
+    of Just x   -> return (fromSpecialChar x)
+       Nothing  -> if c == 'u' then undefined  -- todo hex
+                   else unexpected ("char in string " ++ [c]))
