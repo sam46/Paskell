@@ -161,6 +161,14 @@ parseStmntIO = undefined
 parseFuncCall :: Parser FuncCall
 parseFuncCall = fail ""
 
+parseNumber :: Parser Number
+parseNumber = do -- (NUMint . (read)) <$> tok (many1 digit)
+    pre  <- many1 digit
+    post <- ((try $ char '.') >> ('.':) <$> many1 digit) <|> pure ""
+    let xs = pre ++ post
+    return $ if '.' `elem` xs
+            then NUMreal $ read xs
+            else NUMint  $ read xs 
 
 parseString :: Parser String
 parseString = between (char '"') (charTok '"') $ many $

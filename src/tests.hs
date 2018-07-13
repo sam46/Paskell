@@ -190,6 +190,20 @@ tparseTerm = do
 --     --     "\" \\abc\" ",
 --     -- ]
 
+tparseNumber = do
+    testParser parseNumber True [
+        "123",
+        "0123",
+        "12.3",
+        "123 ",
+        "0123abc",
+        "12.3 ",
+        "12.3abc"]
+    testParser parseNumber False [
+        "123.",
+        ".123",
+        "a123"]
+
 testAll = do
     tparseKeywords
     tparseIdent
@@ -200,6 +214,7 @@ testAll = do
     tparseProgram
     tparseOP
     tparseTerm
+    tparseNumber
     -- tparseDesigProp
     -- tparseDesignator
     -- tparseString
