@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 
 import Paskell
@@ -5,6 +7,7 @@ import Paskell
 import Control.Monad.Trans
 import System.Console.Haskeline
 import Data.List (isPrefixOf)
+import qualified Data.Text as T
 
 msg = "Paskell version unknown.\n" ++
     "Type ':l path' to parse a pascal source file."
@@ -28,7 +31,8 @@ repl = do
         Nothing    -> outputStrLn "Leaving Paskell."
         Just input -> if isPrefixOf ":l " input 
                       then (liftIO $ processFile $ 
-                            drop 3 $ init input) >> repl
+                            T.unpack $ T.strip   $ 
+                            T.pack $ drop 3 input)  >> repl
                       else (liftIO $ process input) >> repl
 
 main :: IO ()
