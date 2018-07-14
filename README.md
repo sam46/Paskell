@@ -4,7 +4,8 @@ A small (reduced) pascal compiler in Haskell
 Work in Progress!
 
 ### Progress  
-- [x] Lexing/Parsing  
+- [x] Lexing/Parsing 
+- [ ] Semantic Analysis
 - [ ] Type checking  
 - [ ] Code generation 
 
