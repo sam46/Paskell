@@ -24,8 +24,9 @@ processFile s = do
     case res of Left err   -> print err
                 Right tree -> print tree
 
-repl :: InputT IO ()
-repl = do
+
+repl :: InputT IO () -- thanks Stephen Diehl
+repl = do 
     minput <- getInputLine "parser> "
     case minput of
         Nothing    -> outputStrLn "Leaving Paskell."
@@ -37,4 +38,3 @@ repl = do
 
 main :: IO ()
 main = putStrLn msg >> runInputT defaultSettings repl
-
