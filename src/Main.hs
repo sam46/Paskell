@@ -1,6 +1,36 @@
 module Main where
+
 import Paskell
-import Utils (parse')
+
+import Control.Monad.Trans
+import System.Console.Haskeline
+import Data.List (isPrefixOf)
+
+msg = "Paskell version unknown.\n" ++
+    "Type ':l path' to parse a pascal source file."
+
+process :: String -> IO ()
+process line = do
+    let res = parseToplevel line
+    case res of Left err   -> print err
+                Right tree -> print tree
+
+processFile :: String -> IO ()
+processFile s = do
+    res <- parsePascalFile s
+    case res of Left err   -> print err
+                Right tree -> print tree
+
+repl :: InputT IO ()
+repl = do
+    minput <- getInputLine "parser> "
+    case minput of
+        Nothing    -> outputStrLn "Leaving Paskell."
+        Just input -> if isPrefixOf ":l " input 
+                      then (liftIO $ processFile $ 
+                            drop 3 $ init input) >> repl
+                      else (liftIO $ process input) >> repl
 
 main :: IO ()
-main = putStrLn "W.I.P!"
+main = putStrLn msg >> runInputT defaultSettings repl
+

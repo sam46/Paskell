@@ -49,7 +49,7 @@ parseConstDecl :: Parser [ConstDecl]
 parseConstDecl = undefined -- todo
 
 parseProgram :: Parser Program
-parseProgram = spaces >> between parseKWprogram (charTok '.') 
+parseProgram = between parseKWprogram (charTok '.') 
     (do prog <- parseIdent
         semicolTok
         blok <- parseBlock
@@ -138,7 +138,8 @@ parseStmntList = parseKWbegin
 
 parseStatement :: Parser Statement 
 parseStatement = Statement <$> parseStmntList <|>
-    parseAssignment <|> parseIf <|> pure StatementEmpty
+    parseAssignment <|> parseIf <|> parseFor <|>
+    pure StatementEmpty
 
 parseIf :: Parser Statement
 parseIf = do 
@@ -204,3 +205,18 @@ parseString = between (char '"') (charTok '"') $ many $
     of Just x  -> return (fromSpecialChar x)
        Nothing -> if c == 'u' then undefined  -- todo hex
                   else unexpected ("char in string " ++ [c]))
+
+
+------------------------------------------------------
+contents :: Parser a -> Parser a
+contents p = do
+    whitespace
+    r <- p
+    eof
+    return r
+
+parseToplevel :: String -> Either ParseError Statement
+parseToplevel s = parse (contents parseStatement) "<stdin>" s
+
+parsePascalFile :: String -> IO (Either ParseError Program)
+parsePascalFile = parseFromFile (contents parseProgram)
