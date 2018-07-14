@@ -48,7 +48,6 @@ parseTypeDecl = (parseKWtype <?> "expecting keyword 'type'") >>
 parseConstDecl :: Parser [ConstDecl]
 parseConstDecl = undefined -- todo
 
-
 parseProgram :: Parser Program
 parseProgram = spaces >> between parseKWprogram (charTok '.') 
     (do prog <- parseIdent
@@ -62,13 +61,11 @@ parseBlock = do
     stmts <- parseStmntList
     return $ Block decls stmts
 
-
 parseDecl :: Parser Decl
 parseDecl = 
     (parseTypeDecl >>= \xs -> return $ DeclType xs) <|>
     (parseVarDecl  >>= \xs -> return $ DeclVar xs) -- <|>
     -- (parseConstDecl >>= \xs -> return $ DeclConst xs)
-
 
 makeOPparser :: [(String, OP)] -> Parser OP
 makeOPparser xs = let f (a, b) = try (stringTok a >> return b) 
@@ -170,7 +167,6 @@ parseFor = do
     parseKWdo
     stmt  <- parseStatement
     return $ StatementFor x expr direc expr2 stmt
-
 
 parseMem :: Parser Mem
 parseMem = undefined

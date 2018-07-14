@@ -239,6 +239,7 @@ testAll = do
     tparseOP
     tparseTerm
     tparseNumber
+    tparseFor
     -- tparseDesigProp
     -- tparseDesignator
     -- tparseString
