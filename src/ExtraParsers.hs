@@ -10,18 +10,17 @@ comments :: Parser ()
 comments = spaces -- todo change to actual comment parser
 
 whitespace :: Parser ()
--- whitespace = do {spaces; many comments} -- todo un-comment once comments parser is done 
 whitespace = spaces >> comments 
 
 charIgnoreCase :: Char -> Parser Char
 charIgnoreCase c = char (toUpper c) <|> char (toLower c)
 
 stringIgnoreCase :: String -> Parser String
-stringIgnoreCase [] = return []
-stringIgnoreCase (x:xs) = do {c <- charIgnoreCase x; cs <- stringIgnoreCase xs; return (c:cs)}
+stringIgnoreCase []     = return []
+stringIgnoreCase (x:xs) = (:) <$> charIgnoreCase x <*> stringIgnoreCase xs
 
 tok :: Parser a -> Parser a
-tok p = p >>= \x -> whitespace >>= \_ -> return x 
+tok = (<* whitespace)
 
 charTok :: Char -> Parser Char
 charTok = tok . char  
@@ -50,4 +49,4 @@ betweenSepbyComma c1 c2 p = betweenCharTok c1 c2 $
 
 exactTok :: String -> Parser String -- case is ignored!
 exactTok s = tok . try $ 
-  do {stringIgnoreCase s; notFollowedBy alphaNum; return s}
+  do { stringIgnoreCase s; notFollowedBy alphaNum; return s }

@@ -21,12 +21,12 @@ parseIdent = tok . try $ do
 
 parseType :: Parser Type
 parseType = tok $ 
-    (parseIdent >>= \x -> return $ TYident x)        <|>
-    (stringIgnoreCase "boolean" >> return TYboolean) <|>
-    (stringIgnoreCase "integer" >> return TYinteger) <|>
-    (stringIgnoreCase "real"    >> return TYreal)    <|>
-    (stringIgnoreCase "char"    >> return TYchar)    <|>
-    (stringIgnoreCase "string"  >> return TYstring)
+    (TYident   <$> parseIdent)                 <|>
+    (TYboolean <$  stringIgnoreCase "boolean") <|>
+    (TYinteger <$  stringIgnoreCase "integer") <|>
+    (TYreal    <$  stringIgnoreCase "real")    <|>
+    (TYchar    <$  stringIgnoreCase "char")    <|>
+    (TYstring  <$  stringIgnoreCase "string")
 
 parseIdentList :: Parser IdentList
 parseIdentList = IdentList <$> sepBy1 parseIdent commaTok
@@ -35,15 +35,15 @@ parseVarDecl :: Parser [VarDecl]
 parseVarDecl = (parseKWvar <?> "expecting keyword 'var'") >>
     ((many1 $ try  -- todo try separating many1 into initial parse and then many for better error messages
         (do {l <- parseIdentList; charTok ':';
-                t <- parseType; semicolTok; return $ VarDecl l t})
-        ) <?> "Missing or incorrect variable declaration")
+             t <- parseType; semicolTok; return $ VarDecl l t})
+     ) <?> "Missing or incorrect variable declaration")
 
 parseTypeDecl :: Parser [TypeDecl]
 parseTypeDecl = (parseKWtype <?> "expecting keyword 'type'") >> 
     ((many1 $ try  -- todo try separating many1 into initial parse and then many for better error messages
         (do {l <- parseIdentList; charTok '=';
-                t <- parseType; semicolTok; return $ TypeDecl l t})
-        ) <?> "Missing or incorrect type declaration")
+             t <- parseType; semicolTok; return $ TypeDecl l t})
+     ) <?> "Missing or incorrect type declaration")
 
 parseConstDecl :: Parser [ConstDecl]
 parseConstDecl = undefined -- todo
@@ -56,16 +56,13 @@ parseProgram = between parseKWprogram (charTok '.')
         return $ Program prog blok)
 
 parseBlock :: Parser Block
-parseBlock = do
-    decls <- many parseDecl
-    stmts <- parseStmntList
-    return $ Block decls stmts
+parseBlock = Block <$> many parseDecl <*> parseStmntList
 
 parseDecl :: Parser Decl
 parseDecl = 
-    (parseTypeDecl >>= \xs -> return $ DeclType xs) <|>
-    (parseVarDecl  >>= \xs -> return $ DeclVar xs) -- <|>
-    -- (parseConstDecl >>= \xs -> return $ DeclConst xs)
+    (DeclType <$> parseTypeDecl) <|>
+    (DeclVar <$> parseVarDecl) -- <|>
+    -- (DeclConst <$> parseDeclConst)
 
 makeOPparser :: [(String, OP)] -> Parser OP
 makeOPparser xs = let f (a, b) = try (stringTok a >> return b) 
@@ -77,9 +74,7 @@ parseOPmult     = OPmult     <$> makeOPparser multops
 parseOPrelation = OPrelation <$> makeOPparser relationops
 
 parseDesignator :: Parser Designator
-parseDesignator = parseIdent 
-    >>= \x -> try (many parseDesigProp)
-    >>= \y -> return $ Designator x y
+parseDesignator = Designator <$> parseIdent <*> try (many parseDesigProp)
 
 parseDesigProp :: Parser DesigProp
 parseDesigProp =
@@ -94,8 +89,7 @@ parseDesigList = DesigList <$> many1 parseDesignator
 parseExpr :: Parser Expr
 parseExpr = parseSimpleExpr
     >>= \se -> (optionMaybe $
-        parseOPrelation >>= \x -> parseSimpleExpr 
-                        >>= \y -> return (x, y))
+        (,) <$> parseOPrelation <*> parseSimpleExpr)
     >>= \m -> return $ case m of Just (x,y) -> Expr se (Just x) (Just y)
                                  Nothing    -> Expr se Nothing Nothing
 
@@ -105,18 +99,13 @@ parseExprList = ExprList <$> many1 parseExpr
 parseSimpleExpr :: Parser SimpleExpr
 parseSimpleExpr = tok $ (optionMaybe parseOPunary) 
     >>= \m -> parseTerm 
-    >>= \t -> (try (many ((,) <$> parseOPadd <*> parseTerm)) <|> (return []))
+    >>= \t -> (try (many $ (,) <$> parseOPadd <*> parseTerm) <|> return [])
     >>= \xs -> return $ uncurry (SimpleExpr m t) (unzip xs)
 
 parseTerm :: Parser Term
 parseTerm = parseFactor 
-    >>= \x  -> (try (many ((,) <$> parseOPmult <*> parseFactor)) <|> (return []))
+    >>= \x -> (try (many ((,) <$> parseOPmult <*> parseFactor)) <|> return [])
     >>= \xs -> return $ uncurry (Term x) (unzip xs)
-    --     do
-    -- opmult <- parseOPmult
-    -- fact   <- parseFactor
-    -- return (opmult, fact)) 
-    -- >>
 
 parseFactor :: Parser Factor
 parseFactor = 
@@ -126,7 +115,7 @@ parseFactor =
     <|> (exactTok "false" >> return FactorFalse) 
     <|> (FactorStr <$> parseString)
     <|> (FactorNum <$> parseNumber)
-    <|> (FactorExpr <$> (betweenCharTok '[' ']' parseExpr))
+    <|> (FactorExpr <$> betweenCharTok '[' ']' parseExpr)
     <|> (FactorDesig <$> parseDesignator)
     <|> (FactorFuncCall <$> parseFuncCall)
 
@@ -137,9 +126,8 @@ parseStmntList = parseKWbegin
     >>= \_     -> return $ StatementList stmts
 
 parseStatement :: Parser Statement 
-parseStatement = Statement <$> parseStmntList <|>
-    parseAssignment <|> parseIf <|> parseFor <|>
-    pure StatementEmpty
+parseStatement = choice [Statement <$> parseStmntList,
+    parseAssignment, parseIf, parseFor, pure StatementEmpty]
 
 parseIf :: Parser Statement
 parseIf = do 
@@ -206,7 +194,6 @@ parseString = between (char '"') (charTok '"') $ many $
        Nothing -> if c == 'u' then undefined  -- todo hex
                   else unexpected ("char in string " ++ [c]))
 
-
 ------------------------------------------------------
 contents :: Parser a -> Parser a
 contents p = do
@@ -216,7 +203,7 @@ contents p = do
     return r
 
 parseToplevel :: String -> Either ParseError Statement
-parseToplevel s = parse (contents parseStatement) "<stdin>" s
+parseToplevel = parse (contents parseStatement) "<stdin>"
 
 parsePascalFile :: String -> IO (Either ParseError Program)
 parsePascalFile = parseFromFile (contents parseProgram)
