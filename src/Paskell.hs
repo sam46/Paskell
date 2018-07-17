@@ -85,29 +85,26 @@ parseDesigProp =
 
 parseDesigList :: Parser DesigList
 parseDesigList = DesigList <$> many1 parseDesignator
------------------------------------------------------------------------------------
-parseExpr :: Parser Expr
-parseExpr = (try $ Relation <$> parseSimpleExpr <*> parseOPrelation <*> parseSimpleExpr)
-    <|> parseSimpleExpr
-
-
-parseSimpleExpr :: Parser Expr
-parseSimpleExpr = 
-    (try $ Add   <$> parseTerm    <*> parseOPadd <*> parseSimpleExpr)
-    <|> (try $ Unary <$> parseOPunary <*> (Add <$> parseTerm <*> parseOPadd <*> parseSimpleExpr))
-    <|> (try $ Unary <$> parseOPunary <*> parseSimpleExpr)
-    <|> parseTerm
-
-parseTerm :: Parser Expr
-parseTerm = (try $ Mult <$> parseFactor <*> parseOPmult <*> parseTerm)
-    <|> parseFactor
-    
----------------------------------
-
 
 parseExprList :: Parser ExprList -- non-empty
 parseExprList = ExprList <$> many1 parseExpr
 
+parseExpr :: Parser Expr
+parseExpr = (try $ Relation <$> 
+        parseSimpleExpr <*> parseOPrelation <*> parseSimpleExpr)
+    <|> parseSimpleExpr
+
+parseSimpleExpr :: Parser Expr
+parseSimpleExpr = (try simpleAdd)
+    <|> (try $ Unary <$> parseOPunary <*> simpleAdd)
+    <|> (try $ Unary <$> parseOPunary <*> parseSimpleExpr)
+    <|> parseTerm
+    where simpleAdd = Add <$> parseTerm <*> parseOPadd <*> parseSimpleExpr
+
+parseTerm :: Parser Expr
+parseTerm = (try $ Mult <$> 
+        parseFactor <*> parseOPmult <*> parseTerm)
+    <|> parseFactor
 
 parseFactor :: Parser Expr
 parseFactor = 
