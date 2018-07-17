@@ -114,7 +114,7 @@ parseFactor =
     <|> (exactTok "false" >> return FactorFalse) 
     <|> (parseNumber)
     <|> (FactorStr <$> parseString)
-    <|> (FactorParens <$> betweenCharTok '(' ')' parseExpr)
+    <|> (betweenCharTok '(' ')' parseExpr)
     <|> (FactorDesig <$> parseDesignator)
     <|> (FactorFuncCall <$> parseFuncCall)
 

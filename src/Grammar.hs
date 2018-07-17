@@ -65,7 +65,6 @@ data Expr = Relation Expr OP Expr
     | FactorNil 
     | FactorDesig Designator 
     | FactorNot Expr
-    | FactorParens Expr 
     | FactorFuncCall FuncCall deriving (Show)
 
 data FuncCall = FuncCall Ident ExprList deriving (Show)
