@@ -192,7 +192,45 @@ tparseTerm = do
 
 tparseSimpleExpr = undefined
 
-tparseExpr = undefined
+tparseExpr = do
+    testParser (parseExpr<*eof) True [
+        "1  ",
+        "x",
+        "(1)",    
+        "1+2",
+        "1+2+3+4",
+        "x+y+z",
+        "1*2",
+        "1*2*3*4",
+        "-1+2",
+        "-1+2+3",
+        "1+2*3+4",
+        "1*2+3*4",
+        "1+2*3*4",
+        "1*2*3+4",
+        "1*2*x+4",
+        "x*2*3+4",
+        "(1+2)",
+        "(1+x)",
+        "(-1+2)",
+        "(-1+2+3)",
+        "(1+2*3+4)",
+        "(1*2+3*4)",
+        "(1+2*3*4)",
+        "(1*2*3+4)",
+        "(1*2*x+4)",
+        "(x*2*3+4)",
+        "-(1+2)",
+        "-(1+2)+3",
+        "-1",
+        "-1*2",
+        "1*(-2)",
+        "1*(-2+3)",
+        "1*(-2*3)",
+        "1+(2+3)*4"]
+    testParser (parseExpr<*eof) False [
+        "1*-2"]
+
 
 tparseStmntList = undefined
 
@@ -240,6 +278,7 @@ testAll = do
     tparseTerm
     tparseNumber
     tparseFor
+    tparseExpr
     -- tparseDesigProp
     -- tparseDesignator
     -- tparseString
@@ -247,4 +286,3 @@ testAll = do
 testFiles = do
     let path = "f:/Paskell/pascal-src/"
     parseFromFile parseProgram $ path ++ "p1.pas"
-    

@@ -12,11 +12,11 @@ data Reserved = KWand | KWdownto | KWif | KWor | KWthen |
 data OP = OPplus | OPminus | OPstar | OPdiv | OPidiv | OPmod | 
     OPand | OPeq | OPneq | OPless | OPgreater | OPle | OPge | 
     OPin | OPor deriving (Show)
-data OPunary = OPunary OP deriving (Show)
-data OPadd = OPadd OP deriving (Show)
-data OPmult = OPmult OP deriving (Show)
-data OPrelation = OPrelation OP deriving (Show)
-data Number = NUMint Int | NUMreal Double deriving (Show)
+-- data OPunary = OPunary OP deriving (Show)
+-- data OPadd = OPadd OP deriving (Show)
+-- data OPmult = OPmult OP deriving (Show)
+-- data OPrelation = OPrelation OP deriving (Show)
+-- data Number = NUMint Int | NUMreal Double deriving (Show)
 
 data Type = TYident Ident | TYchar | TYboolean |
     TYinteger | TYreal | TYstring deriving (Show)
@@ -54,12 +54,18 @@ data DesigList = DesigList [Designator] deriving (Show)
 data DesigProp = DesigPropIdent Ident | DesigPropExprList ExprList | 
     DesigPropPtr deriving (Show)
 
-data Expr  = Expr SimpleExpr (Maybe OPrelation) (Maybe SimpleExpr) deriving (Show)
 data ExprList = ExprList [Expr] deriving (Show)
-data SimpleExpr = SimpleExpr (Maybe OPunary) Term [OPadd] [Term] deriving (Show)
-data Term = Term Factor [OPmult] [Factor] deriving (Show)
-data Factor = FactorNum Number | FactorStr String | FactorTrue | 
-    FactorFalse | FactorNil | FactorDesig Designator | FactorNot Factor |
-    FactorExpr Expr | FactorFuncCall FuncCall deriving (Show)
+data Expr = Relation Expr OP Expr
+    | Unary OP Expr
+    | Mult Expr OP Expr
+    | Add Expr OP Expr
+    | FactorInt Int | FactorReal Double 
+    | FactorStr String 
+    | FactorTrue | FactorFalse 
+    | FactorNil 
+    | FactorDesig Designator 
+    | FactorNot Expr
+    | FactorParens Expr 
+    | FactorFuncCall FuncCall deriving (Show)
 
 data FuncCall = FuncCall Ident ExprList deriving (Show)

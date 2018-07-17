@@ -68,10 +68,10 @@ makeOPparser :: [(String, OP)] -> Parser OP
 makeOPparser xs = let f (a, b) = try (stringTok a >> return b) 
     in foldr (<|>) (fail "Expecting operator") (map f xs)
 parseOP         = makeOPparser operators -- any OP (relation, additive, mult, unary)
-parseOPunary    = OPunary    <$> makeOPparser unaryops
-parseOPadd      = OPadd      <$> makeOPparser addops
-parseOPmult     = OPmult     <$> makeOPparser multops
-parseOPrelation = OPrelation <$> makeOPparser relationops
+parseOPunary    = {-OPunary    <$>-} makeOPparser unaryops
+parseOPadd      = {-OPadd      <$>-} makeOPparser addops
+parseOPmult     = {-OPmult     <$>-} makeOPparser multops
+parseOPrelation = {-OPrelation <$>-} makeOPparser relationops
 
 parseDesignator :: Parser Designator
 parseDesignator = Designator <$> parseIdent <*> try (many parseDesigProp)
@@ -85,37 +85,39 @@ parseDesigProp =
 
 parseDesigList :: Parser DesigList
 parseDesigList = DesigList <$> many1 parseDesignator
-
+-----------------------------------------------------------------------------------
 parseExpr :: Parser Expr
-parseExpr = parseSimpleExpr
-    >>= \se -> (optionMaybe $
-        (,) <$> parseOPrelation <*> parseSimpleExpr)
-    >>= \m -> return $ case m of Just (x,y) -> Expr se (Just x) (Just y)
-                                 Nothing    -> Expr se Nothing Nothing
+parseExpr = (try $ Relation <$> parseSimpleExpr <*> parseOPrelation <*> parseSimpleExpr)
+    <|> parseSimpleExpr
+
+
+parseSimpleExpr :: Parser Expr
+parseSimpleExpr = 
+    (try $ Add   <$> parseTerm    <*> parseOPadd <*> parseSimpleExpr)
+    <|> (try $ Unary <$> parseOPunary <*> (Add <$> parseTerm <*> parseOPadd <*> parseSimpleExpr))
+    <|> (try $ Unary <$> parseOPunary <*> parseSimpleExpr)
+    <|> parseTerm
+
+parseTerm :: Parser Expr
+parseTerm = (try $ Mult <$> parseFactor <*> parseOPmult <*> parseTerm)
+    <|> parseFactor
+    
+---------------------------------
+
 
 parseExprList :: Parser ExprList -- non-empty
 parseExprList = ExprList <$> many1 parseExpr
 
-parseSimpleExpr :: Parser SimpleExpr
-parseSimpleExpr = tok $ (optionMaybe parseOPunary) 
-    >>= \m -> parseTerm 
-    >>= \t -> (try (many $ (,) <$> parseOPadd <*> parseTerm) <|> return [])
-    >>= \xs -> return $ uncurry (SimpleExpr m t) (unzip xs)
 
-parseTerm :: Parser Term
-parseTerm = parseFactor 
-    >>= \x -> (try (many ((,) <$> parseOPmult <*> parseFactor)) <|> return [])
-    >>= \xs -> return $ uncurry (Term x) (unzip xs)
-
-parseFactor :: Parser Factor
+parseFactor :: Parser Expr
 parseFactor = 
         (parseKWnil >> return FactorNil)
     <|> (parseKWnot >> FactorNot <$> parseFactor)
     <|> (exactTok "true"  >> return FactorTrue) -- todo double check exactTok is the right choice
     <|> (exactTok "false" >> return FactorFalse) 
+    <|> (parseNumber)
     <|> (FactorStr <$> parseString)
-    <|> (FactorNum <$> parseNumber)
-    <|> (FactorExpr <$> betweenCharTok '[' ']' parseExpr)
+    <|> (FactorParens <$> betweenCharTok '(' ')' parseExpr)
     <|> (FactorDesig <$> parseDesignator)
     <|> (FactorFuncCall <$> parseFuncCall)
 
@@ -177,14 +179,14 @@ parseStmntIO = undefined
 parseFuncCall :: Parser FuncCall
 parseFuncCall = fail ""
 
-parseNumber :: Parser Number
+parseNumber :: Parser Expr
 parseNumber = tok $ do
     pre  <- many1 digit
     post <- ((try $ char '.') >> ('.':) <$> many1 digit) <|> pure ""
     let xs = pre ++ post
     return $ if '.' `elem` xs
-            then NUMreal $ read xs
-            else NUMint  $ read xs
+            then FactorReal $ read xs
+            else FactorInt  $ read xs
 
 parseString :: Parser String
 parseString = between (char '"') (charTok '"') $ many $
