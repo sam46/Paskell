@@ -7,6 +7,8 @@ import Utils
 import Paskell
 import ExtraParsers
 import KeywordParse
+import Grammar
+import TypeCheck
 
 checkPass :: Parser a -> String -> Bool
 checkPass p inp = case p' p inp of Right _ -> True
@@ -265,6 +267,32 @@ tparseFor = do
         "for123 x:= 3+3 to 5-5 do begin y:=3;z:=10+5end",
         "for x:= 3+3 down 5-5 do y:=true"]
 
+
+tgettype = 
+    let foo s env t = case p' parseStatement s 
+            of Right st -> putStrLn $ show $ t == typechk env st  in
+    do
+        foo "x := 1" [(Ident "x", TYint)] [(Ident "x", TYint)] 
+        foo "x := 1+1" [(Ident "x", TYint)] [(Ident "x", TYint)]
+        foo "x := 1+1*2" [(Ident "x", TYint)] [(Ident "x", TYint)] 
+        foo "x := 1.2" [(Ident "x", TYreal)] [(Ident "x", TYreal)] 
+        foo "x := 1.2 + 1.2" [(Ident "x", TYreal)] [(Ident "x", TYreal)] 
+        foo "x := 1 + 1.2" [(Ident "x", TYreal)] [(Ident "x", TYreal)] 
+        foo "x := 1.2 + 1" [(Ident "x", TYreal)] [(Ident "x", TYreal)] 
+        foo "x := True or False" [(Ident "x", TYbool)] [(Ident "x", TYbool)] 
+        foo "x := True or y" [(Ident "x", TYbool), (Ident "y", TYbool)] [(Ident "x", TYbool), (Ident "y", TYbool)]
+        foo "x := +1" [(Ident "x", TYint)] [(Ident "x", TYint)]  
+        foo "x := + 1.2" [(Ident "x", TYreal)] [(Ident "x", TYreal)]  
+        foo "x := (1 < 2)" [(Ident "x", TYbool)] [(Ident "x", TYbool)]
+        foo "x := (1 < 2.3)" [(Ident "x", TYbool)] [(Ident "x", TYbool)]
+        foo "x := (true > false)" [(Ident "x", TYbool)] [(Ident "x", TYbool)]
+        foo "x := (\"a\" = \"b\")" [(Ident "x", TYbool)] [(Ident "x", TYbool)]
+        foo "x := true or (1 < 2)" [(Ident "x", TYbool)] [(Ident "x", TYbool)]
+        foo "x := (1 < y) or z" [(Ident "x", TYbool), (Ident "z", TYbool), (Ident "y", TYreal)] [(Ident "x", TYbool), (Ident "z", TYbool), (Ident "y", TYreal)]
+        
+        -- Fail:
+        -- foo "x := True or y" [(Ident "x", TYbool), (Ident "y", TYint)] [(Ident "x", TYbool), (Ident "y", TYint)] 
+    
 
 testAll = do
     tparseKeywords
