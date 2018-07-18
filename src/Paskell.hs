@@ -21,12 +21,12 @@ parseIdent = tok . try $ do
 
 parseType :: Parser Type
 parseType = tok $ 
-    (TYident   <$> parseIdent)                 <|>
-    (TYboolean <$  stringIgnoreCase "boolean") <|>
-    (TYinteger <$  stringIgnoreCase "integer") <|>
-    (TYreal    <$  stringIgnoreCase "real")    <|>
-    (TYchar    <$  stringIgnoreCase "char")    <|>
-    (TYstring  <$  stringIgnoreCase "string")
+    (TYident <$> parseIdent)                 <|>
+    (TYbool  <$  stringIgnoreCase "boolean") <|>
+    (TYint   <$  stringIgnoreCase "integer") <|>
+    (TYreal  <$  stringIgnoreCase "real")    <|>
+    (TYchar  <$  stringIgnoreCase "char")    <|>
+    (TYstr   <$  stringIgnoreCase "string")
 
 parseIdentList :: Parser IdentList
 parseIdentList = IdentList <$> sepBy1 parseIdent commaTok
@@ -195,11 +195,7 @@ parseString = between (char '"') (charTok '"') $ many $
 
 ------------------------------------------------------
 contents :: Parser a -> Parser a
-contents p = do
-    whitespace
-    r <- p
-    eof
-    return r
+contents p = whitespace *> p <* eof
 
 parseToplevel :: String -> Either ParseError Statement
 parseToplevel = parse (contents parseStatement) "<stdin>"

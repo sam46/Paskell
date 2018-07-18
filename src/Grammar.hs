@@ -18,8 +18,8 @@ data OP = OPplus | OPminus | OPstar | OPdiv | OPidiv | OPmod |
 -- data OPrelation = OPrelation OP deriving (Show)
 -- data Number = NUMint Int | NUMreal Double deriving (Show)
 
-data Type = TYident Ident | TYchar | TYboolean |
-    TYinteger | TYreal | TYstring deriving (Show)
+data Type = TYident Ident | TYchar | TYbool |
+    TYint | TYreal | TYstr deriving (Show)
 data Ident = Ident String deriving (Show)
 data IdentList = IdentList [Ident] deriving (Show)
 
