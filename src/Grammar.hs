@@ -11,7 +11,7 @@ data Reserved = KWand | KWdownto | KWif | KWor | KWthen |
 
 data OP = OPplus | OPminus | OPstar | OPdiv | OPidiv | OPmod | 
     OPand | OPeq | OPneq | OPless | OPgreater | OPle | OPge | 
-    OPin | OPor deriving (Show)
+    OPin | OPor deriving (Show, Eq)
 -- data OPunary = OPunary OP deriving (Show)
 -- data OPadd = OPadd OP deriving (Show)
 -- data OPmult = OPmult OP deriving (Show)
@@ -19,8 +19,8 @@ data OP = OPplus | OPminus | OPstar | OPdiv | OPidiv | OPmod |
 -- data Number = NUMint Int | NUMreal Double deriving (Show)
 
 data Type = TYident Ident | TYchar | TYbool |
-    TYint | TYreal | TYstr deriving (Show)
-data Ident = Ident String deriving (Show)
+    TYint | TYreal | TYstr deriving (Show, Eq)
+data Ident = Ident String deriving (Show, Eq)
 data IdentList = IdentList [Ident] deriving (Show)
 
 data Program = Program Ident Block deriving (Show)
