@@ -13,6 +13,13 @@ typechk env (Assignment (Designator x _) expr) =
         Just True -> env
         _         -> error "type error" 
 
+typechk env (StatementIf x s1 ms2) =
+    if (gettype env x) /= TYbool 
+    then error "If condition must be bool" 
+    else let tchk1 = typechk env s1
+             tchk2 = case ms2 of Just s2 -> Just $ typechk env s2
+                                 Nothing -> Nothing
+         in seq tchk2 env
 
 gettype :: Env -> Expr -> Type
 gettype env (FactorInt _ ) = TYint

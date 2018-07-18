@@ -10,6 +10,11 @@ import KeywordParse
 import Grammar
 import TypeCheck
 
+-- import Control.Exception (ErrorCall(ErrorCall), evaluate)
+-- import Test.HUnit.Base  ((~?=), Test(TestCase, TestList))
+-- import Test.HUnit.Text (runTestTT)
+-- import Test.HUnit.Tools (assertRaises)
+
 checkPass :: Parser a -> String -> Bool
 checkPass p inp = case p' p inp of Right _ -> True
                                    Left  _ -> False
@@ -292,7 +297,15 @@ tgettype =
         
         -- Fail:
         -- foo "x := True or y" [(Ident "x", TYbool), (Ident "y", TYint)] [(Ident "x", TYbool), (Ident "y", TYint)] 
-    
+   
+ttypechkIf = 
+    let foo s env t = case p' parseStatement s 
+            of Right st -> putStrLn $ show $ t == typechk env st in
+    do
+        foo "if true then x:=1" [(Ident "x", TYint)] [(Ident "x", TYint)] 
+        foo "if true then x:=1 else x:= false" [(Ident "x", TYint)] [(Ident "x", TYint)] 
+        foo "if true then x:=1 else x:= false" [(Ident "x", TYint)] [(Ident "x", TYint)] 
+
 
 testAll = do
     tparseKeywords
