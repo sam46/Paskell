@@ -10,18 +10,24 @@ import KeywordParse
 import Grammar
 import TypeCheck
 
--- import Control.Exception (ErrorCall(ErrorCall), evaluate)
--- import Test.HUnit.Base  ((~?=), Test(TestCase, TestList))
--- import Test.HUnit.Text (runTestTT)
--- import Test.HUnit.Tools (assertRaises)
+import Control.Exception
+import Control.Monad
+import Test.HUnit
+
+assertException :: (Exception e, Eq e) => e -> IO a -> IO ()
+assertException ex action =
+    handleJust isWanted (const $ return ()) $ do
+        action
+        assertFailure $ "Expected exception: " ++ show ex
+  where isWanted = guard . (== ex)
 
 checkPass :: Parser a -> String -> Bool
 checkPass p inp = case p' p inp of Right _ -> True
                                    Left  _ -> False
 checkFail p inp = not $ checkPass p inp
 
-test :: [(Parser a, Bool, String)] -> IO ()
-test testcases = do
+test' :: [(Parser a, Bool, String)] -> IO ()
+test' testcases = do
     let res = map (\(p, doPass, inp) -> (if doPass then checkPass else checkFail) p inp) testcases
     putStrLn $ "Running " ++ (show $ length res) ++ " tests:"
     mapM putStrLn $ (`map` (enumerate res))
@@ -33,7 +39,7 @@ test testcases = do
 -- testParser parseIdent True ["X", "111"]
 
 testParser p doPass xs = let tuple3 (a,b) c = (a,b,c) 
-    in test $ zipWith tuple3 (repeat (p, doPass)) xs 
+    in test' $ zipWith tuple3 (repeat (p, doPass)) xs 
 
 tparseIdent = do
     testParser parseIdent True [
@@ -273,38 +279,34 @@ tparseFor = do
         "for x:= 3+3 down 5-5 do y:=true"]
 
 
-tgettype = 
-    let foo s env t = case p' parseStatement s 
-            of Right st -> putStrLn $ show $ t == typechk env st  in
-    do
-        foo "x := 1" [(Ident "x", TYint)] [(Ident "x", TYint)] 
-        foo "x := 1+1" [(Ident "x", TYint)] [(Ident "x", TYint)]
-        foo "x := 1+1*2" [(Ident "x", TYint)] [(Ident "x", TYint)] 
-        foo "x := 1.2" [(Ident "x", TYreal)] [(Ident "x", TYreal)] 
-        foo "x := 1.2 + 1.2" [(Ident "x", TYreal)] [(Ident "x", TYreal)] 
-        foo "x := 1 + 1.2" [(Ident "x", TYreal)] [(Ident "x", TYreal)] 
-        foo "x := 1.2 + 1" [(Ident "x", TYreal)] [(Ident "x", TYreal)] 
-        foo "x := True or False" [(Ident "x", TYbool)] [(Ident "x", TYbool)] 
-        foo "x := True or y" [(Ident "x", TYbool), (Ident "y", TYbool)] [(Ident "x", TYbool), (Ident "y", TYbool)]
-        foo "x := +1" [(Ident "x", TYint)] [(Ident "x", TYint)]  
-        foo "x := + 1.2" [(Ident "x", TYreal)] [(Ident "x", TYreal)]  
-        foo "x := (1 < 2)" [(Ident "x", TYbool)] [(Ident "x", TYbool)]
-        foo "x := (1 < 2.3)" [(Ident "x", TYbool)] [(Ident "x", TYbool)]
-        foo "x := (true > false)" [(Ident "x", TYbool)] [(Ident "x", TYbool)]
-        foo "x := (\"a\" = \"b\")" [(Ident "x", TYbool)] [(Ident "x", TYbool)]
-        foo "x := true or (1 < 2)" [(Ident "x", TYbool)] [(Ident "x", TYbool)]
-        foo "x := (1 < y) or z" [(Ident "x", TYbool), (Ident "z", TYbool), (Ident "y", TYreal)] [(Ident "x", TYbool), (Ident "z", TYbool), (Ident "y", TYreal)]
-        
-        -- Fail:
-        -- foo "x := True or y" [(Ident "x", TYbool), (Ident "y", TYint)] [(Ident "x", TYbool), (Ident "y", TYint)] 
-   
-ttypechkIf = 
-    let foo s env t = case p' parseStatement s 
-            of Right st -> putStrLn $ show $ t == typechk env st in
-    do
-        foo "if true then x:=1" [(Ident "x", TYint)] [(Ident "x", TYint)] 
-        foo "if true then x:=1 else x:= false" [(Ident "x", TYint)] [(Ident "x", TYint)] 
-        foo "if true then x:=1 else x:= false" [(Ident "x", TYint)] [(Ident "x", TYint)] 
+tgettype = TestList [
+    let s = "x := 1"               in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint)])   $ Right [(Ident "x", TYint)]                                                                                      ,          
+    let s = "x := 1+1"             in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint)])   $ Right  [(Ident "x", TYint)]                                                                                     ,                                              
+    let s = "x := 1+1*2"           in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint)])  $ Right  [(Ident "x", TYint)]                                                                                      ,                
+    let s = "x := 1.2"             in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYreal)])  $ Right  [(Ident "x", TYreal)]                                                                                    ,                          
+    let s = "x := 1.2 + 1.2"       in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYreal)])  $ Right   [(Ident "x", TYreal)]                                                                                   ,                                
+    let s = "x := 1 + 1.2"         in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYreal)])  $ Right   [(Ident "x", TYreal)]                                                                                   ,                                                              
+    let s = "x := 1.2 + 1"         in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYreal)]) $ Right   [(Ident "x", TYreal)]                                                                                    ,                      
+    let s = "x := True or False"   in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYbool)])  $ Right   [(Ident "x", TYbool)]                                                                                   ,        
+    let s = "x := True or y"       in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYbool), (Ident "y", TYbool)])  $ Right [(Ident "x", TYbool), (Ident "y", TYbool)]                                           ,                                                    
+    let s = "x := +1"              in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint)])  $ Right [(Ident "x", TYint)]                                                                                       ,                               
+    let s = "x := + 1.2"           in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYreal)]) $ Right  [(Ident "x", TYreal)]                                                                                     ,                            
+    let s = "x := (1 < 2)"         in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYbool)]) $ Right   [(Ident "x", TYbool)]                                                                                    ,              
+    let s = "x := (1 < 2.3)"       in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYbool)]) $ Right  [(Ident "x", TYbool)]                                                                                     ,            
+    let s = "x := (true > false)"  in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYbool)]) $ Right  [(Ident "x", TYbool)]                                                                                     ,                           
+    let s = "x := (\"a\" = \"b\")" in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYbool)]) $ Right  [(Ident "x", TYbool)]                                                                                     ,  
+    let s = "x := true or (1 < 2)" in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYbool)])  $ Right  [(Ident "x", TYbool)]                                                                                    ,      
+    let s = "x := (1 < y) or z"    in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYbool), (Ident "z", TYbool), (Ident "y", TYreal)])  $ Right  [(Ident "x", TYbool), (Ident "z", TYbool), (Ident "y", TYreal)] ]
+    -- Fail:
+    -- foo "x := True or y" [(Ident "x", TYbool), (Ident "y", TYint)] [(Ident "x", TYbool), (Ident "y", TYint)] 
+
+
+ttypechkIf = TestList [
+    let s = "if true then x:=1"                in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint)]) $ Right [(Ident "x", TYint)],
+    let s = "if true then x:=1 else x:= 2"     in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint)]) $ Right [(Ident "x", TYint)],
+    let s = "if (5*5) then x:=1"               in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint)]) $ Left ""                   ,
+    let s = "if true then x:=1 else x:= false" in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint)]) $ Left ""                   ,   
+    let s = "if true then x:= false else x:=2" in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint)]) $ Left "" ]
 
 
 testAll = do

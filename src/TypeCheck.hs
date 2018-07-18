@@ -107,3 +107,6 @@ gettype env (Relation x1 op x2) = -- todo more intricate type comparsions
         _  -> pickLeft t1 t2
     where t1 = gettype env x1
           t2 = gettype env x2
+
+typechkStr s env = case p' parseStatement s of 
+        Right st -> typechk env st
