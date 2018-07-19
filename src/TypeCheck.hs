@@ -17,18 +17,17 @@ isNum = (`elem` [TYint, TYreal])
 
 -- Convert a variable lookup from Maybe to Either
 lookupIdent :: Ident -> Env -> Either String Type
-lookupIdent x env = case (lookup x env)  of 
+lookupIdent x env = case (lookup x env) of 
     Nothing -> Left $ "Unknown variable " ++ show x
     Just t  -> Right t
 
 typechk :: Env -> Statement -> Either String Env
 typechk env (Assignment (Designator x _) expr) = 
-    gettype env expr >>=  \t -> 
-        lookupIdent x env >>=
-            \xtype -> if xtype == t
-                      then Right env 
-                      else Left $ "Can't assign " ++ 
-                           (show t) ++ " to " ++ show xtype
+    gettype env expr >>= \t -> lookupIdent x env >>= \xtype -> 
+        if xtype == t
+        then Right env 
+        else Left $ "Can't assign " ++ 
+            (show t) ++ " to " ++ show xtype
 
 typechk env (StatementIf expr s1 ms2) =
     gettype env expr >>= \t ->
