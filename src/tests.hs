@@ -150,18 +150,20 @@ tparseBlock = do
 tparseProgram = do
     putStrLn "Testing parseProgram"
     testParser parseProgram True [    
-        "program mypro; var x:char;.", 
-        "program mypro; var x:char1;.", 
-        "  program   mypro  ;   var x : char;. ", 
-        "program mypro;.", 
-        "program mypro; var x:char; type t=boolean; ." ]
+        "program mypro; var x:char;begin end.", 
+        "program mypro; var x:char1;begin end.", 
+        "program   mypro  ;   var x : char;begin end. ", 
+        "program mypro;begin end.", 
+        "program mypro; var x:char; type t=boolean;begin end ." ]
     testParser parseProgram False [    
-        "program mypro; var x:char;", 
-        "program mypro; var x:char@;.",  
-        " mypro; var x:char;.", 
-        "  program   mypro   var x : char;. ", 
-        "program var;.", 
-        "program mypro; var x:char; var." ]
+        "program mypro; var x:char;begin end", 
+        "program mypro; var x:char@;begin end.",  
+        " mypro; var x:char;begin end.", 
+        "  program   mypro   var x : char;.begin end ", 
+        "program var;begin end.", 
+        "program p;", 
+        "program p;var x:char;", 
+        "program mypro; var x:char; var begin end." ]
 
 tparseOP = do
     testParser parseOP True $ (map fst operators) ++ [
