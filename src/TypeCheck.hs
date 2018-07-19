@@ -39,6 +39,22 @@ typechk env (StatementIf expr s1 ms2) =
             Just tchk2 -> tchk1 >> tchk2 >> Right env  
             Nothing    -> tchk1 >> Right env
 
+typechk env (StatementFor i x1 _ x2 s) =
+    lookupIdent i env >>= \t -> 
+        if (t /= TYint) && (t /= TYchar)
+        then Left $ "Ordinal type expected, got " ++ show t
+        else gettype env x1 >>= \t1 ->
+            if t1 /= t 
+            then Left $ "Can't assign " ++ (show t1) ++ " to " ++ show t
+            else gettype env x2 >>= \t2 ->
+                if t2 /= t
+                then Left $ (show t) ++ " expected, got " ++ show t2 
+                else typechk env s
+
+ 
+typechk env (Statement (StatementList xs)) =
+    foldr (>>) (Right env) (map (typechk env) xs)
+
 gettype :: Env -> Expr -> Either String Type
 gettype env FactorTrue          = Right TYbool
 gettype env FactorFalse         = Right TYbool
