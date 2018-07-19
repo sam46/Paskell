@@ -24,7 +24,7 @@ data Ident = Ident String deriving (Show, Eq)
 data IdentList = IdentList [Ident] deriving (Show)
 
 data Program = Program Ident Block deriving (Show)
-data Block = Block [Decl] StatementList deriving (Show)
+data Block = Block [Decl] Statement deriving (Show)
 
 data Decl = DeclVar [VarDecl] | DeclType [TypeDecl] |
     DeclConst [ConstDecl] deriving (Show)
@@ -32,14 +32,13 @@ data VarDecl = VarDecl IdentList Type deriving (Show)
 data TypeDecl = TypeDecl IdentList Type deriving (Show)
 data ConstDecl = ConstDecl deriving (Show) -- todo 
 
-data StatementList = StatementList [Statement] deriving (Show)
-data Statement = Statement StatementList |
+data Statement = StatementSeq [Statement]  |
     Assignment Designator Expr |
     ProcCall Ident (Maybe ExprList) |
     StatementIf Expr Statement (Maybe Statement) |
     StatementCase | -- todo
     StatementWhile Expr Statement |
-    StatementRepeat StatementList Expr |
+    StatementRepeat Statement Expr |
     StatementFor Ident Expr ToDownTo Expr Statement |
     StatementIO StatementIO |
     StatementMem Mem Ident |

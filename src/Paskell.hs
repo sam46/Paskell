@@ -56,7 +56,7 @@ parseProgram = between parseKWprogram (charTok '.')
         return $ Program prog blok)
 
 parseBlock :: Parser Block
-parseBlock = Block <$> many parseDecl <*> parseStmntList
+parseBlock = Block <$> many parseDecl <*> parseStmntSeq
 
 parseDecl :: Parser Decl
 parseDecl = 
@@ -118,14 +118,14 @@ parseFactor =
     <|> (FactorDesig <$> parseDesignator)
     <|> (FactorFuncCall <$> parseFuncCall)
 
-parseStmntList :: Parser StatementList -- non-empty
-parseStmntList = parseKWbegin 
+parseStmntSeq :: Parser Statement -- non-empty
+parseStmntSeq = parseKWbegin 
     >>  (sepBy1 parseStatement semicolTok)
     >>= \stmts -> parseKWend 
-    >>= \_     -> return $ StatementList stmts
+    >>= \_     -> return $ StatementSeq stmts
 
 parseStatement :: Parser Statement 
-parseStatement = choice [Statement <$> parseStmntList,
+parseStatement = choice [parseStmntSeq,
     parseAssignment, parseIf, parseFor, pure StatementEmpty]
 
 parseIf :: Parser Statement

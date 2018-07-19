@@ -51,8 +51,10 @@ typechk env (StatementFor i x1 _ x2 s) =
                 then Left $ (show t) ++ " expected, got " ++ show t2 
                 else typechk env s
 
- 
-typechk env (Statement (StatementList xs)) =
+
+typechk env StatementEmpty = Right env
+
+typechk env (StatementSeq xs) =
     foldr (>>) (Right env) (map (typechk env) xs)
 
 gettype :: Env -> Expr -> Either String Type
