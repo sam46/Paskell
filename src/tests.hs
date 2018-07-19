@@ -333,6 +333,62 @@ ttypechkFor = TestList [ -- todo add TYchar test cases
     let s = "for x:=1 to 1.5 do y:=true"    in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint), (Ident "y", TYbool)])    $ Left ""                   ,
     let s = "for x:=1*z to 10 do y:=true"   in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint), (Ident "y", TYbool)])    $ Left ""   ]               
 
+tparseProcDecl = do
+    testParser (parseProcDecl<*eof) True [
+        "procedure fo; begin end; ",
+        "procedure fo; var x,y: integer; begin end;",
+        "procedure fo(); type x=boolean; begin end;",
+        "procedure fo; begin x:= 1 end;",
+        "procedure fo; begin x:= 1 end;",
+        "procedure fo(); begin x:= 1 end;",
+        "procedure fo(p1:char); begin end;",
+        "procedure fo(p1:char); var x,y: integer; begin end;",
+        "procedure fo(p1:char); type x=boolean; begin end;",
+        "procedure fo(p1:char); begin x:= 1 end;",
+        "Procedure fo(p1:char); begin x:= 1 end;",
+        "procedure fo(p1:char); begin x:= 1 end;",
+        "procedure fo(p1,p2:char; p3:real); begin x:= 1 end ; " ]
+    testParser (parseProcDecl<*eof) False [
+        "",
+        "procedure fo; begin end; abc",
+        "procedure fo;",
+        "procedure fo begin end; ",
+        "procedure fo; begin end ",
+        "procedure var; begin end;",
+        "procedure fo(;); begin end;",
+        "procedure fo(p1:char;); begin end;" ]
+
+tparseFuncDecl = do
+    testParser (parseFuncDecl<*eof) True [
+        "function fo:integer; begin end;",
+        "function fo:mytype; var x,y: integer; begin end;",
+        "function fo():real; type x=boolean; begin end;",
+        "function fo : real; begin x:= 1 end;",
+        "Function fo : real; begin x:= 1 end;",
+        "function fo() : real; begin x:= 1 end;",
+        "function fo(p1:char): real; begin end;",
+        "function fo(p1:char): real ; var x,y: integer; begin end;",
+        "function fo(p1:char) : real; type x=boolean; begin end;",
+        "function fo(p1:char):real ; begin x:= 1 end;",
+        "function fo(p1:char): real; begin x:= 1 end;",
+        "function fo(p1:char): real; begin x:= 1 end;",
+        "function fo(p1,p2:char; p3:real): real; begin x:= 1 end; " ]
+    testParser (parseFuncDecl<*eof) False [
+        "",
+        "function fo:integer; begin end; abc",
+        "function fo;",
+        "function fo:integer begin end;",
+        "function fo:integer; begin end ",
+        "function fo; begin end ",
+        "function var; begin end;",
+        "function fo(;); begin end;",
+        "function fo(p1:char;); begin end;",
+        "function fo: real;",
+        "function fo: real; begin end ",
+        "function var: real; begin end;",
+        "function fo(;): real; begin end;",
+        "function fo(p1:char;): real; begin end;" ]
+
 testAll = do
     tparseKeywords
     tparseIdent

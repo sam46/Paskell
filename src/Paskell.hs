@@ -193,6 +193,41 @@ parseString = between (char '"') (charTok '"') $ many $
        Nothing -> if c == 'u' then undefined  -- todo hex
                   else unexpected ("char in string " ++ [c]))
 
+-- parseSubprogDeclList
+parseProcDecl :: Parser ProcDecl 
+parseProcDecl = do
+    parseKWprocedure
+    f <- parseIdent
+    params <- (try parseFormalParams) <|> (pure [])
+    semicolTok
+    blk <- parseBlock
+    semicolTok
+    return $ ProcDecl f params blk
+
+parseFuncDecl :: Parser FuncDecl
+parseFuncDecl = do
+    parseKWfunction
+    f <- parseIdent
+    params <- (try parseFormalParams) <|> (pure [])
+    charTok ':'
+    rtype <- parseType
+    semicolTok
+    blk <- parseBlock
+    semicolTok
+    return $ FuncDecl f params rtype blk
+
+parseFormalParams :: Parser [FormalParam]
+parseFormalParams = betweenCharTok '(' ')' $
+    sepBy parseFormalParam semicolTok
+
+parseFormalParam :: Parser FormalParam
+parseFormalParam = do
+    mvar <- (== Nothing) <$> (optionMaybe parseKWvar)
+    idents <- parseIdentList
+    charTok ':'
+    t <- parseType
+    return $ FormalParam mvar idents t
+
 ------------------------------------------------------
 contents :: Parser a -> Parser a
 contents p = whitespace *> p <* eof

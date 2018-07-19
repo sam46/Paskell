@@ -7,7 +7,7 @@ data Reserved = KWand | KWdownto | KWif | KWor | KWthen |
     KWfor | KWnil | KWrecord | KWvar | KWdiv | KWfunction |
     KWnot | KWrepeat | KWwhile | KWdo | KWgoto | KWof | 
     KWset | KWwith | KWboolean | KWreal | KWinteger |
-    KWstring | KWchar deriving (Show)
+    KWstring | KWchar deriving (Show, Eq)
 
 data OP = OPplus | OPminus | OPstar | OPdiv | OPidiv | OPmod | 
     OPand | OPeq | OPneq | OPless | OPgreater | OPle | OPge | 
@@ -26,11 +26,21 @@ data IdentList = IdentList [Ident] deriving (Show)
 data Program = Program Ident Block deriving (Show)
 data Block = Block [Decl] Statement deriving (Show)
 
-data Decl = DeclVar [VarDecl] | DeclType [TypeDecl] |
-    DeclConst [ConstDecl] deriving (Show)
+data Decl = DeclVar [VarDecl] 
+    | DeclType [TypeDecl] 
+    | DeclConst [ConstDecl] 
+    | DeclProc [ProcDecl]
+    | DeclFunc [FuncDecl] 
+    deriving (Show)
 data VarDecl = VarDecl IdentList Type deriving (Show)
 data TypeDecl = TypeDecl IdentList Type deriving (Show)
 data ConstDecl = ConstDecl deriving (Show) -- todo 
+
+data ProcDecl = ProcDecl Ident [FormalParam] Block deriving (Show) 
+data FuncDecl = FuncDecl Ident [FormalParam] Type Block deriving (Show) 
+-- data ProcHead = ProcHead Ident [FormalParam]
+-- data FuncHead = FuncHead Ident [FormalParam]
+data FormalParam = FormalParam Bool IdentList Type deriving (Show) 
 
 data Statement = StatementSeq [Statement]  |
     Assignment Designator Expr |
@@ -66,4 +76,4 @@ data Expr = Relation Expr OP Expr
     | FactorNot Expr
     | FactorFuncCall FuncCall deriving (Show)
 
-data FuncCall = FuncCall Ident ExprList deriving (Show)
+data FuncCall = FuncCall Ident ExprList deriving (Show) -- use parseActualParams
