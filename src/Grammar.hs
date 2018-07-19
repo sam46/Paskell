@@ -29,8 +29,8 @@ data Block = Block [Decl] Statement deriving (Show)
 data Decl = DeclVar [VarDecl] 
     | DeclType [TypeDecl] 
     | DeclConst [ConstDecl] 
-    | DeclProc [ProcDecl]
-    | DeclFunc [FuncDecl] 
+    | DeclProc ProcDecl
+    | DeclFunc FuncDecl 
     deriving (Show)
 data VarDecl = VarDecl IdentList Type deriving (Show)
 data TypeDecl = TypeDecl IdentList Type deriving (Show)

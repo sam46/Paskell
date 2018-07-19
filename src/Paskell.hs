@@ -61,7 +61,9 @@ parseBlock = Block <$> many parseDecl <*> parseStmntSeq
 parseDecl :: Parser Decl
 parseDecl = 
     (DeclType <$> parseTypeDecl) <|>
-    (DeclVar <$> parseVarDecl) -- <|>
+    (DeclVar  <$> parseVarDecl)  <|>
+    (DeclFunc <$> parseFuncDecl) <|>
+    (DeclProc <$> parseProcDecl) -- <|>
     -- (DeclConst <$> parseDeclConst)
 
 makeOPparser :: [(String, OP)] -> Parser OP
