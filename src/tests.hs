@@ -116,24 +116,39 @@ tparseTypeDecl = do
         "type =char; x2=char;" ]
 
 tparseBlock = do
-    testParser parseBlock True [
+    putStrLn "Testing parseBlock"
+    testParser (parseBlock<*eof) True [
+        "var x,y:char; z:boolean; var w:char; begin x:=1 end ",
+        "var x,y:char; z:boolean; var w:char; begin x:=1; y:=2 end ",
+        "var x,y:char; z:boolean; var w:char; type x,y=char; var1 , var2, var3= char ; begin x:=1 end ",
+        "var x , y : char ; z:boolean; var w:char; type x , y = char ; var1 , var2, var3= char ;  begin x:=1 end",
+        "type x,y=char; z=boolean; type w=char;begin x:=1 end  ",
+        "type x,y=char; z=boolean; type w=char;" ++ "  type x,y=char; z=boolean; type w=char;" 
+            ++ "var x2,y2:char; z2:boolean; var w2:char;  begin x:=1 end ",
+        "begin x:=1 end",
+        "begin for x:=1 to 2 do begin x:=3; x:=4 end end",
+        "begin x:=1; end",
+        "begin  end",
+        "begin ; ; end" ]
+    testParser (parseBlock<*eof) False [        
         "",
         "@abc ",
-        "var x,y:char; z:boolean; var w:char;abc ",
-        "var x,y:char; z:boolean; var w:char; abc",
-        "var x,y:char; z:boolean; var w:char; type x,y=char; var1 , var2, var3= char ; abc",
-        "var x , y : char ; z:boolean; var w:char; type x , y = char ; var1 , var2, var3= char ; abc ",
-        "type x,y=char; z=boolean; type w=char;abc ",
-        "type x,y=char; z=boolean; type w=char;" ++ "  type x,y=char; z=boolean; type w=char;" 
-            ++ "var x2,y2:char; z2:boolean; var w2:char; abc" ]
-    testParser parseBlock False [
         "type",
         "var",
         "var x=char;",
         "var x:char; type y:char;",
-        "var x:char; type var=char;" ]
-
+        "var x:char; type var=char;",
+        "var x,y:char; z:boolean; var w:char; begin x:=1; y:=2 ",
+        "var x,y:char; z:boolean; var w:char; begin x:=1; y:=2 endabcd",
+        "var x,y:char; z:boolean; var w:char; begin x:=1; y:=2 end abcd",
+        "var x,y:char; z:boolean; var w:char; type x,y=char; var1 , var2, var3= char ; begin 5 end ",
+        "begin x:=1 end.",
+        " begin x:=1 end",
+        "begin  123 end",
+        "begin x:=1 x:=2 end" ]
+        
 tparseProgram = do
+    putStrLn "Testing parseProgram"
     testParser parseProgram True [    
         "program mypro; var x:char;.", 
         "program mypro; var x:char1;.", 
