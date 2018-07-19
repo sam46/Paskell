@@ -74,6 +74,5 @@ data Expr = Relation Expr OP Expr
     | FactorNil 
     | FactorDesig Designator 
     | FactorNot Expr
-    | FactorFuncCall FuncCall deriving (Show)
-
-data FuncCall = FuncCall Ident ExprList deriving (Show) -- use parseActualParams
+    | FuncCall Ident (Maybe ExprList)
+    deriving (Show)

@@ -118,7 +118,7 @@ parseFactor =
     <|> (FactorStr <$> parseString)
     <|> (betweenCharTok '(' ')' parseExpr)
     <|> (FactorDesig <$> parseDesignator)
-    <|> (FactorFuncCall <$> parseFuncCall)
+    <|> (parseFuncCall)
 
 parseStmntSeq :: Parser Statement -- non-empty
 parseStmntSeq = parseKWbegin 
@@ -167,7 +167,8 @@ parseAssignment = parseDesignator >>= \x -> stringTok ":="
     >>= \expr  -> return $ Assignment x expr
 
 parseProcCall :: Parser Statement
-parseProcCall = undefined
+parseProcCall = ProcCall <$> parseIdent 
+    <*> (optionMaybe $ betweenCharTok '(' ')' parseExprList)
 
 parseStmntMem :: Parser Statement
 parseStmntMem = undefined
@@ -175,8 +176,9 @@ parseStmntMem = undefined
 parseStmntIO :: Parser Statement
 parseStmntIO = undefined
 
-parseFuncCall :: Parser FuncCall
-parseFuncCall = fail ""
+parseFuncCall :: Parser Expr
+parseFuncCall = FuncCall <$> parseIdent 
+    <*> (optionMaybe $ betweenCharTok '(' ')' parseExprList)
 
 parseNumber :: Parser Expr
 parseNumber = tok $ do
