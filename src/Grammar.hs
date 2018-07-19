@@ -44,7 +44,7 @@ data FormalParam = FormalParam Bool IdentList Type deriving (Show)
 
 data Statement = StatementSeq [Statement]  |
     Assignment Designator Expr |
-    ProcCall Ident (Maybe ExprList) |
+    ProcCall Ident ExprList |
     StatementIf Expr Statement (Maybe Statement) |
     StatementCase | -- todo
     StatementWhile Expr Statement |
@@ -74,5 +74,5 @@ data Expr = Relation Expr OP Expr
     | FactorNil 
     | FactorDesig Designator 
     | FactorNot Expr
-    | FuncCall Ident (Maybe ExprList)
+    | FuncCall Ident ExprList
     deriving (Show)

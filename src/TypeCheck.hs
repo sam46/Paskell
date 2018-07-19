@@ -64,7 +64,7 @@ gettype env (FactorInt _)       = Right TYint
 gettype env (FactorReal _)      = Right TYreal
 gettype env (FactorStr _)       = Right TYstr
 gettype env (FactorNot x)       = undefined
-gettype env (FactorFuncCall fc) = undefined
+gettype env (FuncCall i xs)     = undefined
 
 gettype env (FactorDesig (Designator x _)) = 
     lookupIdent x env

@@ -83,13 +83,16 @@ parseDesigProp =
     (charTok '.' >> DesigPropIdent <$> parseIdent) <|>
     (charTok '^' >> return DesigPropPtr)           <|>
     (DesigPropExprList <$> betweenCharTok 
-        '[' ']' parseExprList)
+        '[' ']' parseExprList1)
 
 parseDesigList :: Parser DesigList
 parseDesigList = DesigList <$> many1 parseDesignator
 
+parseExprList1 :: Parser ExprList -- non-empty
+parseExprList1 = ExprList <$> sepBy1 parseExpr commaTok
+
 parseExprList :: Parser ExprList -- non-empty
-parseExprList = ExprList <$> many1 parseExpr
+parseExprList = ExprList <$> sepBy parseExpr commaTok
 
 parseExpr :: Parser Expr
 parseExpr = (try $ Relation <$> 
@@ -117,8 +120,8 @@ parseFactor =
     <|> (parseNumber)
     <|> (FactorStr <$> parseString)
     <|> (betweenCharTok '(' ')' parseExpr)
+    <|> (try parseFuncCall)
     <|> (FactorDesig <$> parseDesignator)
-    <|> (parseFuncCall)
 
 parseStmntSeq :: Parser Statement -- non-empty
 parseStmntSeq = parseKWbegin 
@@ -168,7 +171,8 @@ parseAssignment = parseDesignator >>= \x -> stringTok ":="
 
 parseProcCall :: Parser Statement
 parseProcCall = ProcCall <$> parseIdent 
-    <*> (optionMaybe $ betweenCharTok '(' ')' parseExprList)
+    <*> ((betweenCharTok '(' ')' parseExprList) 
+         <|> pure (ExprList []))
 
 parseStmntMem :: Parser Statement
 parseStmntMem = undefined
@@ -178,7 +182,7 @@ parseStmntIO = undefined
 
 parseFuncCall :: Parser Expr
 parseFuncCall = FuncCall <$> parseIdent 
-    <*> (optionMaybe $ betweenCharTok '(' ')' parseExprList)
+    <*> ((betweenCharTok '(' ')' parseExprList))
 
 parseNumber :: Parser Expr
 parseNumber = tok $ do
