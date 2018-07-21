@@ -21,26 +21,23 @@ data OP = OPplus | OPminus | OPstar | OPdiv | OPidiv | OPmod |
 data Type = TYident Ident | TYchar | TYbool |
     TYint | TYreal | TYstr deriving (Show, Eq)
 data Ident = Ident String deriving (Show, Eq)
-data IdentList = IdentList [Ident] deriving (Show)
+data IdentList = IdentList [Ident] deriving (Show, Eq)
 
-data Program = Program Ident Block deriving (Show)
-data Block = Block [Decl] Statement deriving (Show)
+data Program = Program Ident Block deriving (Show, Eq)
+data Block = Block [Decl] Statement deriving (Show, Eq)
 
 data Decl = DeclVar [VarDecl] 
     | DeclType [TypeDecl] 
     | DeclConst [ConstDecl] 
     | DeclProc ProcDecl
     | DeclFunc FuncDecl 
-    deriving (Show)
-data VarDecl = VarDecl IdentList Type deriving (Show)
-data TypeDecl = TypeDecl IdentList Type deriving (Show)
-data ConstDecl = ConstDecl deriving (Show) -- todo 
+    deriving (Show, Eq)
+data VarDecl = VarDecl IdentList Type deriving (Show, Eq)
+data TypeDecl = TypeDecl IdentList Type deriving (Show, Eq)
+data ConstDecl = ConstDecl deriving (Show, Eq) -- todo 
 
-data ProcDecl = ProcDecl Ident [FormalParam] Block deriving (Show) 
-data FuncDecl = FuncDecl Ident [FormalParam] Type Block deriving (Show) 
--- data ProcHead = ProcHead Ident [FormalParam]
--- data FuncHead = FuncHead Ident [FormalParam]
-data FormalParam = FormalParam Bool IdentList Type deriving (Show) 
+data ProcDecl = ProcDecl Ident [(Ident,Type,Bool)] Block deriving (Show, Eq) 
+data FuncDecl = FuncDecl Ident [(Ident,Type,Bool)] Type Block deriving (Show, Eq) 
 
 data Statement = StatementSeq [Statement]  |
     Assignment Designator Expr |
@@ -52,18 +49,18 @@ data Statement = StatementSeq [Statement]  |
     StatementFor Ident Expr ToDownTo Expr Statement |
     StatementIO StatementIO |
     StatementMem Mem Ident |
-    StatementEmpty  deriving (Show)
+    StatementEmpty  deriving (Show, Eq)
 data StatementIO = StatmentRead DesigList | StatementReadLn DesigList |
-    StatementWrite ExprList | StatementWriteLn ExprList deriving (Show) 
-data Mem = MemNew | MemDispose deriving (Show) 
+    StatementWrite ExprList | StatementWriteLn ExprList deriving (Show, Eq) 
+data Mem = MemNew | MemDispose deriving (Show, Eq) 
 type ToDownTo = Bool
 
-data Designator = Designator Ident [DesigProp] deriving (Show)
-data DesigList = DesigList [Designator] deriving (Show)
+data Designator = Designator Ident [DesigProp] deriving (Show, Eq)
+data DesigList = DesigList [Designator] deriving (Show, Eq)
 data DesigProp = DesigPropIdent Ident | DesigPropExprList ExprList | 
-    DesigPropPtr deriving (Show)
+    DesigPropPtr deriving (Show, Eq)
 
-data ExprList = ExprList [Expr] deriving (Show)
+data ExprList = ExprList [Expr] deriving (Show, Eq)
 data Expr = Relation Expr OP Expr
     | Unary OP Expr
     | Mult Expr OP Expr
@@ -75,4 +72,4 @@ data Expr = Relation Expr OP Expr
     | FactorDesig Designator 
     | FactorNot Expr
     | FuncCall Ident ExprList
-    deriving (Show)
+    deriving (Show, Eq)

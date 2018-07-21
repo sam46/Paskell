@@ -224,17 +224,17 @@ parseFuncDecl = do
     semicolTok
     return $ FuncDecl f params rtype blk
 
-parseFormalParams :: Parser [FormalParam]
-parseFormalParams = betweenCharTok '(' ')' $
-    sepBy parseFormalParam semicolTok
+parseFormalParams :: Parser [(Ident,Type,Bool)]
+parseFormalParams = (concatMap id) <$>
+    (betweenCharTok '(' ')' $ sepBy parseFormalParam semicolTok)
 
-parseFormalParam :: Parser FormalParam
+parseFormalParam :: Parser [(Ident,Type,Bool)]
 parseFormalParam = do
     mvar <- (== Nothing) <$> (optionMaybe parseKWvar)
-    idents <- parseIdentList
+    (IdentList idents) <- parseIdentList
     charTok ':'
     t <- parseType
-    return $ FormalParam mvar idents t
+    return $ map (\(x, ty) -> (x, ty, mvar)) (zip idents $ repeat t)
 
 ------------------------------------------------------
 contents :: Parser a -> Parser a
