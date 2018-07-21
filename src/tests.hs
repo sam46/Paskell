@@ -321,19 +321,19 @@ tgettype = TestList [
 ttypechkIf = TestList [
     let s = "if true then x:=1"                in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint)]) $ Right [(Ident "x", TYint)],
     let s = "if true then x:=1 else x:= 2"     in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint)]) $ Right [(Ident "x", TYint)],
-    let s = "if (5*5) then x:=1"               in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint)]) $ Left ""                   ,
-    let s = "if true then x:=1 else x:= false" in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint)]) $ Left ""                   ,   
-    let s = "if true then x:= false else x:=2" in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint)]) $ Left "" ]
+    let s = "if (5*5) then x:=1"               in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint)]) $ Left $ TypeMismatch TYbool TYint,
+    let s = "if true then x:=1 else x:= false" in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint)]) $ Left $ TypeMismatch TYint TYbool,   
+    let s = "if true then x:= false else x:=2" in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint)]) $ Left $ TypeMismatch TYint TYbool    ]
 
 ttypechkFor = TestList [ -- todo add TYchar test cases
     let s = "for x:=1 to 10 do x:=1"        in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint)])                         $ Right [(Ident "x", TYint)],
     let s = "for x:=5*x to 1 do y:=true"    in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint), (Ident "y", TYbool)])    $ Right [(Ident "x", TYint), (Ident "y", TYbool)],
-    let s = "for x:=1 to true do x:=2"      in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint)])                         $ Left ""                   ,
-    let s = "for x:=5*x to 1 do x:=true"    in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYbool)])                        $ Left ""                   ,
-    let s = "for x:=1.5 to 10.5 do y:=true" in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYreal), (Ident "y", TYbool)])   $ Left ""                   ,
-    let s = "for x:=1.5 to 10.5 do y:=true" in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint), (Ident "y", TYbool)])    $ Left ""                   ,
-    let s = "for x:=1 to 1.5 do y:=true"    in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint), (Ident "y", TYbool)])    $ Left ""                   ,
-    let s = "for x:=1*z to 10 do y:=true"   in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint), (Ident "y", TYbool)])    $ Left ""   ]               
+    let s = "for x:=1 to true do x:=2"      in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint)])                         $ Left $ TypeMismatch TYint TYbool,
+    let s = "for x:=5*x to 1 do x:=true"    in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYbool)])                        $ Left $ TypeMismatchOrd TYbool,
+    let s = "for x:=1.5 to 10.5 do y:=true" in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYreal), (Ident "y", TYbool)])   $ Left $ TypeMismatchOrd TYreal,
+    let s = "for x:=1.5 to 10.5 do y:=true" in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint), (Ident "y", TYbool)])    $ Left $ TypeMismatch TYint TYreal,
+    let s = "for x:=1 to 1.5 do y:=true"    in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint), (Ident "y", TYbool)])    $ Left $ TypeMismatch TYint TYreal,
+    let s = "for x:=1*z to 10 do y:=true"   in TestCase $ assertEqual s (typechkStr s [(Ident "x", TYint), (Ident "y", TYbool)])    $ Left $ NotInScope (Ident "z")      ]               
 
 tparseProcDecl = do
     testParser (parseProcDecl<*eof) True [
