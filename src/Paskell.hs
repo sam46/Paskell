@@ -161,8 +161,11 @@ parseFor = do
     stmt  <- parseStatement
     return $ StatementFor x expr direc expr2 stmt
 
-parseMem :: Parser Mem
-parseMem = undefined
+parseStmtNew :: Parser Statement
+parseStmtNew = undefined
+
+parseStmtDispose :: Parser Statement
+parseStmtDispose = undefined
 
 parseAssignment :: Parser Statement
 parseAssignment = parseDesignator >>= \x -> stringTok ":="
