@@ -4,13 +4,46 @@ import Grammar
 import Paskell 
 import Utils (p')
 import Data.List
+import Control.Monad (msum)
 
-type Env = [(Ident, Type)]
+-- Environment is a Func/Proc signatures + stack of Contexts
+type Env = (Sig, [Context]) 
+-- Function sig is return type + formal args types
+type Sig = [(Ident, (Type, [Type]))] -- 
+type Context = [(Ident, Type)]
+
 data TyErr = NotInScope Ident
     | TypeMismatch Type Type 
     | TypeMismatchOrd Type
     | TypeMismatchNum Type
+    | ArgCountMismatch
+    | ArgTypeMismatch Type Type
     deriving (Show, Eq)
+
+lookupVar   :: Env -> Ident -> Either TyErr Type
+lookupVar (_, contexts) x = case (find f contexts) of
+                    Nothing  -> Left  $ NotInScope x
+                    Just ctx -> case lookup x ctx of
+                        Nothing  -> Left  $ NotInScope x
+                        Just t   -> Right t
+    where f ctx = case (lookup x ctx) of 
+            Nothing -> False
+            Just _  -> True
+
+lookupFun   :: Env -> Ident -> Either TyErr (Type, [Type])
+lookupFun (sigs, _) x = 
+    case lookup x sigs of
+        Nothing -> Left $ NotInScope x
+        Just f  -> Right f
+
+newBlock  :: Env -> Either TyErr Env
+newBlock (sig, contexts) = Right (sig, [] : contexts)
+
+emptyEnv  :: Env
+emptyEnv = ([], [])
+
+getSig :: FuncDecl -> (Ident, (Type, [Type]))
+getSig (FuncDecl x args t _) = (x, (t, map (\(a,b,c) -> b) args))
 
 -- isLeft :: (Either a b) -> Bool 
 -- isLeft (Left _) = True
@@ -20,15 +53,10 @@ data TyErr = NotInScope Ident
 
 isNum = (`elem` [TYint, TYreal])
 
--- Convert a variable lookup from Maybe to Either
-lookupIdent :: Ident -> Env -> Either TyErr Type
-lookupIdent x env = case (lookup x env) of 
-    Nothing -> Left $ NotInScope x
-    Just t  -> Right t
 
 typechk :: Env -> Statement -> Either TyErr Env
 typechk env (Assignment (Designator x _) expr) = 
-    gettype env expr >>= \t -> lookupIdent x env >>= \xtype -> 
+    gettype env expr >>= \t -> lookupVar env x >>= \xtype -> 
         if xtype == t
         then Right env 
         else Left $ TypeMismatch xtype t 
@@ -44,7 +72,7 @@ typechk env (StatementIf expr s1 ms2) =
             Nothing    -> tchk1 >> Right env
 
 typechk env (StatementFor i x1 _ x2 s) =
-    lookupIdent i env >>= \t -> 
+    lookupVar env i >>= \t -> 
         if (t /= TYint) && (t /= TYchar)
         then Left $ TypeMismatchOrd t
         else gettype env x1 >>= \t1 ->
@@ -68,10 +96,19 @@ gettype env (FactorInt _)       = Right TYint
 gettype env (FactorReal _)      = Right TYreal
 gettype env (FactorStr _)       = Right TYstr
 gettype env (FactorNot x)       = undefined
-gettype env (FuncCall f args)   = undefined
+
+gettype env (FuncCall x (ExprList args)) = lookupFun env x >>=
+    \(t, formalTs) -> 
+        if length formalTs /= length args
+        then Left $ ArgCountMismatch
+        else foldr (>>) (Right t) (map f (zip args formalTs)) 
+    where f (ex, formalT) = (gettype env ex) >>= \exT -> 
+                            if exT /= formalT
+                            then Left $ ArgTypeMismatch formalT exT
+                            else Right exT
 
 gettype env (FactorDesig (Designator x _)) = 
-    lookupIdent x env
+    lookupVar env x
 
 gettype env (Unary op x) = 
     gettype env x >>= \t ->
