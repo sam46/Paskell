@@ -9,14 +9,14 @@ import Control.Monad (msum)
 -- Environment is a Func/Proc signatures + stack of Contexts
 type Env = (Sig, [Context]) 
 -- Function sig is return type + formal args types
-type Sig = [(Ident, (Type, [Type]))] -- 
+type Sig = [(Ident, (Type, [Type]))]
 type Context = [(Ident, Type)]
 
 data TyErr = NotInScope Ident
     | TypeMismatch Type Type 
     | TypeMismatchOrd Type
     | TypeMismatchNum Type
-    | ArgCountMismatch
+    | ArgCountMismatch Int
     | ArgTypeMismatch Type Type
     deriving (Show, Eq)
 
@@ -100,7 +100,7 @@ gettype env (FactorNot x)       = undefined
 gettype env (FuncCall x (ExprList args)) = lookupFun env x >>=
     \(t, formalTs) -> 
         if length formalTs /= length args
-        then Left $ ArgCountMismatch
+        then Left $ ArgCountMismatch (length formalTs)
         else foldr (>>) (Right t) (map f (zip args formalTs)) 
     where f (ex, formalT) = (gettype env ex) >>= \exT -> 
                             if exT /= formalT
