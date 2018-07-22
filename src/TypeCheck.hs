@@ -83,11 +83,11 @@ typechk env (StatementFor i x1 _ x2 s) =
                 then Left $ TypeMismatch t t2 
                 else typechk env s
 
-
 typechk env StatementEmpty = Right env
 
 typechk env (StatementSeq xs) =
     foldr (>>) (Right env) (map (typechk env) xs)
+
 
 gettype :: Env -> Expr -> Either TyErr Type
 gettype env FactorTrue          = Right TYbool
@@ -97,15 +97,15 @@ gettype env (FactorReal _)      = Right TYreal
 gettype env (FactorStr _)       = Right TYstr
 gettype env (FactorNot x)       = undefined
 
-gettype env (FuncCall x (ExprList args)) = lookupFun env x >>=
+gettype env (FuncCall x args) = lookupFun env x >>=
     \(t, formalTs) -> 
         if length formalTs /= length args
         then Left $ ArgCountMismatch (length formalTs)
         else foldr (>>) (Right t) (map f (zip args formalTs)) 
     where f (ex, formalT) = (gettype env ex) >>= \exT -> 
-                            if exT /= formalT
-                            then Left $ ArgTypeMismatch formalT exT
-                            else Right exT
+            if exT /= formalT
+            then Left $ ArgTypeMismatch formalT exT
+            else Right exT
 
 gettype env (FactorDesig (Designator x _)) = 
     lookupVar env x

@@ -17,7 +17,7 @@ parseIdent = tok . try $ do
     let ident = x:xs
     if (toLower <$> ident) `elem` keywords 
     then fail ("Expecting identifier but found keyword " ++ ident)
-    else return (Ident ident)
+    else return ident
 
 parseType :: Parser Type
 parseType = tok $ 
@@ -29,7 +29,7 @@ parseType = tok $
     (TYstr   <$  stringIgnoreCase "string")
 
 parseIdentList :: Parser IdentList
-parseIdentList = IdentList <$> sepBy1 parseIdent commaTok
+parseIdentList = sepBy1 parseIdent commaTok
 
 parseVarDecl :: Parser [VarDecl]
 parseVarDecl = (parseKWvar <?> "expecting keyword 'var'") >>
@@ -89,10 +89,10 @@ parseDesigList :: Parser DesigList
 parseDesigList = DesigList <$> many1 parseDesignator
 
 parseExprList1 :: Parser ExprList -- non-empty
-parseExprList1 = ExprList <$> sepBy1 parseExpr commaTok
+parseExprList1 = sepBy1 parseExpr commaTok
 
 parseExprList :: Parser ExprList -- non-empty
-parseExprList = ExprList <$> sepBy parseExpr commaTok
+parseExprList = sepBy parseExpr commaTok
 
 parseExpr :: Parser Expr
 parseExpr = (try $ Relation <$> 
@@ -172,7 +172,7 @@ parseAssignment = parseDesignator >>= \x -> stringTok ":="
 parseProcCall :: Parser Statement
 parseProcCall = ProcCall <$> parseIdent 
     <*> ((betweenCharTok '(' ')' parseExprList) 
-         <|> pure (ExprList []))
+         <|> pure [])
 
 parseStmntMem :: Parser Statement
 parseStmntMem = undefined
@@ -231,7 +231,7 @@ parseFormalParams = (concatMap id) <$>
 parseFormalParam :: Parser [(Ident,Type,Bool)]
 parseFormalParam = do
     mvar <- (== Nothing) <$> (optionMaybe parseKWvar)
-    (IdentList idents) <- parseIdentList
+    idents <- parseIdentList
     charTok ':'
     t <- parseType
     return $ map (\(x, ty) -> (x, ty, mvar)) (zip idents $ repeat t)

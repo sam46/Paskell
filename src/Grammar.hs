@@ -20,8 +20,8 @@ data OP = OPplus | OPminus | OPstar | OPdiv | OPidiv | OPmod |
 
 data Type = TYident Ident | TYchar | TYbool |
     TYint | TYreal | TYstr deriving (Show, Eq)
-data Ident = Ident String deriving (Show, Eq)
-data IdentList = IdentList [Ident] deriving (Show, Eq)
+type Ident = String 
+type IdentList = [Ident]
 
 data Program = Program Ident Block deriving (Show, Eq)
 data Block = Block [Decl] Statement deriving (Show, Eq)
@@ -60,7 +60,7 @@ data DesigList = DesigList [Designator] deriving (Show, Eq)
 data DesigProp = DesigPropIdent Ident | DesigPropExprList ExprList | 
     DesigPropPtr deriving (Show, Eq)
 
-data ExprList = ExprList [Expr] deriving (Show, Eq)
+type ExprList = [Expr]
 data Expr = Relation Expr OP Expr
     | Unary OP Expr
     | Mult Expr OP Expr
