@@ -9,9 +9,9 @@ data Reserved = KWand | KWdownto | KWif | KWor | KWthen
     | KWset | KWwith | KWboolean | KWreal | KWinteger
     | KWstring | KWchar deriving (Show, Eq)
 
-data OP = OPplus | OPminus | OPstar | OPdiv | OPidiv | OPmod | 
-    OPand | OPeq | OPneq | OPless | OPgreater | OPle | OPge | 
-    OPin | OPor deriving (Show, Eq)
+data OP = OPplus | OPminus | OPstar | OPdiv | OPidiv | OPmod
+    | OPand | OPeq | OPneq | OPless | OPgreater | OPle | OPge
+    | OPin | OPor deriving (Show, Eq)
 
 data Type = TYident Ident | TYchar | TYbool
     | TYint | TYreal | TYstr | Void 
@@ -22,14 +22,14 @@ type IdentList = [Ident]
 data Program = Program Ident Block deriving (Show, Eq)
 data Block = Block [Decl] Statement deriving (Show, Eq)
 
+type VarDecl = (Ident, Type) -- var a,b:char; 
+type TypeDecl = (Ident, Type) -- var a,b:char; 
 data Decl = DeclVar [VarDecl] 
     | DeclType [TypeDecl] 
     | DeclConst [ConstDecl] 
     | DeclProc ProcDecl
     | DeclFunc FuncDecl 
     deriving (Show, Eq)
-data VarDecl = VarDecl IdentList Type deriving (Show, Eq)
-data TypeDecl = TypeDecl IdentList Type deriving (Show, Eq)
 data ConstDecl = ConstDecl deriving (Show, Eq) -- todo 
 
 data ProcDecl = ProcDecl Ident [(Ident,Type,Bool)] Block deriving (Show, Eq) 

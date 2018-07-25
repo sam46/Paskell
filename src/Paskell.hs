@@ -31,19 +31,21 @@ parseType = tok $
 parseIdentList :: Parser IdentList
 parseIdentList = sepBy1 parseIdent commaTok
 
-parseVarDecl :: Parser [VarDecl]
-parseVarDecl = (parseKWvar <?> "expecting keyword 'var'") >>
-    ((many1 $ try  -- todo try separating many1 into initial parse and then many for better error messages
-        (do {l <- parseIdentList; charTok ':';
-             t <- parseType; semicolTok; return $ VarDecl l t})
-     ) <?> "Missing or incorrect variable declaration")
+parseDeclVar :: Parser Decl -- var a,b : char; c,d : integer;
+parseDeclVar = DeclVar <$>( (parseKWvar <?> "expecting keyword 'var'") >>
+    ((concat <$> (many1 $ try  -- todo try separating many1 into initial parse and then many for better error messages
+        (do {xs <- parseIdentList; charTok ':';
+             t <- parseType; semicolTok; 
+             return $ zip xs (repeat t)})
+     )) <?> "Missing or incorrect variable declaration"))
 
-parseTypeDecl :: Parser [TypeDecl]
-parseTypeDecl = (parseKWtype <?> "expecting keyword 'type'") >> 
-    ((many1 $ try  -- todo try separating many1 into initial parse and then many for better error messages
-        (do {l <- parseIdentList; charTok '=';
-             t <- parseType; semicolTok; return $ TypeDecl l t})
-     ) <?> "Missing or incorrect type declaration")
+parseTypeDecl :: Parser Decl
+parseTypeDecl = DeclType <$> ((parseKWtype <?> "expecting keyword 'type'") >> 
+    ((concat <$> (many1 $ try  -- todo try separating many1 into initial parse and then many for better error messages
+        (do {xs <- parseIdentList; charTok '=';
+             t <- parseType; semicolTok; 
+             return $ zip xs (repeat t)})
+     )) <?> "Missing or incorrect type declaration"))
 
 parseConstDecl :: Parser [ConstDecl]
 parseConstDecl = undefined -- todo
@@ -60,8 +62,8 @@ parseBlock = Block <$> many parseDecl <*> parseStmntSeq
 
 parseDecl :: Parser Decl
 parseDecl = 
-    (DeclType <$> parseTypeDecl) <|>
-    (DeclVar  <$> parseVarDecl)  <|>
+    (parseTypeDecl) <|>
+    (parseDeclVar)  <|>
     (DeclFunc <$> parseFuncDecl) <|>
     (DeclProc <$> parseProcDecl) -- <|>
     -- (DeclConst <$> parseDeclConst)
