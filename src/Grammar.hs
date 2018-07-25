@@ -27,13 +27,13 @@ type TypeDecl = (Ident, Type) -- var a,b:char;
 data Decl = DeclVar [VarDecl] 
     | DeclType [TypeDecl] 
     | DeclConst [ConstDecl] 
-    | DeclProc ProcDecl
-    | DeclFunc FuncDecl 
+    | DeclProc  Ident [(Ident,Type,Bool)] Block
+    | DeclFunc Ident [(Ident,Type,Bool)] Type Block 
     deriving (Show, Eq)
 data ConstDecl = ConstDecl deriving (Show, Eq) -- todo 
 
-data ProcDecl = ProcDecl Ident [(Ident,Type,Bool)] Block deriving (Show, Eq) 
-data FuncDecl = FuncDecl Ident [(Ident,Type,Bool)] Type Block deriving (Show, Eq) 
+-- data ProcDecl = ProcDecl Ident [(Ident,Type,Bool)] Block deriving (Show, Eq) 
+-- data FuncDecl = FuncDecl Ident [(Ident,Type,Bool)] Type Block deriving (Show, Eq) 
 
 data Statement = StatementSeq [Statement] 
     | Assignment Designator Expr

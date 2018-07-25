@@ -39,8 +39,8 @@ parseDeclVar = DeclVar <$>( (parseKWvar <?> "expecting keyword 'var'") >>
              return $ zip xs (repeat t)})
      )) <?> "Missing or incorrect variable declaration"))
 
-parseTypeDecl :: Parser Decl
-parseTypeDecl = DeclType <$> ((parseKWtype <?> "expecting keyword 'type'") >> 
+parseDeclType :: Parser Decl
+parseDeclType = DeclType <$> ((parseKWtype <?> "expecting keyword 'type'") >> 
     ((concat <$> (many1 $ try  -- todo try separating many1 into initial parse and then many for better error messages
         (do {xs <- parseIdentList; charTok '=';
              t <- parseType; semicolTok; 
@@ -62,10 +62,10 @@ parseBlock = Block <$> many parseDecl <*> parseStmntSeq
 
 parseDecl :: Parser Decl
 parseDecl = 
-    (parseTypeDecl) <|>
+    (parseDeclType) <|>
     (parseDeclVar)  <|>
-    (DeclFunc <$> parseFuncDecl) <|>
-    (DeclProc <$> parseProcDecl) -- <|>
+    (parseDeclFunc) <|>
+    (parseDeclProc) -- <|>
     -- (DeclConst <$> parseDeclConst)
 
 makeOPparser :: [(String, OP)] -> Parser OP
@@ -207,18 +207,18 @@ parseString = between (char '"') (charTok '"') $ many $
                   else unexpected ("char in string " ++ [c]))
 
 -- parseSubprogDeclList
-parseProcDecl :: Parser ProcDecl 
-parseProcDecl = do
+parseDeclProc :: Parser Decl 
+parseDeclProc = do
     parseKWprocedure
     f <- parseIdent
     params <- (try parseFormalParams) <|> (pure [])
     semicolTok
     blk <- parseBlock
     semicolTok
-    return $ ProcDecl f params blk
+    return $ DeclProc f params blk
 
-parseFuncDecl :: Parser FuncDecl
-parseFuncDecl = do
+parseDeclFunc :: Parser Decl
+parseDeclFunc = do
     parseKWfunction
     f <- parseIdent
     params <- (try parseFormalParams) <|> (pure [])
@@ -227,7 +227,7 @@ parseFuncDecl = do
     semicolTok
     blk <- parseBlock
     semicolTok
-    return $ FuncDecl f params rtype blk
+    return $ DeclFunc f params rtype blk
 
 parseFormalParams :: Parser [(Ident,Type,Bool)]
 parseFormalParams = (concatMap id) <$>
