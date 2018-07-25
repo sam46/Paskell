@@ -18,17 +18,22 @@ data TyErr = NotInScope Ident
     | TypeMismatchNum Type
     | ArgCountMismatch Int
     | ArgTypeMismatch Type Type
+    | VarRedecl Ident
+    | FuncRedecl Ident
     deriving (Show, Eq)
 
+
+varInContext :: Context -> Ident -> Bool
+varInContext ctx x = case (lookup x ctx) of 
+    Nothing -> False
+    Just _  -> True
+
 lookupVar   :: Env -> Ident -> Either TyErr Type
-lookupVar (_, contexts) x = case (find f contexts) of
+lookupVar (_, contexts) x = case (find (`varInContext` x) contexts) of
                     Nothing  -> Left  $ NotInScope x
                     Just ctx -> case lookup x ctx of
                         Nothing  -> Left  $ NotInScope x
                         Just t   -> Right t
-    where f ctx = case (lookup x ctx) of 
-            Nothing -> False
-            Just _  -> True
 
 lookupFun   :: Env -> Ident -> Either TyErr (Type, [Type])
 lookupFun (sigs, _) x = 
@@ -36,14 +41,27 @@ lookupFun (sigs, _) x =
         Nothing -> Left $ NotInScope x
         Just f  -> Right f
 
-newBlock  :: Env -> Either TyErr Env
-newBlock (sig, contexts) = Right (sig, [] : contexts)
+newBlock  :: Env -> Env
+newBlock (sig, contexts) = (sig, [] : contexts)
 
 emptyEnv  :: Env
 emptyEnv = ([], [])
 
-getSig :: FuncDecl -> (Ident, (Type, [Type]))
-getSig (FuncDecl x args t _) = (x, (t, map (\(a,b,c) -> b) args))
+getSig :: Decl -> (Ident, (Type, [Type]))
+getSig (DeclFunc x args t _) = (x, (t, map (\(_,b,_) -> b) args))
+
+-- updateVar :: Env -> Ident -> Type -> Either TyErr Env
+
+addVar :: Env -> Ident -> Type -> Either TyErr Env
+addVar (sig , (c:cs)) x t = if varInContext c x
+    then Left $ VarRedecl x
+    else Right $ (sig, ((x,t):c) : cs)
+
+addFunc :: Env -> (Ident, (Type, [Type])) -> Either TyErr Env
+addFunc (sigs, ctx) (x, rest) = 
+    case lookup x sigs of
+        Just _   -> Left $ FuncRedecl x
+        Nothing  -> Right ((x, rest) : sigs, ctx)
 
 -- isLeft :: (Either a b) -> Bool 
 -- isLeft (Left _) = True
@@ -53,25 +71,55 @@ getSig (FuncDecl x args t _) = (x, (t, map (\(a,b,c) -> b) args))
 
 isNum = (`elem` [TYint, TYreal])
 
+typechkProgram :: Program -> Either TyErr ()
+typechkProgram (Program _ b) = typechkBlock (newBlock emptyEnv) b >> return () 
 
-typechk :: Env -> Statement -> Either TyErr Env
-typechk env (Assignment (Designator x _) expr) = 
+typechkBlock :: Env -> Block -> Either TyErr Env
+typechkBlock env (Block ds s) = 
+    typechkDecls env ds >>= \e -> typechkStatement e s
+
+typechkDecls :: Env -> [Decl] -> Either TyErr Env
+typechkDecls env [] = Right env
+typechkDecls env (d:ds) = 
+    typechkDecl env d >>= \e -> typechkDecls e ds
+
+typechkDecl :: Env -> Decl -> Either TyErr Env
+typechkDecl env (DeclVar []) = Right env
+typechkDecl env (DeclVar (d:ds)) = let (x,t) = d in
+    (addVar env x t) >>= \e -> typechkDecl e (DeclVar ds) 
+typechkDecl env (DeclFunc x params t b) = typechkDeclFunc env (DeclFunc x params t b) 
+
+typechkTypeDecl :: Env -> TypeDecl -> Either TyErr Env
+typechkTypeDecl env _ = undefined
+
+typechkConstDecl :: Env -> ConstDecl -> Either TyErr Env
+typechkConstDecl env _ = undefined
+
+typechkDeclFunc env (DeclFunc x params t b) =
+    let sig = getSig (DeclFunc x params t b) in
+    (addFunc env sig) >>= \e ->
+        typechkDecls (newBlock e) (map (\(i,ty,_) -> DeclVar [(i, ty)]) params) >>= \e2 ->
+            typechkBlock e2 b >> Right e
+
+
+typechkStatement :: Env -> Statement -> Either TyErr Env
+typechkStatement env (Assignment (Designator x _) expr) = 
     gettype env expr >>= \t -> lookupVar env x >>= \xtype -> 
         if xtype == t
         then Right env 
         else Left $ TypeMismatch xtype t 
 
-typechk env (StatementIf expr s1 ms2) =
+typechkStatement env (StatementIf expr s1 ms2) =
     gettype env expr >>= \t ->
         if t /= TYbool 
         then Left $ TypeMismatch TYbool t
-        else let tchk1 = typechk env s1
-                 mtchk2 = (typechk env) <$> ms2
+        else let tchk1 = typechkStatement env s1
+                 mtchk2 = (typechkStatement env) <$> ms2
             in case mtchk2 of
             Just tchk2 -> tchk1 >> tchk2 >> Right env  
             Nothing    -> tchk1 >> Right env
 
-typechk env (StatementFor i x1 _ x2 s) =
+typechkStatement env (StatementFor i x1 _ x2 s) =
     lookupVar env i >>= \t -> 
         if (t /= TYint) && (t /= TYchar)
         then Left $ TypeMismatchOrd t
@@ -81,12 +129,12 @@ typechk env (StatementFor i x1 _ x2 s) =
             else gettype env x2 >>= \t2 ->
                 if t2 /= t
                 then Left $ TypeMismatch t t2 
-                else typechk env s
+                else typechkStatement env s
 
-typechk env StatementEmpty = Right env
+typechkStatement env StatementEmpty = Right env
 
-typechk env (StatementSeq xs) =
-    foldr (>>) (Right env) (map (typechk env) xs)
+typechkStatement env (StatementSeq xs) =
+    foldr (>>) (Right env) (map (typechkStatement env) xs)
 
 
 gettype :: Env -> Expr -> Either TyErr Type
@@ -149,5 +197,5 @@ gettype env (Mult x1 op x2)
     where [t1, t2] = (gettype env) <$> [x1, x2]
 
 typechkStr s env = case p' parseStatement s of 
-    Right st -> typechk env st
+    Right st -> typechkStatement env st
     Left err -> error $ "Parse error:\n\t" ++ s ++ "\nin:" ++ show err
