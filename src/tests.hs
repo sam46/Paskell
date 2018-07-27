@@ -404,8 +404,6 @@ testAll = do
     tparseKeywords
     tparseIdent
     tparseIdentList
-    -- tparseVarDecl
-    -- tparseTypeDecl
     tparseBlock
     tparseProgram
     tparseOP
@@ -413,6 +411,12 @@ testAll = do
     tparseNumber
     tparseFor
     tparseExpr
+    ttypechkIf
+    ttypechkFor
+    ttypechkProgram
+    tgettype
+    -- tparseVarDecl
+    -- tparseTypeDecl
     -- tparseDesigProp
     -- tparseDesignator
     -- tparseString
