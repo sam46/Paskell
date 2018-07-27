@@ -5,8 +5,8 @@ Work in Progress!
 
 ### Progress  
 - [x] Lexing/Parsing 
-- [ ] Semantic Analysis
-- [ ] Type checking  
+- [x] Semantic Analysis/Type-Checking
+- [x] Type-Annotated AST
 - [ ] Code generation 
 
 ### Demo
