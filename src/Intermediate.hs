@@ -78,7 +78,7 @@ showListNoSpc xs = intercalate "" (map show xs)
 tab n = intercalate "" (replicate n "    ")
 
 instance Show Program where
-    show (Program x b _) = "Program "++  x ++ (pshowB 0 b)
+    show (Program x b _) = "Program "++  x ++ " " ++ (pshowB 0 b)
 
 instance Show Block where
     show x = pshowB 0 x
