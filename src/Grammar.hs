@@ -1,5 +1,7 @@
 module Grammar where 
 
+import Data.List (find)
+
 data Reserved = KWand | KWdownto | KWif | KWor | KWthen
     | KWarray | KWelse | KWin | KWpacked | KWto | KWbegin
     | KWend | KWlabel | KWprocedure | KWtype | KWcase
@@ -11,7 +13,7 @@ data Reserved = KWand | KWdownto | KWif | KWor | KWthen
 
 data OP = OPplus | OPminus | OPstar | OPdiv | OPidiv | OPmod
     | OPand | OPeq | OPneq | OPless | OPgreater | OPle | OPge
-    | OPin | OPor deriving (Show, Eq)
+    | OPin | OPor deriving (Eq)
 
 data Type = TYident Ident | TYchar | TYbool
     | TYint | TYreal | TYstr | Void 
@@ -31,9 +33,6 @@ data Decl = DeclVar [VarDecl]
     | DeclFunc Ident [(Ident,Type,Bool)] Type Block 
     deriving (Show, Eq)
 data ConstDecl = ConstDecl deriving (Show, Eq) -- todo 
-
--- data ProcDecl = ProcDecl Ident [(Ident,Type,Bool)] Block deriving (Show, Eq) 
--- data FuncDecl = FuncDecl Ident [(Ident,Type,Bool)] Type Block deriving (Show, Eq) 
 
 data Statement = StatementSeq [Statement] 
     | Assignment Designator Expr
@@ -75,3 +74,17 @@ data Expr = Relation Expr OP Expr
     | FactorNot Expr
     | FuncCall Ident ExprList
     deriving (Show, Eq)
+
+unaryops    = [("+", OPplus), ("-", OPminus)]
+addops      = [("+", OPplus), ("-", OPminus), ("or", OPor)]
+multops     = [("*", OPstar), ("/", OPdiv), ("div", OPidiv),
+                ("mod", OPmod), ("and", OPand)]
+relationops = [("=", OPeq), ("<>", OPneq), ("<=", OPle),
+                (">=", OPge), ("<", OPless), (">", OPgreater),
+                ("in", OPin)]
+operators   = addops ++ multops ++ relationops
+
+instance Show OP where
+    show op = case find (\(_,b) -> b==op) operators of
+                Nothing -> "OP??"
+                Just (a,_) -> a

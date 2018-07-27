@@ -50,17 +50,8 @@ toSpecialChar c =  snd <$> find ((==) c . fst) table
             ('f', FormFeed), ('n', NewLine), ('t', Tab),
             ('r', CarriageReturn), ('\\', Backslash),
             ('v', VerticalTab), ('\'', SingleQuote)]
+
 ----------------------------------------------------
-
-unaryops    = [("+", OPplus), ("-", OPminus)]
-addops      = [("+", OPplus), ("-", OPminus), ("or", OPor)]
-multops     = [("*", OPstar), ("/", OPdiv), ("div", OPidiv),
-               ("mod", OPmod), ("and", OPand)]
-relationops = [("=", OPeq), ("<>", OPneq), ("<=", OPle),
-               (">=", OPge), ("<", OPless), (">", OPgreater),
-               ("in", OPin)]
-operators   = addops ++ multops ++ relationops
-
 
 parseReserved :: String -> Reserved -> Parser Reserved
 parseReserved kw ctor = exactTok kw >> return ctor

@@ -5,6 +5,9 @@ import qualified Intermediate as IR
 import Paskell (parseProgram)
 import TypeCheck (typechkProgram, TyErr)
 
+import Text.Parsec
+import Text.Parsec.String
+import Text.Parsec.Combinator
 import Utils (p')
 import Data.List
 
@@ -143,6 +146,9 @@ convExpr env (Mult x1 op x2) = let
             else TYbool
     in IR.Mult x1' op x2' t
 
-chkConvPogram p = case typechkProgram p of
-    Left err2 -> print err2
-    Right ()  -> print $ convProgram p
+chkConvProgram p = case typechkProgram p of
+    Left err -> Left err
+    Right () -> Right $ convProgram p
+
+chkConvFile path = let p = parseFromFile parseProgram path
+    in p >>= \pp -> print $ chkConvProgram <$> pp
