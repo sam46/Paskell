@@ -95,6 +95,7 @@ typechkTypeDecl env _ = undefined
 typechkConstDecl :: Env -> ConstDecl -> Either TyErr Env
 typechkConstDecl env _ = undefined
 
+typechkDeclFunc :: Env -> Decl -> Either TyErr Env
 typechkDeclFunc env (DeclFunc x params t b) =
     let sig = getSig (DeclFunc x params t b) in
     (addFunc env sig) >>= \e ->
@@ -119,7 +120,7 @@ typechkStatement env (StatementIf expr s1 ms2) =
             Just tchk2 -> tchk1 >> tchk2 >> Right env  
             Nothing    -> tchk1 >> Right env
 
-typechkStatement env (StatementFor i x1 _ x2 s) =
+typechkStatement env (StatementFor i x1 _ x2 s) = -- todo: add i to s's env?
     lookupVar env i >>= \t -> 
         if (t /= TYint) && (t /= TYchar)
         then Left $ TypeMismatchOrd t
