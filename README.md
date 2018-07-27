@@ -7,6 +7,7 @@ Work in Progress!
 - [x] Lexing/Parsing 
 - [x] Semantic Analysis/Type-Checking
 - [x] Type-Annotated AST
+- [x] Annotated-AST pretty-printer
 - [ ] Code generation 
 
 ### Demo
