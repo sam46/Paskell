@@ -1,6 +1,8 @@
 module Intermediate where 
 
 import Grammar (OP, Type, Ident, IdentList, VarDecl, TypeDecl, ToDownTo) 
+import Data.List (intercalate)
+import Prelude hiding (showList) 
 
 data Program = Program Ident Block Type deriving (Eq)
 data Block = Block [Decl] Statement Type deriving (Eq)
@@ -68,31 +70,44 @@ getType (FactorDesig _  t) = t
 getType (FactorNot _ t) = t
 getType (FuncCall _ _ t) = t
 
+----- Pretty-Printer -----
+
+showList xs = intercalate " " (map show xs)
+showListSep xs = intercalate ", " (map show xs)
+showListNoSpc xs = intercalate "" (map show xs)
 
 instance Show Program where
-    show (Program x b _) = "Program "++  x ++ "\n" ++ (show b)++"\nend."
+    show (Program x b _) = "Program "++  x ++ "\n" ++ (show b) ++ "\nend."
 
 instance Show Block where
-    show (Block ds s _) = "{\n"++ (show ds)++ "\n" ++ (show s)++"\n}"
+    show (Block ds s _) = "{\n"++ (if length ds == 0 then "" 
+        else showListNoSpc ds)++ "\n" ++ (show s) ++ "\n}"
 
 instance Show Decl where
-    show (DeclVar xs _) = "Var " ++ (show xs)
-    show (DeclType xs _) = "Type " ++ (show xs)
-    show (DeclConst xs _) = "Const " ++ (show xs)
-    show (DeclProc x xs b _) = "Proc " ++  x ++ " "++ show((map (\(a',b',_) -> (show a')++":"++(show b')) xs)) ++ (show b) 
-    show (DeclFunc x xs t b _) = "Func " ++ x ++ ":" ++(show t) ++" "++ show((map (\(a',b',_) -> a'++":"++(show b')) xs)) ++ (show b) 
+    show (DeclVar xs _) = "Var " ++ (if length xs == 0 then "" 
+        else showList xs) ++ ";\n"
+    show (DeclType xs _) = "Type " ++ (if length xs == 0 then "" 
+        else showList xs) ++ ";\n"
+    show (DeclConst xs _) = "Const " ++ (if length xs == 0 then "" 
+        else showList xs) ++ ";\n"
+    show (DeclProc x xs b _) = "Proc " ++  x ++ " " ++ 
+        "(" ++ showListSep (map (\(a',b',_) -> (a',b')) xs) 
+        ++ ") " ++ (show b) ++ "\n"
+    show (DeclFunc x xs t b _) = "Func " ++ x ++ ":" ++(show t) ++ " " ++ 
+        "(" ++ showListSep (map (\(a',b',_) -> (a',b')) xs) 
+        ++ ") " ++ (show b) ++ "\n"
 
 instance Show Designator where
     show (Designator x _ t) = x ++ ":" ++ (show t)
 
 instance Show Statement where
-    show (Assignment x ex t) = (show x) ++ " := " ++ (show ex)
-    show (StatementEmpty) = ""
-    show (StatementSeq xs _) = if length xs == 0 then "" else show xs
-    show (StatementIf ex s ms _) = "if "++ (show ex) ++" "++(show s) ++ (
+    show (Assignment x ex t) = (show x) ++ " := " ++ (show ex) ++ ";\n"
+    show (StatementEmpty) = ";\n"
+    show (StatementSeq xs _) = if length xs == 0 then "" else showListNoSpc xs
+    show (StatementIf ex s ms _) = "if " ++ (show ex) ++" "++ (show s) ++ (
         case ms of Nothing -> ""
-                   Just s2 -> " " ++ (show s2))
-    show _ = "??"
+                   Just s2 -> " " ++ (show s2)) ++ ";\n"
+    show _ = "??" ++ ";\n"
 
 instance Show Expr where
     show (Relation ex1 op ex2 t) =  "("++(show ex1) ++ (show op) ++ (show ex2) ++ "):" ++ (show t) 
@@ -107,4 +122,5 @@ instance Show Expr where
     show (FactorNil  t) = "Nil" ++ ":" ++ (show t) 
     show (FactorDesig x t) = (show x) ++ ":" ++ (show t) 
     show (FactorNot ex t) = undefined
-    show (FuncCall x exs t) = (show x) ++ "("++ (if length exs == 0 then "" else show exs) ++"):"++(show t)
+    show (FuncCall x exs t) = x ++ "(" ++ 
+        (if length exs == 0 then "" else showListSep exs) ++"):"++(show t)
