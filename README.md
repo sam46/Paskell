@@ -1,7 +1,14 @@
 # Paskell
-A small (reduced) pascal compiler in Haskell
+A small (reduced) Pascal compiler in Haskell  
+Work in Progress!  
 
-Work in Progress!
+### Features:   
+- Declarations: vars, types, constants  
+- Control Flow: if, case, while, for    
+- Assignment   
+- Functions/Procedures,    
+- Nested Functions/Procedures 
+
 
 ### Progress  
 - [x] Lexing/Parsing 
@@ -15,7 +22,7 @@ Work in Progress!
 
 ![parserepl.gif](https://github.com/sam46/Paskell/blob/master/parserepl.PNG)
   
-#### Pretty printer for Type-checked and annotated AST:  
+#### Pretty printer for type-annotated AST:  
 
 Input source File:
 ```Pascal
