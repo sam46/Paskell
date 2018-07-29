@@ -1,6 +1,7 @@
 module Intermediate where 
 
-import Grammar (OP, Type, Ident, IdentList, VarDecl, TypeDecl, ToDownTo) 
+import Grammar (OP, Type, Ident, IdentList, 
+    VarDecl, TypeDecl, CallByRef, ToDownTo) 
 import Data.List (intercalate)
 import Prelude hiding (showList) 
 
@@ -10,8 +11,8 @@ data Block = Block [Decl] Statement Type deriving (Eq)
 data Decl = DeclVar [VarDecl] Type
     | DeclType [TypeDecl]  Type
     | DeclConst [ConstDecl]  Type
-    | DeclProc Ident [(Ident,Type,Bool)] Block Type
-    | DeclFunc Ident [(Ident,Type,Bool)] Type Block Type
+    | DeclProc Ident [(Ident,Type,CallByRef)] Block Type
+    | DeclFunc Ident [(Ident,Type,CallByRef)] Type Block Type
     deriving (Eq)
 data ConstDecl = ConstDecl Type deriving (Show, Eq) -- todo 
 

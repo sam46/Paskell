@@ -26,11 +26,12 @@ data Block = Block [Decl] Statement deriving (Show, Eq)
 
 type VarDecl = (Ident, Type) -- var a,b:char; 
 type TypeDecl = (Ident, Type) -- var a,b:char; 
+type CallByRef = Bool
 data Decl = DeclVar [VarDecl] 
     | DeclType [TypeDecl] 
     | DeclConst [ConstDecl] 
-    | DeclProc  Ident [(Ident,Type,Bool)] Block
-    | DeclFunc Ident [(Ident,Type,Bool)] Type Block 
+    | DeclProc  Ident [(Ident,Type,CallByRef)] Block
+    | DeclFunc Ident [(Ident,Type,CallByRef)] Type Block 
     deriving (Show, Eq)
 data ConstDecl = ConstDecl deriving (Show, Eq) -- todo 
 
