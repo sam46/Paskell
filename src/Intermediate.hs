@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Intermediate where 
 
 import Grammar (OP, Type, Ident, IdentList, 
