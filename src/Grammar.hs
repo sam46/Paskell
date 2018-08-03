@@ -17,9 +17,9 @@ data OP = OPplus | OPminus | OPstar | OPdiv | OPidiv | OPmod
     | OPand | OPeq | OPneq | OPless | OPgreater | OPle | OPge
     | OPin | OPor deriving (Eq)
 
-data Type = TYident Ident | TYchar | TYbool
-    | TYint | TYreal | TYstr | Void 
-    deriving (Show, Eq)
+data Type = TYident Ident | TYbool
+    | TYint | TYreal | TYchar |TYstr | Void 
+    deriving (Show, Eq, Ord)
 type Ident = String 
 type IdentList = [Ident]
 

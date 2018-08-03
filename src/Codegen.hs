@@ -293,6 +293,26 @@ cons = ConstantOperand
 uitofp :: Type -> Operand -> Codegen Operand
 uitofp ty a = instr float $ UIToFP a ty []
 
+sitofp :: Type -> Operand -> Codegen Operand
+sitofp ty a = instr float $ SIToFP a ty []
+
+nowrap :: Bool
+nowrap = False
+
+int :: Type
+int = IntegerType 32
+bool :: Type
+bool = IntegerType 1
+
+iadd :: Operand -> Operand -> Codegen Operand
+iadd a b = instr int $ Add nowrap nowrap a b []
+
+imul :: Operand -> Operand -> Codegen Operand
+imul a b = instr int $ Mul nowrap nowrap a b []
+
+isub :: Operand -> Operand -> Codegen Operand
+isub a b = instr int $ Sub nowrap nowrap a b []
+
 toArgs :: [Operand] -> [(Operand, [A.ParameterAttribute])]
 toArgs = map (\x -> (x, []))
 

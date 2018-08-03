@@ -5,7 +5,7 @@ module Intermediate where
 import Grammar (OP, Type, Ident, IdentList, 
     VarDecl, TypeDecl, CallByRef, ToDownTo) 
 import Data.List (intercalate)
-import Prelude hiding (showList) 
+import Prelude hiding (showList)
 
 data Program = Program Ident Block Type deriving (Eq)
 data Block = Block [Decl] Statement Type deriving (Eq)
@@ -72,6 +72,10 @@ getType (FactorNil  t) = t
 getType (FactorDesig _  t) = t
 getType (FactorNot _ t) = t
 getType (FuncCall _ _ t) = t
+
+instance Ord Expr where
+    x1 `compare` x2 = t1 `compare` t2
+        where (t1, t2) = (getType x1, getType x2) 
 
 --------- Pretty-Printer ---------
 
