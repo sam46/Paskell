@@ -116,36 +116,70 @@ genStatement (IR.Assignment (IR.Designator x _ xt) expr _) = do
     var <- getvar $ toShortBS x
     store var rhs
 
-genStatement (IR.StatementIf expr s1 ms2 _) = let 
-    s2 = case ms2 of Nothing -> IR.StatementEmpty
-                     Just x  -> x
-    in do
-        ifthen <- addBlock "if.then"
-        ifelse <- addBlock "if.else"
-        ifexit <- addBlock "if.exit"
+genStatement (IR.StatementIf expr s1 ms2 _) = do 
+    ifthen <- addBlock "if.then"
+    ifelse <- addBlock "if.else"
+    ifexit <- addBlock "if.exit"
 
-        -- entry
-        cond <- genExpr expr
-        _ <- cbr cond ifthen ifelse
+    -- entry
+    cond <- genExpr expr
+    _ <- cbr cond ifthen ifelse
 
-        -- if.then
-        _ <- setBlock ifthen
-        then' <- genStatement s1
-        _ <- br ifexit
-        ifthen' <- getBlock
+    -- if.then
+    _ <- setBlock ifthen
+    then' <- genStatement s1
+    _ <- br ifexit
+    ifthen' <- getBlock
 
-        -- if.else
-        _ <- setBlock ifelse
-        else' <- genStatement s2
-        _ <- br ifexit
-        ifelse' <- getBlock
+    -- if.else
+    _ <- setBlock ifelse
+    else' <- genStatement s2
+    _ <- br ifexit
+    ifelse' <- getBlock
 
-        -- if.exit
-        _ <- setBlock ifexit
-        return ()
+    -- if.exit
+    _ <- setBlock ifexit
+    return ()
+    where s2 = case ms2 of 
+                Nothing -> IR.StatementEmpty
+                Just x  -> x
 
-genStatement (IR.StatementFor x expr1 todownto expr2 s _) = undefined
-    
+genStatement (IR.StatementFor x expr1 todownto expr2 s _) = do
+    ftest <- addBlock "for.test"
+    fbody <- addBlock "for.body"
+    fstep <- addBlock "for.step"
+    fexit <- addBlock "for.exit"
+
+    genStatement (IR.Assignment loopvar expr1 G.Void) 
+    br ftest
+
+    -- for.test
+    setBlock ftest
+    cond <- genExpr (IR.Relation varfactor optest expr2 G.TYbool) 
+    cbr cond fbody fexit
+
+    -- for.body
+    setBlock fbody
+    genStatement s
+    br fstep
+
+    -- for.step
+    setBlock fstep
+    -- todo implment Char stepping
+    genStatement (IR.Assignment loopvar step G.Void) 
+    br ftest
+
+    -- for.exit
+    setBlock fexit
+    return ()
+
+    where loopvar = IR.Designator x [] (IR.getType expr1)
+          varfactor = IR.FactorDesig loopvar (IR.getType expr1)
+          (optest, opstep) = if todownto then (OPle, OPplus) else (OPge, OPminus)
+          step = IR.Add varfactor opstep (IR.FactorInt 1 G.TYint) (IR.getType expr1)
+
+
+
 genStatement (IR.StatementWhile expr s _) = do
     wtest  <- addBlock "while.test"
     wbody <- addBlock "while.body"
