@@ -4,11 +4,14 @@ module Emit where
 
 import qualified Intermediate as IR
 import qualified Grammar as G ( Type(..) )
-import Grammar (OP, Ident, IdentList,
+import Grammar (OP(..), Ident, IdentList,
     VarDecl, TypeDecl, CallByRef, ToDownTo)
 
-import Control.Monad.Except
+import Control.Monad.Except hiding (void)
 import Control.Applicative
+
+import Utils (p')
+import Paskell as P
 
 import LLVM.AST
 import qualified LLVM.AST as AST
@@ -34,6 +37,7 @@ toLLVMType t =
     case t of G.TYint  -> int
               G.TYbool -> bool
               G.TYreal -> double
+              G.Void -> void
 
 toParamList params = map mapParam params
     where mapParam (x,t,byref) = 
@@ -52,6 +56,7 @@ codegen mod fns = withContext $ \context ->
   where
     modn    = mapM genDeclFunc fns
     newast = runLLVM mod modn
+
 -------------------------
 
 genDecl :: IR.Decl -> Codegen ()
@@ -71,7 +76,21 @@ genDeclFunc (IR.DeclFunc x args retty blk _) = do
                 assign (toShortBS i) var
             genBlock blk
             ret (cons (C.Int 32 (fromIntegral 1)))
-
+        
+genDeclProc (IR.DeclProc x args blk _) = do
+    define (toLLVMType retty) (toShortBS x) (toSig args) body
+    where 
+        retty = G.Void
+        toSig xs = map (\(a,b,c) -> (toLLVMType b, name' a)) xs
+        body = do
+            entry' <- addBlock (toShortBS "entry")
+            setBlock entry'
+            forM args $ \(i,t,_) -> do
+                var <- alloca (toLLVMType t)
+                store var (local (toLLVMType t) (name' i))
+                assign (toShortBS i) var
+            genBlock blk
+            retvoid
 
 genDeclVar (IR.DeclVar xs _) = forM xs $ \(i,t) -> do
     var <- alloca (toLLVMType t)
@@ -106,22 +125,31 @@ genExpr (IR.Add x1 op x2 t) = do
     y2 <- genExpr x2
     case t of 
         G.TYbool -> undefined
-        G.TYint  -> iadd y1 y2
+        G.TYint  -> (if op == OPplus then iadd else isub) y1 y2
         G.TYreal -> 
             let (mn,mx) = if x1 < x2 then (y1,y2) else (y2,y1) -- mn is TYint
             in do fmn <- sitofp double mn
-                  fadd fmn mx
+                  (if op == OPplus then fadd else fsub) fmn mx
             
 
 genExpr (IR.Mult x1 op x2 t) = do
     y1 <- genExpr x1
     y2 <- genExpr x2
     case t of 
-            G.TYbool -> undefined
-            G.TYint  -> imul y1 y2
-            G.TYreal -> 
-                let (mn,mx) = if x1 < x2 then (y1,y2) else (y2,y1) -- mn is TYint
-                in do fmn <- sitofp double mn
-                      fmul fmn mx -- todo replace fmul with case on op
+        G.TYbool -> undefined
+        G.TYint  -> imul y1 y2
+        G.TYreal -> 
+            let (mn,mx) = if x1 < x2 then (y1,y2) else (y2,y1) -- mn is TYint
+            in do fmn <- sitofp double mn
+                  fmul fmn mx -- todo replace fmul with case on op
 
-genExpr (IR.Unary op x _) = undefined
+genExpr (IR.Unary op x t) =  do
+    y <- genExpr x
+    case op of 
+        OPor -> undefined
+        OPplus -> return y
+        OPminus -> genExpr $ IR.Add (IR.FactorInt 0 G.TYbool) op x t
+
+genExpr (IR.FuncCall f xs t) = do
+    args <- mapM genExpr xs
+    call (externf (toLLVMType t) (name' f)) args

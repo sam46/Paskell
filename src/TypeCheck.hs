@@ -88,6 +88,7 @@ typechkDecl env (DeclVar []) = Right env
 typechkDecl env (DeclVar (d:ds)) = let (x,t) = d in
     (addVar env x t) >>= \e -> typechkDecl e (DeclVar ds) 
 typechkDecl env (DeclFunc x params t b) = typechkDeclFunc env (DeclFunc x params t b) 
+typechkDecl env (DeclProc x params b) = typechkDeclFunc env (DeclFunc x params Void b)
 
 typechkTypeDecl :: Env -> TypeDecl -> Either TyErr Env
 typechkTypeDecl env _ = undefined

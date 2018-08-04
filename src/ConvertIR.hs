@@ -2,8 +2,8 @@ module ConvertIR where
 
 import Grammar as AST
 import qualified Intermediate as IR
-import Paskell (parseProgram)
-import TypeCheck (typechkProgram, TyErr)
+import Paskell (parseProgram, parseDecl)
+import TypeCheck (typechkProgram, TyErr, typechkDecl)
 
 import Text.Parsec
 import Text.Parsec.String
@@ -81,7 +81,7 @@ convDecl env df@(DeclFunc x params t b) = let
     env'  = addFunc env (getSig df)
     env'' = foldr addVar' (newBlock env') xs in
     (IR.DeclFunc x params t (fst $ convBlock env'' b) Void, env')
-
+convDecl env df@(DeclProc x params b) = convDecl env (DeclFunc x params Void b)
 
 convStatement :: Env -> Statement -> IR.Statement
 convStatement env (Assignment des expr) = 
@@ -152,3 +152,18 @@ chkConvProgram p = case typechkProgram p of
 
 chkConvFile path = let p = parseFromFile parseProgram path
     in p >>= \pp -> print $ chkConvProgram <$> pp
+
+
+
+chkConvDecl :: Decl -> Either TyErr IR.Decl
+chkConvDecl d = case typechkDecl ([],[]) d of
+    Left err -> Left err
+    _        -> Right $ fst $ convDecl ([],[]) d
+
+
+chkConvDecl' :: String -> Either String IR.Decl
+chkConvDecl' s = let p = p' parseDecl s in
+    case p of Left x -> Left $ show x
+              Right pp -> case chkConvDecl pp of 
+                            Left y -> Left $ show y
+                            Right d -> Right d
