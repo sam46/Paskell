@@ -26,6 +26,7 @@ import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.Attribute as A
 import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.FloatingPointPredicate as FP
+import qualified LLVM.AST.IntegerPredicate as IP
 
 
 import LLVM.Context
@@ -286,6 +287,9 @@ fdiv a b = instr float $ FDiv NoFastMathFlags a b []
 
 fcmp :: FP.FloatingPointPredicate -> Operand -> Operand -> Codegen Operand
 fcmp cond a b = instr float $ FCmp cond a b []
+
+icmp :: IP.IntegerPredicate -> Operand -> Operand -> Codegen Operand
+icmp cond a b = instr bool $ ICmp cond a b []
 
 cons :: C.Constant -> Operand
 cons = ConstantOperand
