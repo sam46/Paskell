@@ -94,6 +94,9 @@ convStatement env (StatementIf expr s1 ms2) =
 convStatement env (StatementFor i x1 b x2 s) = -- todo: add i to s's env?
     IR.StatementFor i (convExpr env x1) b (convExpr env x2) (convStatement env s) Void
 
+convStatement env (StatementWhile expr s) = 
+    IR.StatementWhile (convExpr env expr) (convStatement env s) Void
+
 convStatement env StatementEmpty = IR.StatementEmpty
 
 convStatement env (StatementSeq xs) = IR.StatementSeq (map (convStatement env) xs) Void

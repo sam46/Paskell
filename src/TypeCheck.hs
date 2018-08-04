@@ -18,6 +18,7 @@ data TyErr = NotInScope Ident
     | TypeMismatchNum Type
     | ArgCountMismatch Int
     | ArgTypeMismatch Type Type
+    | CondTypeMismatch Type
     | VarRedecl Ident
     | FuncRedecl Ident
     deriving (Show, Eq)
@@ -132,6 +133,11 @@ typechkStatement env (StatementFor i x1 _ x2 s) = -- todo: add i to s's env?
                 if t2 /= t
                 then Left $ TypeMismatch t t2 
                 else typechkStatement env s
+
+typechkStatement env (StatementWhile expr s) = 
+    gettype env expr >>= \t -> 
+    if t /= TYbool then Left $ CondTypeMismatch t
+    else typechkStatement env s
 
 typechkStatement env StatementEmpty = Right env
 

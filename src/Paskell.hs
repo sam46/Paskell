@@ -133,7 +133,8 @@ parseStmntSeq = parseKWbegin
 
 parseStatement :: Parser Statement 
 parseStatement = choice [parseStmntSeq,
-    parseAssignment, parseIf, parseFor, pure StatementEmpty]
+    parseAssignment, parseIf, parseFor,
+    parseWhile, pure StatementEmpty]
 
 parseIf :: Parser Statement
 parseIf = do 
@@ -149,7 +150,12 @@ parseRepeat :: Parser Statement
 parseRepeat = undefined
 
 parseWhile :: Parser Statement
-parseWhile = undefined
+parseWhile = do
+    parseKWwhile
+    ex <- parseExpr
+    parseKWdo
+    s <- parseStatement
+    return $ StatementWhile ex s
 
 parseFor :: Parser Statement
 parseFor = do
