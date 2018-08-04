@@ -124,8 +124,7 @@ genStatement (IR.StatementIf expr s1 ms2 _) = let
         ifelse <- addBlock "if.else"
         ifexit <- addBlock "if.exit"
 
-        -- %entry
-        ------------------
+        -- entry
         cond <- genExpr expr
         _ <- cbr cond ifthen ifelse
 
@@ -147,7 +146,25 @@ genStatement (IR.StatementIf expr s1 ms2 _) = let
 
 genStatement (IR.StatementFor x expr1 todownto expr2 s _) = undefined
     
-genStatement (IR.StatementWhile expr s _) = undefined
+genStatement (IR.StatementWhile expr s _) = do
+    wtest  <- addBlock "while.test"
+    wbody <- addBlock "while.body"
+    wexit <- addBlock "while.exit"
+    br wtest
+
+    -- entry
+    setBlock wtest
+    cond <- genExpr expr
+    _ <- cbr cond wbody wexit
+
+    -- body
+    _ <- setBlock wbody
+    genStatement s
+    br wtest
+
+    -- exit
+    _ <- setBlock wexit
+    return ()
 
 genStatement (IR.ProcCall x xs t) = undefined
 
@@ -193,7 +210,7 @@ genExpr (IR.Add x1 op x2 t) = do
     y1 <- genExpr x1
     y2 <- genExpr x2
     case t of 
-        G.TYbool -> undefined
+        G.TYbool -> undefined -- todo
         G.TYint  -> (if op == OPplus then iadd else isub) y1 y2
         G.TYreal -> do
             fy1 <- if IR.getType x1 == G.TYint then sitofp double y1 else return y1
@@ -223,6 +240,5 @@ genExpr (IR.FuncCall f xs t) = do
     args <- mapM genExpr xs
     call (externf (toLLVMType t) (name' f)) args
 
-genExpr (IR.FactorDesig (IR.Designator x _ xt) _) = do
-    var <- getvar $ toShortBS x
-    load var
+genExpr (IR.FactorDesig (IR.Designator x _ xt) _) =
+    (getvar $ toShortBS x) >>= load
