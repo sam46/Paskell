@@ -18,7 +18,7 @@ import LLVM.AST
 import LLVM.AST.Typed (typeOf)
 import LLVM.AST.AddrSpace
 import LLVM.AST.Type
-import LLVM.AST.Global
+import LLVM.AST.Global as G
 import qualified LLVM.AST as AST
 
 import qualified LLVM.AST.Linkage as L
@@ -45,6 +45,12 @@ runLLVM mod (LLVM m) = execState m mod
 
 emptyModule :: ShortByteString -> AST.Module
 emptyModule label = defaultModule { moduleName = label }
+
+addDefns :: [Definition] -> LLVM ()
+addDefns ds = do
+  forM ds $ \d -> 
+    addDefn d
+  return ()
 
 addDefn :: Definition -> LLVM ()
 addDefn d = do
@@ -81,6 +87,14 @@ external retty label argtys = addDefn $
   , parameters  = ([Parameter ty nm [] | (ty, nm) <- argtys], False)
   , returnType  = retty
   , basicBlocks = []
+  }
+
+gvar :: Type -> Name -> LLVM ()
+gvar ty name  = addDefn $
+  GlobalDefinition globalVariableDefaults
+    { name = name
+    , isConstant = True
+    , initializer = Nothing
   }
 
 fnPtr :: Name -> LLVM Type
@@ -256,7 +270,11 @@ getvar var = do
   syms <- gets symtab
   case lookup var syms of
     Just x  -> return x
-    Nothing -> error $ "Local variable not in scope: " ++ show var
+    Nothing -> return $ getGvar var
+      -- error $ "unkown variable" ++ show var
+
+getGvar :: ShortByteString -> Operand
+getGvar var = ConstantOperand $ global int (Name var)
 
 -------------------------------------------------------------------------------
 
@@ -266,7 +284,7 @@ getvar var = do
 local ::  Type -> Name -> Operand   -- refer to variable defined in local scope (function)
 local = LocalReference
 
-global :: Type -> Name -> C.Constant -- refer to a global function
+global :: Type -> Name -> C.Constant
 global = C.GlobalReference
 
 externf :: Type -> Name -> Operand 

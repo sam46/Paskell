@@ -51,8 +51,8 @@ toParamList params = map mapParam params
 liftError :: ExceptT String IO a -> IO a
 liftError = runExceptT >=> either fail return
 
-codegen :: AST.Module -> [IR.Decl] -> IO AST.Module
-codegen mod fns = withContext $ \context ->
+codegen'' :: AST.Module -> [IR.Decl] -> IO AST.Module
+codegen'' mod fns = withContext $ \context ->
   liftIO $ withModuleFromAST context newast $ \m -> do
     llstr <- moduleLLVMAssembly m
     putStrLn (BS.unpack llstr)
@@ -61,12 +61,23 @@ codegen mod fns = withContext $ \context ->
     modn    = mapM genDeclFunc fns
     newast = runLLVM mod modn
 
+codegen :: AST.Module -> IR.Program -> IO AST.Module
+codegen mod pr = withContext $ \context ->
+  liftIO $ withModuleFromAST context newast $ \m -> do
+    llstr <- moduleLLVMAssembly m
+    putStrLn (BS.unpack llstr)
+    return newast
+  where
+    modn   = genProgram pr
+    newast = runLLVM mod modn
+
 -------------------------
 
 genDecl :: IR.Decl -> Codegen ()
-genDecl d@(IR.DeclVar xs _) = genDeclVar d >> return ()
+genDecl d@(IR.DeclVar xs _) = genDeclVar d
 -- genDecl d@(IR.DeclFunc x args retty blk _) = genDeclFunc d
 
+genDeclFunc :: IR.Decl -> LLVM ()
 genDeclFunc (IR.DeclFunc x args retty blk _) = do
     define (toLLVMType retty) (toShortBS x) (toSig args) body
     where 
@@ -80,7 +91,8 @@ genDeclFunc (IR.DeclFunc x args retty blk _) = do
                 assign (toShortBS i) var
             genBlock blk
             ret (cons (C.Int 32 (fromIntegral 1)))
-        
+    
+genDeclProc :: IR.Decl -> LLVM ()
 genDeclProc (IR.DeclProc x args blk _) = do
     define (toLLVMType retty) (toShortBS x) (toSig args) body
     where 
@@ -96,9 +108,37 @@ genDeclProc (IR.DeclProc x args blk _) = do
             genBlock blk
             retvoid
 
-genDeclVar (IR.DeclVar xs _) = forM xs $ \(i,t) -> do
-    var <- alloca (toLLVMType t)
-    assign (toShortBS i) var
+genDeclVar :: IR.Decl -> Codegen ()
+genDeclVar (IR.DeclVar xs _) = do
+    forM xs $ \(i,t) -> do
+        var <- alloca (toLLVMType t)
+        assign (toShortBS i) var
+    return ()
+
+
+genDeclGlob :: IR.Decl -> LLVM ()
+genDeclGlob d@(IR.DeclVar _ _) = genDeclVarGlob d
+genDeclGlob d@(IR.DeclProc _ _ _ _) = genDeclProc d 
+genDeclGlob d@(IR.DeclFunc _ _ _ _ _) = genDeclFunc d 
+
+
+genDeclVarGlob :: IR.Decl -> LLVM ()
+genDeclVarGlob (IR.DeclVar xs _) = do
+    forM xs $ \(i,t) -> do
+        gvar (toLLVMType t) (name' i)
+    return ()
+
+
+-- generate entry point main()
+genMain :: IR.Statement -> LLVM ()
+genMain s = genDeclProc (IR.DeclProc "main" args (IR.Block [] s G.Void) G.Void) 
+    where args = []
+
+genProgram :: IR.Program -> LLVM ()
+genProgram (IR.Program p (IR.Block ds s _) _) = do
+    forM ds genDeclGlob
+    genMain s
+
 
 genBlock :: IR.Block -> Codegen ()
 genBlock (IR.Block ds s _) = do
