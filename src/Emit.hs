@@ -41,7 +41,7 @@ toLLVMType t =
     case t of G.TYint  -> int
               G.TYbool -> bool
               G.TYreal -> double
-              G.Void -> void
+              G.Void   -> void
 
 toParamList params = map mapParam params
     where mapParam (x,t,byref) = 
@@ -110,8 +110,6 @@ genStatement :: IR.Statement -> Codegen ()
 genStatement (IR.StatementEmpty) = return ()
 genStatement (IR.StatementSeq xs _) = (forM xs genStatement) >> return ()
 genStatement (IR.Assignment (IR.Designator x _ xt) expr _) = do
-    -- get %r value for rhs
-    -- store  %r, pointer to x
     rhs <- genExpr expr
     var <- getvar $ toShortBS x
     store var rhs
@@ -121,24 +119,23 @@ genStatement (IR.StatementIf expr s1 ms2 _) = do
     ifelse <- addBlock "if.else"
     ifexit <- addBlock "if.exit"
 
-    -- entry
     cond <- genExpr expr
-    _ <- cbr cond ifthen ifelse
+    cbr cond ifthen ifelse
 
     -- if.then
-    _ <- setBlock ifthen
+    setBlock ifthen
     then' <- genStatement s1
-    _ <- br ifexit
-    ifthen' <- getBlock
+    br ifexit
+    getBlock
 
     -- if.else
-    _ <- setBlock ifelse
+    setBlock ifelse
     else' <- genStatement s2
-    _ <- br ifexit
-    ifelse' <- getBlock
+    br ifexit
+    getBlock
 
     -- if.exit
-    _ <- setBlock ifexit
+    setBlock ifexit
     return ()
     where s2 = case ms2 of 
                 Nothing -> IR.StatementEmpty
@@ -172,12 +169,10 @@ genStatement (IR.StatementFor x expr1 todownto expr2 s _) = do
     -- for.exit
     setBlock fexit
     return ()
-
     where loopvar = IR.Designator x [] (IR.getType expr1)
           varfactor = IR.FactorDesig loopvar (IR.getType expr1)
           (optest, opstep) = if todownto then (OPle, OPplus) else (OPge, OPminus)
           step = IR.Add varfactor opstep (IR.FactorInt 1 G.TYint) (IR.getType expr1)
-
 
 
 genStatement (IR.StatementWhile expr s _) = do
@@ -200,7 +195,11 @@ genStatement (IR.StatementWhile expr s _) = do
     _ <- setBlock wexit
     return ()
 
-genStatement (IR.ProcCall x xs t) = undefined
+genStatement (IR.ProcCall f xs t) = do
+    args <- mapM genExpr xs
+    call (externf (toLLVMType t) (name' f)) args
+    return ()
+
 
 -- returns %x for final expression value, and stores any intermediate instructions in the block
 genExpr :: IR.Expr -> Codegen Operand
@@ -266,8 +265,8 @@ genExpr (IR.Mult x1 op x2 t) = do
 genExpr (IR.Unary op x t) =  do
     y <- genExpr x
     case op of 
-        OPor -> undefined
-        OPplus -> return y
+        OPor    -> undefined
+        OPplus  -> return y
         OPminus -> genExpr $ IR.Add (IR.FactorInt 0 G.TYbool) op x t
 
 genExpr (IR.FuncCall f xs t) = do
