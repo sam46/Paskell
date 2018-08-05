@@ -4,7 +4,7 @@ module Emit where
 
 import qualified Intermediate as IR
 import TypeCheck (isNum)
-import qualified Grammar as G ( Type(..) )
+import qualified Grammar as G ( Program, Type(..) )
 import Grammar (OP(..), Ident, IdentList,
     VarDecl, TypeDecl, CallByRef, ToDownTo)
 
@@ -51,25 +51,19 @@ toParamList params = map mapParam params
 liftError :: ExceptT String IO a -> IO a
 liftError = runExceptT >=> either fail return
 
-codegen'' :: AST.Module -> [IR.Decl] -> IO AST.Module
-codegen'' mod fns = withContext $ \context ->
-  liftIO $ withModuleFromAST context newast $ \m -> do
-    llstr <- moduleLLVMAssembly m
-    putStrLn (BS.unpack llstr)
-    return newast
-  where
-    modn    = mapM genDeclFunc fns
-    newast = runLLVM mod modn
-
-codegen :: AST.Module -> IR.Program -> IO AST.Module
+-- LLVM-IR and LLVM-AST given IR
+codegen :: AST.Module -> IR.Program -> IO (AST.Module, String)
 codegen mod pr = withContext $ \context ->
-  liftIO $ withModuleFromAST context newast $ \m -> do
-    llstr <- moduleLLVMAssembly m
-    putStrLn (BS.unpack llstr)
-    return newast
-  where
-    modn   = genProgram pr
-    newast = runLLVM mod modn
+    liftIO $ withModuleFromAST context newast $ \m -> 
+    do llstr <- moduleLLVMAssembly m
+       return (newast, BS.unpack llstr)
+    where newast = runLLVM mod (genProgram pr)
+
+-- LLVM-IR given parse tree
+printllvm :: G.Program -> IO String
+printllvm ast = let ir = Conv.convProgram ast in
+    do (llvmast, llstr) <- codegen (emptyModule "MainModule") ir
+       return llstr
 
 -------------------------
 

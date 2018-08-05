@@ -251,8 +251,8 @@ parseFormalParam = do
 contents :: Parser a -> Parser a
 contents p = whitespace *> p <* eof
 
-parseToplevel :: String -> Either ParseError Statement
-parseToplevel = parse (contents parseStatement) "<stdin>"
+parseToplevel :: String -> Either ParseError Program
+parseToplevel = parse (contents parseProgram) "<stdin>"
 
 parsePascalFile :: String -> IO (Either ParseError Program)
 parsePascalFile = parseFromFile (contents parseProgram)

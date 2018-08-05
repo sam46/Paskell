@@ -149,13 +149,22 @@ convExpr env (Mult x1 op x2) = let
             else TYbool
     in IR.Mult x1' op x2' t
 
+
+chkConvProgram :: Program -> Either TyErr IR.Program
 chkConvProgram p = case typechkProgram p of
     Left err -> Left err
     Right () -> Right $ convProgram p
 
+chkConvFile :: String -> IO ()
 chkConvFile path = let p = parseFromFile parseProgram path
     in p >>= \pp -> print $ chkConvProgram <$> pp
 
+chkConvProgram' :: String -> Either String IR.Program
+chkConvProgram' s = let p = p' parseProgram s in
+    case p of Left x -> Left $ show x
+              Right pp -> case chkConvProgram pp of 
+                            Left y -> Left $ show y
+                            Right d -> Right d
 
 
 chkConvDecl :: Decl -> Either TyErr IR.Decl
@@ -163,17 +172,9 @@ chkConvDecl d = case typechkDecl ([],[]) d of
     Left err -> Left err
     _        -> Right $ fst $ convDecl ([],[]) d
 
-
 chkConvDecl' :: String -> Either String IR.Decl
 chkConvDecl' s = let p = p' parseDecl s in
     case p of Left x -> Left $ show x
               Right pp -> case chkConvDecl pp of 
-                            Left y -> Left $ show y
-                            Right d -> Right d
-
-chkConvProgram' :: String -> Either String IR.Program
-chkConvProgram' s = let p = p' parseProgram s in
-    case p of Left x -> Left $ show x
-              Right pp -> case chkConvProgram pp of 
                             Left y -> Left $ show y
                             Right d -> Right d
