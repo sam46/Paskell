@@ -75,14 +75,18 @@ convDecl env (DeclVar xs) = let
     addVar' (a',b') c' = addVar c' a' b'
     env'  = foldr addVar' env xs in
     (IR.DeclVar xs Void, env')
-convDecl env df@(DeclFunc x params t b) = let
-    params' = (x,t,False) : params -- add hidden parameter for return value
+convDecl env (DeclFunc x params t b) = let
+    params' = (x,t,False) : params in -- added hidden variable for return value
+    convDeclFunc (DeclFunc x params' t b) 
+convDecl env (DeclProc x params b) = 
+    convDeclFunc env (DeclFunc x params Void b)
+convDeclFunc :: Env -> Decl -> (IR.Decl, Env)
+convDeclFunc env df@(DeclFunc x params t b) = let
     xs   = map (\(a',b',_) -> (a',b')) params'
     addVar' (a',b') c' = addVar c' a' b'
     env'  = addFunc env (getSig df)
     env'' = foldr addVar' (newBlock env') xs in
     (IR.DeclFunc x params' t (fst $ convBlock env'' b) Void, env')
-convDecl env df@(DeclProc x params b) = convDecl env (DeclFunc x params Void b)
 
 convStatement :: Env -> Statement -> IR.Statement
 convStatement env (Assignment des expr) = 
