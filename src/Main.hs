@@ -39,9 +39,9 @@ processIR :: String -> IO ()
 processIR path = do
     e <- P.parsePascalFile path
     case e of Left errP -> print errP 
-              Right ast -> case T.typechkProgram ast of
-                                Left  errTC -> print errTC
-                                Right _     -> print $ C.convProgram ast 
+              Right ast -> case T.typechkProgram ast 
+                            of  Left  errTC -> print errTC
+                                Right _ -> print $ C.convProgram ast 
 
 processCompile :: String -> String -> IO ()
 processCompile path dest = do
@@ -54,22 +54,26 @@ processCompile path dest = do
                                                 then writeFile dest
                                                 else putStrLn
 
-repl :: InputT IO () -- thanks Stephen Diehl
+repl :: InputT IO ()
 repl = do 
     minput <- getInputLine "Paskell> "
     case minput of
-        Nothing   -> outputStrLn "Leaving Paskell."
-        Just input | isPrefixOf ":l " input -> (liftIO $ processCompile (strip input) "") >> repl
-                   | otherwise -> (liftIO $ process (strip input)) >> repl
+        Nothing    -> outputStrLn "Leaving Paskell."
+        Just input  | isPrefixOf ":l " input -> 
+                      (liftIO $ processCompile (strip input) "") >> repl
+                    | otherwise -> (liftIO $ process (strip input)) >> repl
 
 main :: IO ()
 main = do
     args <- getArgs 
     case args of
-        [cmd] | (strip cmd) == "-repl" -> putStrLn msg >> runInputT defaultSettings repl
-              | otherwise -> putStrLn helpmsg
-        [cmd, path] | (strip cmd) == "-c" -> liftIO (processCompile (strip path) "") 
-                    | otherwise -> putStrLn helpmsg
-        [cmd, path, dest] | (strip cmd) == "-c" -> liftIO $ processCompile (strip path) (strip dest) 
-                          | otherwise -> putStrLn helpmsg
-        _  -> putStrLn helpmsg
+        [cmd]               | (strip cmd) == "-repl" -> 
+                              putStrLn msg >> runInputT defaultSettings repl
+                            | otherwise -> putStrLn helpmsg
+        [cmd, path]         | (strip cmd) == "-c" ->
+                              liftIO (processCompile (strip path) "") 
+                            | otherwise -> putStrLn helpmsg
+        [cmd, path, dest]   | (strip cmd) == "-c" -> 
+                              liftIO $ processCompile (strip path) (strip dest)
+                            | otherwise -> putStrLn helpmsg
+        _                  -> putStrLn helpmsg
