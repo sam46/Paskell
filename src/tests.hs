@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Tests where
 
 import Text.Parsec
@@ -9,6 +11,9 @@ import ExtraParsers
 import KeywordParse
 import Grammar
 import TypeCheck
+import qualified ConvertIR as Conv
+import qualified Emit as E
+import Codegen (emptyModule)
 
 import Control.Exception
 import Control.Monad
@@ -400,6 +405,30 @@ tparseDeclFunc = do
         "function fo(;): real; begin end;",
         "function fo(p1:char;): real; begin end;" ]
 
+
+tEmitProgram p = E.codegen (emptyModule "MainModule") p >>= putStrLn.snd
+
+sampleProgs = [
+    "program p; function f():integer; begin f:=2 end; begin end.",
+    "program p; function f1 (a:integer; b:boolean) : integer; begin end; begin end.",
+    "program p; procedure f1 (a:integer; b:boolean); begin end; begin end.",
+    "program p; function f1 (a:integer; b:boolean) : integer; begin a := 1 + 1 end; begin end.",
+    "program p; function f1 (a:integer; b:boolean) : integer; begin a := -1 end; begin end.",
+    "program p; function f1 (a:integer; b:boolean) : integer; begin a := +1 end; begin end.",
+    "program p; function f1 (a:real; b:boolean)    : integer; begin a := 1.5 + 1 end; begin end.",
+    "program p; function f1 (a:integer; b:boolean) : integer; begin a := 1 + 1 * 2 + 3 end; begin end.",
+    "program p; function f2 (a:integer; b:boolean) : integer; var x:integer; begin x:=1 end; begin end.",
+    "program p; function f():integer; var x:integer; begin x:=1; if x>1 then x:=1 else x:=2 end; begin end.",
+    "program p; function f():integer; var x,y:integer; begin for x:=0 to 10 do y:=1 end; begin end.",
+    "program p; function f():integer; var x,y:integer; begin for x:=10 downto 0 do y:=1 end; begin end.",
+    "program p; function f():integer; var x:integer; begin x:=1; while x>1 do x:=2 end; begin end.",
+    "program p; var z:integer; procedure f(); var x:integer; begin x:=1; end; begin end.",
+    "program p; var x:integer; function f(x:integer):integer; begin x:=1 end; begin x:=2 end."]
+
+testCompile n = case (Conv.chkConvProgram' <$> sampleProgs) !! n 
+            of Right x -> tEmitProgram x
+               Left x  -> error $ x
+
 testAll = do
     tparseKeywords
     tparseIdent
@@ -424,3 +453,14 @@ testAll = do
 testFiles = do
     let path = "f:/Paskell/pascal-src/"
     parseFromFile parseProgram $ path ++ "p1.pas"
+
+
+compileFile path = do
+    e <- parseFromFile parseProgram path
+    case e of Left errP -> print errP 
+              Right ast -> case typechkProgram ast of
+                                Left  errTC -> print errTC
+                                Right _     -> E.printllvm ast >>= putStrLn
+-- foo path = do
+--     x <- compileFile path
+--     case x

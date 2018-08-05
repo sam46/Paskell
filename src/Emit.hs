@@ -84,7 +84,8 @@ genDeclFunc (IR.DeclFunc x args retty blk _) = do
                 store var (local (toLLVMType t) (name' i))
                 assign (toShortBS i) var
             genBlock blk
-            ret (cons (C.Int 32 (fromIntegral 1)))
+            -- return dummy variable value
+            getvar (toShortBS x) (toLLVMType retty) >>= load >>= ret
     
 genDeclProc :: IR.Decl -> LLVM ()
 genDeclProc (IR.DeclProc x args blk _) = do
