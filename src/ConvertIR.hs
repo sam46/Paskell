@@ -170,3 +170,10 @@ chkConvDecl' s = let p = p' parseDecl s in
               Right pp -> case chkConvDecl pp of 
                             Left y -> Left $ show y
                             Right d -> Right d
+
+chkConvProgram' :: String -> Either String IR.Program
+chkConvProgram' s = let p = p' parseProgram s in
+    case p of Left x -> Left $ show x
+              Right pp -> case chkConvProgram pp of 
+                            Left y -> Left $ show y
+                            Right d -> Right d

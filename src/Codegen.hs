@@ -93,7 +93,8 @@ gvar :: Type -> Name -> LLVM ()
 gvar ty name  = addDefn $
   GlobalDefinition globalVariableDefaults
     { name = name
-    , isConstant = True
+    , G.type' = ty
+    , linkage = L.Weak
     , initializer = Nothing
   }
 
@@ -265,16 +266,16 @@ assign var x = do
   lcls <- gets symtab
   modify $ \s -> s { symtab = [(var, x)] ++ lcls }
 
-getvar :: ShortByteString -> Codegen Operand
-getvar var = do
+getvar :: ShortByteString -> Type -> Codegen Operand
+getvar var ty = do
   syms <- gets symtab
   case lookup var syms of
     Just x  -> return x
-    Nothing -> return $ getGvar var
+    Nothing -> return $ getGvar var ty
       -- error $ "unkown variable" ++ show var
 
-getGvar :: ShortByteString -> Operand
-getGvar var = ConstantOperand $ global int (Name var)
+getGvar :: ShortByteString -> Type -> Operand
+getGvar var ty = ConstantOperand $ global (PointerType ty (AddrSpace 0)) (Name var)
 
 -------------------------------------------------------------------------------
 

@@ -74,7 +74,7 @@ codegen mod pr = withContext $ \context ->
 -------------------------
 
 genDecl :: IR.Decl -> Codegen ()
-genDecl d@(IR.DeclVar xs _) = genDeclVar d
+genDecl d@(IR.DeclVar _ _) = genDeclVar d
 -- genDecl d@(IR.DeclFunc x args retty blk _) = genDeclFunc d
 
 genDeclFunc :: IR.Decl -> LLVM ()
@@ -151,7 +151,7 @@ genStatement (IR.StatementEmpty) = return ()
 genStatement (IR.StatementSeq xs _) = (forM xs genStatement) >> return ()
 genStatement (IR.Assignment (IR.Designator x _ xt) expr _) = do
     rhs <- genExpr expr
-    var <- getvar $ toShortBS x
+    var <- getvar (toShortBS x) (toLLVMType xt)
     store var rhs
 
 genStatement (IR.StatementIf expr s1 ms2 _) = do 
@@ -314,4 +314,4 @@ genExpr (IR.FuncCall f xs t) = do
     call (externf (toLLVMType t) (name' f)) args
 
 genExpr (IR.FactorDesig (IR.Designator x _ xt) _) =
-    (getvar $ toShortBS x) >>= load
+    (getvar (toShortBS x) (toLLVMType xt)) >>= load
