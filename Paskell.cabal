@@ -3,9 +3,9 @@
 
 name:                Paskell
 version:             0.1.0.0
-synopsis:            A Pascal compiler in Haskell[D[C[D[D[D[D[D[C[C[Cmade with Haskell[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dsmall [3~[3[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cl Pascal compiler made with Haskell
+synopsis:            A Pascal compiler with llvm backend
 -- description:         
-homepage:            https://gitcub.com/sam46/Paskell[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[h
+homepage:            https://github.com/sam46/Paskell
 license:             BSD3
 license-file:        LICENSE
 author:              sam46
@@ -20,13 +20,26 @@ executable Paskell
   main-is:             Main.hs
   -- other-modules:       
   -- other-extensions:    
-  build-depends:       base >=4.9 && <4.10,
+  build-depends:       base >=4.9 && <= 4.10.1.0,
                        parsec,
                        mtl,
                        text,
                        HUnit,
                        haskeline,
-                       llvm-hs,
-                       llvm-hs-pure 
+                       bytestring,
+                       containers,
+                       llvm-hs == 5.1.3,
+                       llvm-hs-pure == 5.1.2
+
+  other-modules:       Codegen
+                       ConvertIR
+                       Emit
+                       ExtraParsers
+                       Grammar
+                       Intermediate
+                       KeywordParse
+                       Paskell
+                       TypeCheck
+                       Utils
   hs-source-dirs:      src
   default-language:    Haskell2010
