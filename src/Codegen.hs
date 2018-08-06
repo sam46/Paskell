@@ -128,6 +128,9 @@ printf = GlobalDefinition $ functionDefaults
 printfTy = PointerType {pointerReferent  = (FunctionType int [str] True), 
                         pointerAddrSpace = AddrSpace 0}
 
+toLLVMfnType t ts = PointerType {pointerReferent  = (FunctionType t ts False), 
+                        pointerAddrSpace = AddrSpace 0}
+
 fnPtr :: Name -> LLVM Type
 fnPtr nm = findType <$> gets moduleDefinitions
   where

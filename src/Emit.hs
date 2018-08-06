@@ -332,9 +332,15 @@ genExpr (IR.Unary op x t) =  do
     return (oper, defs)
 
 genExpr (IR.FuncCall f xs t) = do
-    (args, defs) <- mapM genExpr xs >>= (return.unzip)
-    oper <- call (externf (toLLVMType t) (name' f)) args
+    (args, defs) <- mapM genExpr ((dummyarg t) :xs) >>= (return.unzip)
+    oper <- call (externf fty (name' f)) args
     return (oper, concat defs)
+    where fty = toLLVMfnType (toLLVMType t) ((toLLVMType t):(map (toLLVMType. IR.getType) xs))
+          dummyarg t = case t of
+            G.TYint -> IR.FactorInt 0 t
+            G.TYstr -> IR.FactorStr "" t
+            G.TYbool -> IR.FactorFalse t
+            G.TYreal -> IR.FactorReal 0.0 t
 
 genExpr (IR.FactorDesig (IR.Designator x _ xt) _) =
     (getvar (toShortBS x) (toLLVMType xt)) >>= load 

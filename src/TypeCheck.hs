@@ -163,7 +163,7 @@ gettype env (FactorNot x)       = undefined
 
 gettype env (FuncCall x args) = lookupFun env x >>=
     \(t, formalTs) -> 
-        if length formalTs /= length args
+        if length formalTs /= length args + 1
         then Left $ ArgCountMismatch (length formalTs)
         else foldr (>>) (Right t) (map f (zip args formalTs)) 
     where f (ex, formalT) = (gettype env ex) >>= \exT -> 
