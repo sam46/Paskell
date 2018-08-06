@@ -3,7 +3,7 @@
 
 module Codegen where
 
-import Data.ByteString.Short
+import Data.ByteString.Short hiding (length)
 import Data.Monoid ((<>))
 import Data.Word
 import Data.String
@@ -27,7 +27,6 @@ import qualified LLVM.AST.Attribute as A
 import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.FloatingPointPredicate as FP
 import qualified LLVM.AST.IntegerPredicate as IP
-
 
 import LLVM.Context
 import LLVM.Module
@@ -57,19 +56,20 @@ addDefn d = do
   defs <- gets moduleDefinitions
   modify $ \s -> s { moduleDefinitions = defs ++ [d] }
 
-define ::  Type -> ShortByteString -> [(Type, Name)] -> Codegen a -> LLVM ()
-define retty label argtys body = addDefn $
+define ::  Type -> ShortByteString -> [(Type, Name)] -> Codegen [Definition] -> LLVM ()
+define retty label argtys body = (addDefns bodydefs) >> addDefn (
   GlobalDefinition $ functionDefaults {
     name        = Name label
   , parameters  = ([Parameter ty nm [] | (ty, nm) <- argtys], False)
   , returnType  = retty
   , basicBlocks = bls
-  }
+  })
   where
-    bls = createBlocks $ execCodegen $ 
-      do
+    (bodydefs, bodystate) = runStateCodegen body
+    bls = createBlocks $ bodystate
+      -- do
         -- body ptrThisType
-        body
+        -- body
     -- ptrThisType = PointerType {
     --     pointerReferent = FunctionType {
     --         resultType = retty
@@ -96,7 +96,16 @@ gvar ty name  = addDefn $
     , G.type' = ty
     , linkage = L.Weak
     , initializer = Nothing
-  }
+    }
+
+gvar' :: Type -> Name -> Definition 
+gvar' ty name  = 
+  GlobalDefinition globalVariableDefaults
+    { name = name
+    , G.type' = ty
+    , linkage = L.Weak
+    , initializer = Nothing
+    }
 
 fnPtr :: Name -> LLVM Type
 fnPtr nm = findType <$> gets moduleDefinitions
@@ -120,6 +129,12 @@ double = FloatingPointType DoubleFP
 
 void :: Type
 void = AST.VoidType
+
+int :: Type
+int = IntegerType 32
+
+bool :: Type
+bool = IntegerType 1
 
 -------------------------------------------------------------------------------
 -- Names
@@ -186,6 +201,9 @@ emptyCodegen = CodegenState (Name entryBlockName) Map.empty [] 1 0 Map.empty
 
 execCodegen :: Codegen a -> CodegenState
 execCodegen m = execState (runCodegen m) emptyCodegen
+
+runStateCodegen :: Codegen a -> (a, CodegenState)
+runStateCodegen m = runState (runCodegen m) emptyCodegen 
 
 -- increase instructions count. For unique names
 fresh :: Codegen Word
@@ -321,11 +339,6 @@ sitofp ty a = instr float $ SIToFP a ty []
 
 nowrap :: Bool
 nowrap = False
-
-int :: Type
-int = IntegerType 32
-bool :: Type
-bool = IntegerType 1
 
 iadd :: Operand -> Operand -> Codegen Operand
 iadd a b = instr int $ Add nowrap nowrap a b []
