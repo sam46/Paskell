@@ -32,6 +32,8 @@ import LLVM.Context
 import LLVM.Module
 import qualified Data.ByteString.Char8 as BS
 
+import Data.Char (ord)
+
 -------------------------------------------------------------------------------
 -- Module Level
 -------------------------------------------------------------------------------
@@ -107,6 +109,29 @@ gvar' ty name  =
     , initializer = Nothing
     }
 
+gstrVal :: Name -> String -> LLVM ()
+gstrVal name val = addDefn $   
+  GlobalDefinition globalVariableDefaults
+    { name = name
+    , G.type' = charArrType (length val)
+    , linkage = L.Private
+    , unnamedAddr = Just GlobalAddr
+    , isConstant = True
+    , initializer = Just $ C.Array (IntegerType 8) [] 
+    }
+
+gstrVal' :: Name -> String -> Definition
+gstrVal' name val =    
+  GlobalDefinition globalVariableDefaults
+    { name = name
+    , G.type' = charArrType (length val)
+    , linkage = L.Private
+    -- , unnamedAddr = Just GlobalAddr
+    , isConstant = True
+    , initializer = Just $ C.Array (IntegerType 8) (map constchar val)
+    }
+  where constchar c = C.Int 8 (toInteger $ ord c)
+
 fnPtr :: Name -> LLVM Type
 fnPtr nm = findType <$> gets moduleDefinitions
   where
@@ -135,6 +160,12 @@ int = IntegerType 32
 
 bool :: Type
 bool = IntegerType 1
+
+str :: Type
+str = (PointerType (IntegerType 8) (AddrSpace 0))
+
+charArrType :: Int -> Type
+charArrType len = ArrayType (fromIntegral $ len) (IntegerType 8)
 
 -------------------------------------------------------------------------------
 -- Names
@@ -211,6 +242,12 @@ fresh = do
   i <- gets count  -- (codegen, word codegen)
   modify $ \s -> s { count = 1 + i } -- (codegen,())
   return $ i + 1
+
+freshStrName :: Codegen String
+freshStrName = do
+  n <- fresh
+  bname <- getBlock
+  return $ "str." ++ (show bname) ++ "." ++ (show n)
 
 instr :: Type -> Instruction -> Codegen (Operand)
 instr ty ins = do

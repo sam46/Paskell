@@ -42,6 +42,7 @@ toLLVMType t =
               G.TYbool -> bool
               G.TYreal -> double
               G.Void   -> void
+              G.TYstr  -> str
 
 toParamList params = map mapParam params
     where mapParam (x,t,byref) = 
@@ -255,7 +256,12 @@ formatstr (IR.FactorTrue _)   = undefined
 genExpr :: IR.Expr -> Codegen (Operand, [Definition])
 genExpr (IR.FactorInt x  _) = return (cons $ C.Int 32 (fromIntegral x), [])
 genExpr (IR.FactorReal x _) = return (cons $ C.Float (F.Double x), [])
-genExpr (IR.FactorStr x _)  = undefined
+genExpr (IR.FactorStr x _)  = do 
+    strglobal <- freshStrName
+    def <- return $ gstrVal' (name' strglobal) x
+    (ConstantOperand ptr) <- getvar (toShortBS strglobal) (charArrType $ length x)
+    oper <- return $ cons $ C.GetElementPtr True ptr [C.Int 32 0, C.Int 32 0]
+    return (oper, [def])
 genExpr (IR.FactorTrue _)   = return (cons $ C.Int 1 1, [])
 genExpr (IR.FactorFalse _)  = return (cons $ C.Int 1 0, [])
 genExpr (IR.Relation x1 op x2 _) = let 
