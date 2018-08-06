@@ -188,8 +188,13 @@ parseProcCall = ProcCall <$> parseIdent
 parseStmntMem :: Parser Statement
 parseStmntMem = undefined
 
-parseStmntIO :: Parser Statement
-parseStmntIO = undefined
+parseStmntWrite :: Parser Statement
+parseStmntWrite = StatementWrite <$> (parseKWwrite >>
+     ((betweenCharTok '(' ')' parseExprList)))
+
+parseStmntWriteLn :: Parser Statement
+parseStmntWriteLn = StatementWriteLn <$> (parseKWwriteln >>
+    ((betweenCharTok '(' ')' parseExprList)))
 
 parseFuncCall :: Parser Expr
 parseFuncCall = FuncCall <$> parseIdent 

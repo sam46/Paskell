@@ -32,7 +32,6 @@ data Statement = StatementSeq [Statement] Type
     | StatmentRead DesigList Type
     | StatementReadLn DesigList Type
     | StatementWrite ExprList Type
-    | StatementWriteLn ExprList Type
     deriving (Eq) 
 
 data Designator = Designator Ident [DesigProp] Type deriving (Eq)

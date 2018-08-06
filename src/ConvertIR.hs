@@ -77,16 +77,16 @@ convDecl env (DeclVar xs) = let
     (IR.DeclVar xs Void, env')
 convDecl env (DeclFunc x params t b) = let
     params' = (x,t,False) : params in -- added hidden variable for return value
-    convDeclFunc (DeclFunc x params' t b) 
+    convDeclFunc env (DeclFunc x params' t b) 
 convDecl env (DeclProc x params b) = 
     convDeclFunc env (DeclFunc x params Void b)
 convDeclFunc :: Env -> Decl -> (IR.Decl, Env)
 convDeclFunc env df@(DeclFunc x params t b) = let
-    xs   = map (\(a',b',_) -> (a',b')) params'
+    xs   = map (\(a',b',_) -> (a',b')) params
     addVar' (a',b') c' = addVar c' a' b'
     env'  = addFunc env (getSig df)
     env'' = foldr addVar' (newBlock env') xs in
-    (IR.DeclFunc x params' t (fst $ convBlock env'' b) Void, env')
+    (IR.DeclFunc x params t (fst $ convBlock env'' b) Void, env')
 
 convStatement :: Env -> Statement -> IR.Statement
 convStatement env (Assignment des expr) = 
@@ -94,7 +94,6 @@ convStatement env (Assignment des expr) =
 
 convStatement env (StatementIf expr s1 ms2) =
     IR.StatementIf (convExpr env expr) (convStatement env s1) ((convStatement env) <$> ms2) Void
-
 
 convStatement env (StatementFor i x1 b x2 s) = -- todo: add i to s's env?
     IR.StatementFor i (convExpr env x1) b (convExpr env x2) (convStatement env s) Void
@@ -105,6 +104,10 @@ convStatement env (StatementWhile expr s) =
 convStatement env StatementEmpty = IR.StatementEmpty
 
 convStatement env (StatementSeq xs) = IR.StatementSeq (map (convStatement env) xs) Void
+
+convStatement env (StatementWrite xs) = IR.StatementWrite (map (convExpr env) xs) Void
+
+convStatement env (StatementWriteLn xs) = convStatement env (StatementWrite $ xs++[FactorStr "\n"])
 
 
 convDesignator :: Env -> Designator -> IR.Designator

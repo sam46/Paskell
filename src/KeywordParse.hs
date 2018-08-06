@@ -14,9 +14,9 @@ keywords = ["and","downto","if","or",
     "then","array","else","in","packed",
     "to","begin","end","label","procedure",
     "type","case","file","mod","program","until",
-    "const","for","nil","record","var",
+    "const","for","nil","record","var", "writeln",
     "div","function","not","repeat","while",
-    "do","goto","of","set","with",
+    "do","goto","of","set","with", "write",
     "boolean", "integer", "char", "string", "real"]
 special  = [":=","+","-","*","/","=",
     "<",">","<>","<=",">=","(",")","[",
@@ -95,3 +95,5 @@ parseKWstring    = parseReserved "string" KWstring
 parseKWchar      = parseReserved "char" KWchar
 parseKWinteger   = parseReserved "integer" KWinteger
 parseKWreal      = parseReserved "real" KWreal
+parseKWwrite     = parseReserved "write" KWreal
+parseKWwriteln   = parseReserved "writeln" KWreal
