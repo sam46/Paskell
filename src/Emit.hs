@@ -85,26 +85,29 @@ genDeclFunc (IR.DeclFunc x args retty blk _) = do
                 store var (local (toLLVMType t) (name' i))
                 assign (toShortBS i) var
             defs <- genBlock blk
-            -- return dummy variable value
-            getvar (toShortBS x) (toLLVMType retty) >>= load >>= ret
+            -- return dummy variable value for functions, or void for procedures 
+            if retty == G.Void 
+                then retvoid
+                else getvar (toShortBS x) (toLLVMType retty) 
+                     >>= load >>= ret
             return defs
 
-genDeclProc :: IR.Decl -> LLVM ()
-genDeclProc (IR.DeclProc x args blk _) = do
-    define (toLLVMType retty) (toShortBS x) (toSig args) body
-    where 
-        retty = G.Void
-        toSig xs = map (\(a,b,c) -> (toLLVMType b, name' a)) xs
-        body = do
-            entry' <- addBlock (toShortBS "entry")
-            setBlock entry'
-            forM args $ \(i,t,_) -> do
-                var <- alloca (toLLVMType t)
-                store var (local (toLLVMType t) (name' i))
-                assign (toShortBS i) var
-            defs <- genBlock blk
-            retvoid
-            return defs
+-- genDeclProc :: IR.Decl -> LLVM ()
+-- genDeclProc (IR.DeclProc x args blk _) = do
+--     define (toLLVMType G.TYint) (toShortBS x) (toSig args) body
+--     where 
+--         retty = G.Void
+--         toSig xs = map (\(a,b,c) -> (toLLVMType b, name' a)) xs
+--         body = do
+--             entry' <- addBlock (toShortBS "entry")
+--             setBlock entry'
+--             forM args $ \(i,t,_) -> do
+--                 var <- alloca (toLLVMType t)
+--                 store var (local (toLLVMType t) (name' i))
+--                 assign (toShortBS i) var
+--             defs <- genBlock blk
+--             ret $ cons $ C.Int 32 0
+--             return defs
 
 genDeclVar :: IR.Decl -> Codegen ()
 genDeclVar (IR.DeclVar xs _) = do
@@ -116,7 +119,7 @@ genDeclVar (IR.DeclVar xs _) = do
 
 genDeclGlob :: IR.Decl -> LLVM ()
 genDeclGlob d@(IR.DeclVar _ _) = genDeclVarGlob d
-genDeclGlob d@(IR.DeclProc _ _ _ _) = genDeclProc d 
+-- genDeclGlob d@(IR.DeclProc _ _ _ _) = genDeclProc d 
 genDeclGlob d@(IR.DeclFunc _ _ _ _ _) = genDeclFunc d 
 
 
@@ -129,11 +132,12 @@ genDeclVarGlob (IR.DeclVar xs _) = do
 
 -- generate entry point main()
 genMain :: IR.Statement -> LLVM ()
-genMain s = genDeclProc (IR.DeclProc "main" args (IR.Block [] s G.Void) G.Void) 
-    where args = []
+genMain s = genDeclFunc (IR.DeclFunc "main" args G.TYint (IR.Block [] s G.Void) G.Void) 
+    where args = [("main", G.TYint, False)]
 
 genProgram :: IR.Program -> LLVM ()
 genProgram (IR.Program p (IR.Block ds s _) _) = do
+    addDefn printf
     forM ds genDeclGlob
     genMain s
 
@@ -240,17 +244,16 @@ genStatement (IR.ProcCall f xs t) = do
     return $ concat defs
 
 genStatement (IR.StatementWrite xs _) = do
-    (args, defs) <- mapM genExpr ((IR.FactorStr fstr G.TYstr) : xs) >>= (return.unzip)
-    call (externf int (name' "printf")) args
+    (args, defs) <- (mapM genExpr ((IR.FactorStr fstr G.TYstr) : xs)) >>= (return.unzip)
+    call (externf printfTy (name' "printf")) args
     return $ concat defs
-    where fstr = (foldr (++) "" (map formatstr xs)) ++ "\00"
+    where fstr = (foldr (++) "" (map (formatstr. IR.getType) xs)) ++ "\00"
+          
+formatstr :: G.Type -> String
+formatstr G.TYint  = "%d"
+formatstr G.TYstr  = "%s"
+formatstr G.TYreal = "%f"
 
-formatstr :: IR.Expr -> String
-formatstr (IR.FactorInt _ _)  = "%d"
-formatstr (IR.FactorStr _ _)  = "%s"
-formatstr (IR.FactorReal _ _) = "%f"
-formatstr (IR.FactorFalse _)  = undefined
-formatstr (IR.FactorTrue _)   = undefined 
 
 -- returns %x for final expression value, and stores any intermediate instructions in the block
 genExpr :: IR.Expr -> Codegen (Operand, [Definition])
@@ -258,10 +261,11 @@ genExpr (IR.FactorInt x  _) = return (cons $ C.Int 32 (fromIntegral x), [])
 genExpr (IR.FactorReal x _) = return (cons $ C.Float (F.Double x), [])
 genExpr (IR.FactorStr x _)  = do 
     strglobal <- freshStrName
-    def <- return $ gstrVal' (name' strglobal) x
-    (ConstantOperand ptr) <- getvar (toShortBS strglobal) (charArrType $ length x)
+    def <- return $ gstrVal' (name' strglobal) x'
+    (ConstantOperand ptr) <- getvar (toShortBS strglobal) (charArrType $ length x')
     oper <- return $ cons $ C.GetElementPtr True ptr [C.Int 32 0, C.Int 32 0]
     return (oper, [def])
+    where x' = if last x /= '\00' then x ++ "\00" else x
 genExpr (IR.FactorTrue _)   = return (cons $ C.Int 1 1, [])
 genExpr (IR.FactorFalse _)  = return (cons $ C.Int 1 0, [])
 genExpr (IR.Relation x1 op x2 _) = let 

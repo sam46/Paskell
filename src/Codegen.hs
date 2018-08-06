@@ -100,7 +100,7 @@ gvar' ty name  =
     { name = name
     , G.type' = ty
     , linkage = L.Weak
-    , initializer = Nothing
+    , initializer = Just $ C.Null ty
     }
 
 gstrVal :: Name -> String -> LLVM ()
@@ -117,6 +117,16 @@ gstrVal' name val =
     , initializer = Just $ C.Array (IntegerType 8) (map constchar val)
     }
   where constchar c = C.Int 8 (toInteger $ ord c)
+
+printf :: Definition
+printf = GlobalDefinition $ functionDefaults
+  { returnType = int
+  , name = Name "printf"
+  , parameters = ([Parameter str (UnName 0) []], True)
+  }
+
+printfTy = PointerType {pointerReferent  = (FunctionType int [str] True), 
+                        pointerAddrSpace = AddrSpace 0}
 
 fnPtr :: Name -> LLVM Type
 fnPtr nm = findType <$> gets moduleDefinitions
@@ -148,7 +158,7 @@ bool :: Type
 bool = IntegerType 1
 
 str :: Type
-str = (PointerType (IntegerType 8) (AddrSpace 0))
+str = PointerType (IntegerType 8) (AddrSpace 0)
 
 charArrType :: Int -> Type
 charArrType len = ArrayType (fromIntegral $ len) (IntegerType 8)
