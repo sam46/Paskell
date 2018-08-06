@@ -409,6 +409,7 @@ tparseDeclFunc = do
 tEmitProgram p = E.codegen (emptyModule "MainModule") p >>= putStrLn.snd
 
 sampleProgs = [
+    "program p; function f():integer; var s:string; begin f:=2; s:= \"ok\" end; begin end.",
     "program p; function f():integer; begin f:=2 end; begin end.",
     "program p; function f1 (a:integer; b:boolean) : integer; begin end; begin end.",
     "program p; procedure f1 (a:integer; b:boolean); begin end; begin end.",
