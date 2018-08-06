@@ -92,13 +92,7 @@ external retty label argtys = addDefn $
   }
 
 gvar :: Type -> Name -> LLVM ()
-gvar ty name  = addDefn $
-  GlobalDefinition globalVariableDefaults
-    { name = name
-    , G.type' = ty
-    , linkage = L.Weak
-    , initializer = Nothing
-    }
+gvar ty name  = addDefn $ gvar' ty name
 
 gvar' :: Type -> Name -> Definition 
 gvar' ty name  = 
@@ -110,15 +104,7 @@ gvar' ty name  =
     }
 
 gstrVal :: Name -> String -> LLVM ()
-gstrVal name val = addDefn $   
-  GlobalDefinition globalVariableDefaults
-    { name = name
-    , G.type' = charArrType (length val)
-    , linkage = L.Private
-    , unnamedAddr = Just GlobalAddr
-    , isConstant = True
-    , initializer = Just $ C.Array (IntegerType 8) (map constchar val)
-    }
+gstrVal name val = addDefn $ gstrVal' name val
 
 gstrVal' :: Name -> String -> Definition
 gstrVal' name val =    
@@ -334,9 +320,6 @@ getGvar var ty = ConstantOperand $ global (PointerType ty (AddrSpace 0)) (Name v
 
 -------------------------------------------------------------------------------
 
--- References:
---  refer to already declared variables
-
 local ::  Type -> Name -> Operand   -- refer to variable defined in local scope (function)
 local = LocalReference
 
@@ -419,14 +402,13 @@ ret val = terminator $ Do $ Ret (Just val) []
 retvoid :: Codegen (Named Terminator)
 retvoid = terminator $ Do $ Ret Nothing []
 
+-------------------------------------------------------------------------------
 
-  
 module_ :: AST.Module
 module_ = defaultModule
     { moduleName = "basic"
     , moduleDefinitions = []
     }
-
 
 toLLVM :: AST.Module -> IO ()
 toLLVM mod = withContext $ \ctx -> do
