@@ -32,21 +32,18 @@ import qualified Intermediate as IR
 import Codegen
 
 
-
 toShortBS =  toShort . BS.pack 
 toString = BS.unpack . fromShort
 name' = Name . toShortBS
 
-toLLVMType t = 
-    case t of G.TYint  -> int
-              G.TYbool -> bool
-              G.TYreal -> double
-              G.Void   -> void
-              G.TYstr  -> str
+toLLVMType :: G.Type -> Type
+toLLVMType t = case t of 
+    G.TYint  -> int
+    G.TYbool -> bool
+    G.TYreal -> double
+    G.Void   -> void
+    G.TYstr  -> str
 
-toParamList params = map mapParam params
-    where mapParam (x,t,byref) = 
-            Parameter (toLLVMType t) (name' x) (if byref then [Dereferenceable 4] else [])
 -------------------------------------------------------
 
 liftError :: ExceptT String IO a -> IO a
@@ -68,10 +65,6 @@ printllvm ast = let ir = Conv.convProgram ast in
 
 -------------------------
 
-genDecl :: IR.Decl -> Codegen ()
-genDecl d@(IR.DeclVar _ _) = genDeclVar d
--- genDecl d@(IR.DeclFunc x args retty blk _) = genDeclFunc d
-
 genDeclFunc :: IR.Decl -> LLVM ()
 genDeclFunc (IR.DeclFunc x args retty blk _) = do
     define (toLLVMType retty) (toShortBS x) (toSig args) body
@@ -92,23 +85,7 @@ genDeclFunc (IR.DeclFunc x args retty blk _) = do
                      >>= load >>= ret
             return defs
 
--- genDeclProc :: IR.Decl -> LLVM ()
--- genDeclProc (IR.DeclProc x args blk _) = do
---     define (toLLVMType G.TYint) (toShortBS x) (toSig args) body
---     where 
---         retty = G.Void
---         toSig xs = map (\(a,b,c) -> (toLLVMType b, name' a)) xs
---         body = do
---             entry' <- addBlock (toShortBS "entry")
---             setBlock entry'
---             forM args $ \(i,t,_) -> do
---                 var <- alloca (toLLVMType t)
---                 store var (local (toLLVMType t) (name' i))
---                 assign (toShortBS i) var
---             defs <- genBlock blk
---             ret $ cons $ C.Int 32 0
---             return defs
-
+-- used for local var decls only 
 genDeclVar :: IR.Decl -> Codegen ()
 genDeclVar (IR.DeclVar xs _) = do
     forM xs $ \(i,t) -> do
@@ -116,24 +93,19 @@ genDeclVar (IR.DeclVar xs _) = do
         assign (toShortBS i) var
     return ()
 
-
 genDeclGlob :: IR.Decl -> LLVM ()
 genDeclGlob d@(IR.DeclVar _ _) = genDeclVarGlob d
--- genDeclGlob d@(IR.DeclProc _ _ _ _) = genDeclProc d 
 genDeclGlob d@(IR.DeclFunc _ _ _ _ _) = genDeclFunc d 
-
 
 genDeclVarGlob :: IR.Decl -> LLVM ()
 genDeclVarGlob (IR.DeclVar xs _) = do
-    forM xs $ \(i,t) -> do
-        gvar (toLLVMType t) (name' i)
+    forM xs $ \(i,t) -> gvar (toLLVMType t) (name' i)
     return ()
-
 
 -- generate entry point main()
 genMain :: IR.Statement -> LLVM ()
 genMain s = genDeclFunc (IR.DeclFunc "main" args G.TYint (IR.Block [] s G.Void) G.Void) 
-    where args = [("main", G.TYint, False)]
+    where args = [("main", G.TYint, False)] -- dummy return value variable
 
 genProgram :: IR.Program -> LLVM ()
 genProgram (IR.Program p (IR.Block ds s _) _) = do
@@ -141,10 +113,9 @@ genProgram (IR.Program p (IR.Block ds s _) _) = do
     forM ds genDeclGlob
     genMain s
 
-
 genBlock :: IR.Block -> Codegen [Definition]
 genBlock (IR.Block ds s _) = do
-    forM ds genDecl
+    forM ds genDeclVar
     genStatement s
 
 

@@ -392,6 +392,8 @@ toArgs = map (\x -> (x, []))
 -- Effects
 call :: Operand -> [Operand] -> Codegen Operand
 call fn args = instr float $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
+
+-- UnNamed instruction Call. Used when return type is void
 call' :: Operand -> [Operand] -> Codegen ()
 call' fn args = unnminstr $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
 
