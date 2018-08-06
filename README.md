@@ -1,21 +1,21 @@
 # Paskell
-A small (reduced) Pascal compiler in Haskell  
-Work in Progress!  
+A (reduced) Pascal compiler in Haskell that compiles to LLVM  
+Work in Progress, mostly finished!  
 
 ### Features:   
-- Declarations: vars, types, constants  
-- Control Flow: if, case, while, for    
-- Assignment   
-- Functions/Procedures,    
-- Nested Functions/Procedures 
-
+- Declarations: var 
+- Types: integer, boolean, string, char, real
+- Control Flow: if, while, for    
+- Functions/Procedures 
+- Nested Functions/Procedures (Not finished yet) 
+- I/O: Write/Writeln
 
 ### Progress  
 - [x] Lexing/Parsing 
 - [x] Semantic Analysis/Type-Checking
-- [x] Type-Annotated AST
-- [x] Annotated-AST pretty-printer
-- [ ] Code generation 
+- [x] Type-Annotated IR AST
+- [x] IR pretty-printer
+- [x] LLVM Code generation 
 
 ### Demo
 #### A REPL demonstrating the parser:  
