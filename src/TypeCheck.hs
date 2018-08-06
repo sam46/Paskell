@@ -145,6 +145,11 @@ typechkStatement env StatementEmpty = Right env
 typechkStatement env (StatementSeq xs) =
     foldr (>>) (Right env) (map (typechkStatement env) xs)
 
+typechkStatement env (StatementWrite xs) = 
+    foldr (>>) (Right env) (map (gettype env) xs)
+typechkStatement env (StatementWriteLn xs) = 
+    typechkStatement env (StatementWrite xs)
+
 
 gettype :: Env -> Expr -> Either TyErr Type
 gettype env FactorTrue          = Right TYbool
