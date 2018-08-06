@@ -238,6 +238,18 @@ genStatement (IR.ProcCall f xs t) = do
     call (externf (toLLVMType t) (name' f)) args
     return $ concat defs
 
+genStatement (IR.StatementWrite xs _) = do
+    (args, defs) <- mapM genExpr ((IR.FactorStr fstr G.TYstr) : xs) >>= (return.unzip)
+    call (externf int (name' "printf")) args
+    return $ concat defs
+    where fstr = (foldr (++) "" (map formatstr xs)) ++ "\00"
+
+formatstr :: IR.Expr -> String
+formatstr (IR.FactorInt _ _)  = "%d"
+formatstr (IR.FactorStr _ _)  = "%s"
+formatstr (IR.FactorReal _ _) = "%f"
+formatstr (IR.FactorFalse _)  = undefined
+formatstr (IR.FactorTrue _)   = undefined 
 
 -- returns %x for final expression value, and stores any intermediate instructions in the block
 genExpr :: IR.Expr -> Codegen (Operand, [Definition])
