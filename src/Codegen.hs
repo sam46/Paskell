@@ -117,7 +117,7 @@ gstrVal name val = addDefn $
     , linkage = L.Private
     , unnamedAddr = Just GlobalAddr
     , isConstant = True
-    , initializer = Just $ C.Array (IntegerType 8) [] 
+    , initializer = Just $ C.Array (IntegerType 8) (map constchar val)
     }
 
 gstrVal' :: Name -> String -> Definition
@@ -126,7 +126,7 @@ gstrVal' name val =
     { name = name
     , G.type' = charArrType (length val)
     , linkage = L.Private
-    -- , unnamedAddr = Just GlobalAddr
+    , unnamedAddr = Just GlobalAddr
     , isConstant = True
     , initializer = Just $ C.Array (IntegerType 8) (map constchar val)
     }
