@@ -109,6 +109,7 @@ convStatement env (StatementWrite xs) = IR.StatementWrite (map (convExpr env) xs
 
 convStatement env (StatementWriteLn xs) = convStatement env (StatementWrite $ xs++[FactorStr "\n"])
 
+convStatement env (ProcCall x xs) = IR.ProcCall x (map (convExpr env) xs) Void
 
 convDesignator :: Env -> Designator -> IR.Designator
 convDesignator env (Designator x _) = IR.Designator x [] (lookupVar env x) 

@@ -150,6 +150,8 @@ typechkStatement env (StatementWrite xs) =
 typechkStatement env (StatementWriteLn xs) = 
     typechkStatement env (StatementWrite xs)
 
+typechkStatement env _ = Right env -- todo
+
 
 gettype :: Env -> Expr -> Either TyErr Type
 gettype env FactorTrue          = Right TYbool
