@@ -125,9 +125,12 @@ printf = GlobalDefinition $ functionDefaults
   , parameters = ([Parameter str (UnName 0) []], True)
   }
 
+printfTy :: Type
 printfTy = PointerType {pointerReferent  = (FunctionType int [str] True), 
                         pointerAddrSpace = AddrSpace 0}
 
+-- construct function type given ret type and signature
+toLLVMfnType :: Type -> [Type] -> Type
 toLLVMfnType t ts = PointerType {pointerReferent  = (FunctionType t ts False), 
                         pointerAddrSpace = AddrSpace 0}
 
@@ -389,6 +392,8 @@ toArgs = map (\x -> (x, []))
 -- Effects
 call :: Operand -> [Operand] -> Codegen Operand
 call fn args = instr float $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
+call' :: Operand -> [Operand] -> Codegen ()
+call' fn args = unnminstr $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
 
 alloca :: Type -> Codegen Operand
 alloca ty = instr float $ Alloca ty Nothing 0 []

@@ -123,7 +123,14 @@ convExpr env (FactorStr x)     = IR.FactorStr  x  TYstr
 convExpr env (FactorNot x)     = undefined
 
 convExpr env (FuncCall x args) = 
-    IR.FuncCall x (map (convExpr env) args) (fst $ lookupFun env x)
+    IR.FuncCall x (map (convExpr env) args') t
+    where t = (fst $ lookupFun env x)
+          dummyarg = case t of 
+              TYint  -> FactorInt 0
+              TYstr  -> FactorStr ""
+              TYbool -> FactorFalse
+              TYreal -> FactorReal 0.0
+          args' = dummyarg : args
 
 convExpr env (FactorDesig des) = let 
     (Designator x _) = des

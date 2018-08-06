@@ -133,9 +133,10 @@ parseStmntSeq = parseKWbegin
 
 parseStatement :: Parser Statement 
 parseStatement = choice [parseStmntSeq,
-    
-    parseAssignment, parseIf, parseFor,
+    (try parseAssignment), 
     (try parseProcCall),
+    parseIf, parseFor,
+   
     parseWhile, parseStmntWriteLn,
     parseStmntWrite, 
     pure StatementEmpty]

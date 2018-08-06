@@ -13,7 +13,6 @@ data Block = Block [Decl] Statement Type deriving (Eq)
 data Decl = DeclVar [VarDecl] Type
     | DeclType [TypeDecl]  Type
     | DeclConst [ConstDecl]  Type
-    | DeclProc Ident [(Ident,Type,CallByRef)] Block Type
     | DeclFunc Ident [(Ident,Type,CallByRef)] Type Block Type
     deriving (Eq)
 data ConstDecl = ConstDecl Type deriving (Show, Eq) -- todo 
@@ -102,9 +101,6 @@ pshowD n (DeclType xs _) = (tab n) ++ "Type " ++ (if length xs == 0 then ""
     else showList xs) ++ ";\n"
 pshowD n (DeclConst xs _) = (tab n) ++ "Const " ++ (if length xs == 0 then "" 
     else showList xs) ++ ";\n"
-pshowD n (DeclProc x xs b _) = (tab n) ++ "Proc " ++  x ++ " " ++ 
-    "(" ++ showListSep (map (\(a',b',_) -> (a',b')) xs) 
-    ++ ") " ++ (pshowB n b) ++ "\n"
 pshowD n (DeclFunc x xs t b _) = (tab n) ++ "Func " ++ x ++ ":" ++ (show t) ++ " " ++ 
     "(" ++ showListSep (map (\(a',b',_) -> (a',b')) xs) 
     ++ ") " ++ (pshowB n b) ++ "\n"
