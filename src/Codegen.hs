@@ -246,8 +246,8 @@ fresh = do
 freshStrName :: Codegen String
 freshStrName = do
   n <- fresh
-  bname <- getBlock
-  return $ "str." ++ (show bname) ++ "." ++ (show n)
+  (Name bname) <- getBlock
+  return $ "str." ++ (BS.unpack.fromShort $ bname) ++ "." ++ (show n)
 
 instr :: Type -> Instruction -> Codegen (Operand)
 instr ty ins = do
