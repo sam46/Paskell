@@ -62,6 +62,22 @@ this will install all dependencies and produce an executable in
   
 You can also build using Stack.
 
+### Tests
+Various tests, testing utilities and sample Pascal programs are   
+at [src/tests.hs](https://github.com/sam46/Paskell/blob/master/src/tests.hs)  
+All can be run from GHCI.
+
+### TODO's
+- finish nested functions/procedures:  
+  this only requires pulling nested functions to global scope  
+  and renaming them during the type-annotation pass
+- add support for Type declarations (aliases) 
+- constants: trivial to implement
+- Read/Readln IO statements
+- records
+- arrays
+- case statements
+
 ### References
 - [Language grammar](http://courses.washington.edu/css448/zander/Project/grammar.pdf)
 - Stephen Diehl's Haskell [llvm-tutorial](http://www.stephendiehl.com/llvm/)
