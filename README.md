@@ -17,98 +17,33 @@ Work in Progress, mostly finished!
 - [x] IR pretty-printer
 - [x] LLVM Code generation 
 
-### Demo
-#### A REPL demonstrating the parser:  
 
-![parserepl.gif](https://github.com/sam46/Paskell/blob/master/parserepl.PNG)
-  
-#### Pretty printer for type-annotated AST:  
+### Usage
+Once the executable is built, it can be used to compile Pascal source files to llvm-ir, or internal IR used by the compiler:
 
-Input source File:
-```Pascal
-program p;
+  Paskell -c src      compile to llvm-ir
+  Paskell -c src dest compile to llvm-ir and save in dest
+  Paskell -ir src     produce IR
+  Paskell -x src      execute pascal source. Equivalent to Paskell -c src | lli
+  Paskell -h          (for help)
 
-var x,y,a:real;
-
-function f1 (x,t:integer):boolean;
-
-    function f2 (x,a:boolean):boolean;
-    begin
-        t:=5;
-        x:=true;
-        a:=false;
-        y:=2.5
-    end;
-begin
-    x:=1;
-    t:=2;
-    y:=4.5;
-    if f2(true,false) then a:=5.5
-    else if 2>3 then x:=1 else
-end;
-
-function f3 (c,x:integer):real;
-var d : boolean;
-begin
-    x:=1;
-    c:=3;
-    y:=3.4;
-    d:= f1(x,1);
-end;
-
-begin 
-    x:=f3(1,2);
-    x:=f3(1+2*3,-1*2+3)
-end.
-```
-
-Output AST:
+Example:
 
 ```
-Program p {
-    Var ("x",TYreal) ("y",TYreal) ("a",TYreal);
-    Func f1:TYbool (("x",TYint), ("t",TYint)) {
-        Func f2:TYbool (("x",TYbool), ("a",TYbool)) {
-
-            t:TYint := 5:TYint;
-            x:TYbool := True:TYbool;
-            a:TYbool := False:TYbool;
-            y:TYreal := 2.5:TYreal;
-
-        }
-
-        x:TYint := 1:TYint;
-        t:TYint := 2:TYint;
-        y:TYreal := 4.5:TYreal;
-        if f2(True:TYbool, False:TYbool):TYbool
-        then
-            a:TYreal := 5.5:TYreal;
-        else
-            if (2:TYint>3:TYint):TYbool
-            then
-                x:TYint := 1:TYint;
-            else
-                ;
-        ;
-
-    }
-    Func f3:TYreal (("c",TYint), ("x",TYint)) {
-        Var ("d",TYbool);
-
-        x:TYint := 1:TYint;
-        c:TYint := 3:TYint;
-        y:TYreal := 3.4:TYreal;
-        d:TYbool := f1(x:TYint:TYint, 1:TYint):TYbool;
-        ;
-
-    }
-
-    x:TYreal := f3(1:TYint, 2:TYint):TYreal;
-    x:TYreal := f3((1:TYint+(2:TYint*3:TYint):TYint):TYint, (-((1:TYint*2:TYint):TYint+3:TYint):TYint):TYint):TYreal;
-}
+> ./Paskell -c fib.pas fib.ll
 ```
 
+ Since the output is llvm-ir, we can leverage the many tools LLVM provide to:
+ - execute it using the llvm interpreter  
+    `> lli fib.ll`
+ - convert it to bitcode llvm assembly (.bc)  
+    `> llvm-as fib.ll -o fib.bc`
+ - optimize the code using various settings, for example  
+    `> opt -mem2reg fib.bc` 
+ - translate it to a native assembly executable of a specific architecture (x86, ARM, etc)  
+   `> llc -march=x86-64 fib.bc -o fib.s`
+ - link many modules into one program 
 
 
-#### Reference 
+### Reference 
 - [Language grammar](http://courses.washington.edu/css448/zander/Project/grammar.pdf)
