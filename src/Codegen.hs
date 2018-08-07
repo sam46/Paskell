@@ -1,3 +1,5 @@
+-- Based on Stephen Diehl's work
+
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
