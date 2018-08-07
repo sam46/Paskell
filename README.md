@@ -43,7 +43,25 @@ Example:
  - translate it to a native assembly executable of a specific architecture (x86, ARM, etc)  
    `> llc -march=x86-64 fib.bc -o fib.s`
  - link many modules into one program 
+ 
+### Building the compiler from source:
+You need to have llvm installed
+```
+> sudo apt-get install llvm
+```
 
+Then, you can use Cabal or Stack.  
+To build using Cabal:
 
-### Reference 
+```
+> cd Paskell/
+> cabal install -j
+```
+this will install all dependencies and produce an executable in 
+`dist/build/Paskell/`
+  
+You can also build using Stack.
+
+### References
 - [Language grammar](http://courses.washington.edu/css448/zander/Project/grammar.pdf)
+- Stephen Diehl's Haskell [llvm-tutorial](http://www.stephendiehl.com/llvm/)
