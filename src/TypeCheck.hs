@@ -150,6 +150,18 @@ typechkStatement env (StatementWrite xs) =
 typechkStatement env (StatementWriteLn xs) = 
     typechkStatement env (StatementWrite xs)
 
+typechkStatement env (ProcCall x args) = lookupFun env x >>=
+    \(t, formalTs) -> 
+        if length formalTs /= length args
+        then Left $ ArgCountMismatch (length formalTs)
+        else case foldr (>>) (Right t) (map f (zip args formalTs)) 
+             of Right _ -> Right env
+                Left err -> Left err
+    where f (ex, formalT) = (gettype env ex) >>= \exT -> 
+            if exT /= formalT
+            then Left $ ArgTypeMismatch formalT exT
+            else Right exT
+
 typechkStatement env _ = Right env -- todo
 
 
