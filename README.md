@@ -24,7 +24,8 @@ Once the executable is built, it can be used to compile Pascal source files to l
   `Paskell -c src`      compile to llvm-ir  
   `Paskell -c src dest` compile to llvm-ir and save in dest  
   `Paskell -ir src`     produce internal IR   
-  `Paskell -x src`      execute pascal source. Equivalent to Paskell -c src | lli  
+  `Paskell -x src`      execute pascal source. Equivalent to 
+                        `Paskell -c src | lli`  
   `Paskell -h`          (for help)  
   
 Example:
