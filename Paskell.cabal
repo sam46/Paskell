@@ -29,7 +29,8 @@ executable Paskell
                        bytestring,
                        containers,
                        llvm-hs == 5.1.3,
-                       llvm-hs-pure == 5.1.2
+                       llvm-hs-pure == 5.1.2,
+                       process
 
   other-modules:       Codegen
                        ConvertIR
