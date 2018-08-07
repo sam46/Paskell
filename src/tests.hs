@@ -411,6 +411,8 @@ tEmitProgram p = E.codegen (emptyModule "MainModule") p >>= putStrLn.snd
 sampleProgs = [
     "program fib; function fib(n:integer):integer; begin if n < 2 then fib := 1 else fib := fib(n-1)+fib(n-2) end; begin writeln(\"fib 5 = \", fib(5)) end.",
     "program fib; function fib(n:integer):integer; begin if n < 2 then fib := 1 else fib := fib(n-1)+fib(n-2) end; procedure p(n:integer); begin writeln(\"fib = \", fib(n)) end; begin p(1); p(5); p(10) end.",
+    "program fib; var i : integer;function fib(n : integer) : integer; begin if n < 2 then fib := 1 else fib := fib(n-1) + fib(n-2) end; "
+    ++ "procedure p(n:integer); begin writeln(\"fib = \", fib(n)) end; begin for i:= 0 to 10 do p(i) end.",
     "program p; begin write(\"hello world\") end.",
     "program p; var x:integer; begin write(\"hello world\") end.",
     "program p; var s:string; begin write(\"hello world\") end.",
