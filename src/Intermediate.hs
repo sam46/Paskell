@@ -120,7 +120,13 @@ pshowSt n (StatementIf ex s ms _) =  (tab n) ++  "if " ++ (pshowEx 0 ex) ++"\n"+
     (tab n) ++ "then\n" ++ (pshowSt (n+1) s) 
     ++ (case ms of Nothing -> ""
                    Just s2 -> (tab n) ++ "else\n" ++ (pshowSt (n+1) s2))
+pshowSt n (ProcCall f exs _) = (tab n) ++ f
+    ++ "(" ++ (if length exs == 0 then "" else showListSep exs) ++"):"
+pshowSt n (StatementWrite exs _) = (tab n) ++ 
+    "Write(" ++ (if length exs == 0 then "" else showListSep exs) ++"):"
 pshowSt n _ = (tab n) ++ "??" ++ ";\n"
+
+
 
 instance Show Expr where
     show x = pshowEx 0 x
