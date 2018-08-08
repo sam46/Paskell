@@ -80,6 +80,7 @@ convDecl env (DeclFunc x params t b) = let
     convDeclFunc env (DeclFunc x params' t b) 
 convDecl env (DeclProc x params b) = 
     convDeclFunc env (DeclFunc x params Void b)
+
 convDeclFunc :: Env -> Decl -> (IR.Decl, Env)
 convDeclFunc env df@(DeclFunc x params t b) = let
     xs   = params
@@ -122,15 +123,20 @@ convExpr env (FactorReal x)    = IR.FactorReal x  TYreal
 convExpr env (FactorStr x)     = IR.FactorStr  x  TYstr
 convExpr env (FactorNot x)     = undefined
 
-convExpr env (FuncCall x args) = 
-    IR.FuncCall x (map (convExpr env) args') t
-    where t = (fst $ lookupFun env x)
-          dummyarg = case t of 
-              TYint  -> FactorInt 0
-              TYstr  -> FactorStr ""
-              TYbool -> FactorFalse
-              TYreal -> FactorReal 0.0
-          args' = dummyarg : args
+convExpr env (FuncCall f args) = 
+    IR.FuncCall f args''' fty
+    where   (fty, sig) = lookupFun env f
+            dummyarg   = case fty of 
+                TYint  -> FactorInt 0
+                TYstr  -> FactorStr ""
+                TYbool -> FactorFalse
+                TYreal -> FactorReal 0.0
+            args'    = dummyarg : args  -- add dummy arg
+            args''   = map (convExpr env) args' -- convert to type annotaed IR args
+            args'''  = map liftType (zip args'' sig) -- lift PassByRef args types to pointers 
+            liftType (expr, (ty,cbr)) = if not cbr then expr
+                else let IR.FactorDesig x factty = expr
+                     in  IR.FactorDesig x (TYptr factty) 
 
 convExpr env (FactorDesig des) = let 
     (Designator x _) = des

@@ -18,7 +18,8 @@ data OP = OPplus | OPminus | OPstar | OPdiv | OPidiv | OPmod
     | OPin | OPor deriving (Eq)
 
 data Type = TYident Ident | TYbool
-    | TYint | TYreal | TYchar |TYstr | Void 
+    | TYint | TYreal | TYchar |TYstr 
+    | TYptr Type | Void 
     deriving (Show, Eq, Ord)
 type Ident = String 
 type IdentList = [Ident]
