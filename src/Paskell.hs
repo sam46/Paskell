@@ -251,7 +251,7 @@ parseFormalParams = (concatMap id) <$>
 
 parseFormalParam :: Parser [(Ident,Type,Bool)]
 parseFormalParam = do
-    mvar <- (== Nothing) <$> (optionMaybe parseKWvar)
+    mvar <- (/= Nothing) <$> (optionMaybe parseKWvar)
     idents <- parseIdentList
     charTok ':'
     t <- parseType
