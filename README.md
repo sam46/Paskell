@@ -7,6 +7,7 @@ Work in Progress, mostly finished!
 - Types: integer, boolean, string, char, real
 - Control Flow: if, while, for    
 - Functions/Procedures 
+- Pass by reference
 - Nested Functions/Procedures (Not finished yet) 
 - I/O: Write/Writeln
 
