@@ -166,7 +166,7 @@ matchArgFormal :: Env -> Expr -> (Type, Bool) -> Either TyErr Type
 matchArgFormal env expr (ty, callbyref) = gettype env expr >>= \exprT -> 
     if   exprT /= ty 
     then Left $ ArgTypeMismatch ty exprT
-    else if isFactorDesig expr == callbyref -- a CallByRef argument has to be a FactorDesig 
+    else if (not $ isFactorDesig expr) && callbyref -- a CallByRef argument has to be a FactorDesig 
     then Left $ VaraibleArgExpected expr
     else Right ty
     where isFactorDesig a = case a of
@@ -182,8 +182,8 @@ gettype env (FactorStr _)       = Right TYstr
 gettype env (FactorNot x)       = undefined
 
 gettype env (FuncCall x args) = lookupFun env x >>=
-    \(t, formalTs) -> 
-        if length formalTs /= length args + 1
+    \(t, formalTs') -> let formalTs = tail formalTs' in -- discard the dummy formal parameter
+        if length formalTs /= length args
         then Left $ ArgCountMismatch (length formalTs)
         else foldr (>>) (Right t) (zipWith (matchArgFormal env) args formalTs)
 
