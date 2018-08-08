@@ -60,11 +60,11 @@ addDefn d = do
   defs <- gets moduleDefinitions
   modify $ \s -> s { moduleDefinitions = defs ++ [d] }
 
-define ::  Type -> ShortByteString -> [(Type, Name)] -> Codegen [Definition] -> LLVM ()
+define ::  Type -> ShortByteString -> [(Type, Name, [A.ParameterAttribute])] -> Codegen [Definition] -> LLVM ()
 define retty label argtys body = (addDefns bodydefs) >> addDefn (
   GlobalDefinition $ functionDefaults {
     name        = Name label
-  , parameters  = ([Parameter ty nm [] | (ty, nm) <- argtys], False)
+  , parameters  = ([Parameter ty nm att | (ty, nm, att) <- argtys], False)
   , returnType  = retty
   , basicBlocks = bls
   })
@@ -392,15 +392,18 @@ toArgs :: [Operand] -> [(Operand, [A.ParameterAttribute])]
 toArgs = map (\x -> (x, []))
 
 -- Effects
-call :: Operand -> [Operand] -> Codegen Operand
-call fn args = instr float $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
+call :: Operand -> [(Operand, [A.ParameterAttribute])] -> Codegen Operand
+call fn args = instr float $ Call Nothing CC.C [] (Right fn) args [] []
 
 -- UnNamed instruction Call. Used when return type is void
-call' :: Operand -> [Operand] -> Codegen ()
-call' fn args = unnminstr $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
+call' :: Operand -> [(Operand, [A.ParameterAttribute])] -> Codegen ()
+call' fn args = unnminstr $ Call Nothing CC.C [] (Right fn) args [] []
 
 alloca :: Type -> Codegen Operand
 alloca ty = instr float $ Alloca ty Nothing 0 []
+
+alloca' :: Type -> Codegen Operand
+alloca' ty  = instr (PointerType ty (AddrSpace 0)) $ Alloca ty Nothing 0 []
 
 store :: Operand -> Operand -> Codegen ()
 store ptr val = unnminstr $ Store False ptr val Nothing 0 []

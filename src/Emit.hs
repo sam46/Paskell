@@ -15,6 +15,7 @@ import Utils (p')
 import Paskell as P
 
 import LLVM.AST
+import LLVM.AST.AddrSpace
 import qualified LLVM.AST as AST
 import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.Float as F
@@ -38,11 +39,12 @@ name' = Name . toShortBS
 
 toLLVMType :: G.Type -> Type
 toLLVMType t = case t of 
-    G.TYint  -> int
-    G.TYbool -> bool
-    G.TYreal -> double
-    G.Void   -> void
-    G.TYstr  -> str
+    G.TYint   -> int
+    G.TYbool  -> bool
+    G.TYreal  -> double
+    G.Void    -> void
+    G.TYstr   -> str
+    G.TYptr t -> PointerType (toLLVMType t) (AddrSpace 0)
 
 -------------------------------------------------------
 
@@ -69,12 +71,12 @@ genDeclFunc :: IR.Decl -> LLVM ()
 genDeclFunc (IR.DeclFunc x args retty blk _) = do
     define (toLLVMType retty) (toShortBS x) (toSig args) body
     where 
-        toSig xs = map (\(a,b,c) -> (toLLVMType b, name' a)) xs
+        toSig xs = map (\(a,b,c) -> (toLLVMType (if c then G.TYptr b else b), name' a, if c then [Dereferenceable 4] else [])) xs
         body = do
             entry' <- addBlock (toShortBS "entry")
             setBlock entry'
-            forM args $ \(i,t,_) -> do
-                var <- alloca (toLLVMType t)
+            forM args $ \(i,t,byref) -> do
+                var <- alloca' $ toLLVMType $ if byref then G.TYptr t else t
                 store var (local (toLLVMType t) (name' i))
                 assign (toShortBS i) var
             defs <- genBlock blk
@@ -121,6 +123,8 @@ genBlock (IR.Block ds s _) = do
 isPtrPtr :: Operand -> Bool
 isPtrPtr oper = case oper of 
     LocalReference (PointerType (PointerType _ _) _) _ -> True
+    -- Alloca (PointerType (PointerType _ _) _) _ _ _ -> True
+    -- _ -> error $ show oper
     _ -> False
 
 genStatement :: IR.Statement -> Codegen [Definition]
@@ -133,7 +137,7 @@ genStatement (IR.Assignment (IR.Designator x _ xt) expr _) = do
         then store var rhs -- store value at memory referred to by pointer
         else do            -- if var is a pointer to pointer, this means we have something like *x = 123 and we should derference the pointer first
                 ptr <- load var
-                store var rhs     
+                store ptr rhs     
     return defs
 
 genStatement (IR.StatementIf expr s1 ms2 _) = do 
@@ -219,16 +223,22 @@ genStatement (IR.StatementWhile expr s _) = do
 
 genStatement (IR.ProcCall f xs t) = do
     (args, defs) <- mapM genExpr xs >>= (return.unzip)
-    call' (externf fnty (name' f)) args
+    call' (externf fnty (name' f)) (map liftType (zip (map IR.getType xs) args))
     return $ concat defs
     where fnty = toLLVMfnType (toLLVMType t) (map (toLLVMType . IR.getType) xs)
+          liftType (ty, oper) = case ty 
+            of G.TYptr _ -> (oper, [Dereferenceable 4])
+               _ -> (oper,[])
 
 genStatement (IR.StatementWrite xs _) = do
     (args, defs) <- (mapM genExpr ((IR.FactorStr fstr G.TYstr) : xs)) >>= (return.unzip)
-    call (externf printfTy (name' "printf")) args
+    call (externf printfTy (name' "printf")) (map liftType (zip (map IR.getType ((IR.FactorStr fstr G.TYstr):xs)) args))
     return $ concat defs
     where fstr = (foldr (++) "" (map (formatstr. IR.getType) xs)) ++ "\00"
-          
+          liftType (ty, oper) = case ty 
+            of G.TYptr _ -> (oper, [Dereferenceable 4])
+               _ -> (oper,[])  
+
 formatstr :: G.Type -> String
 formatstr G.TYint  = "%d"
 formatstr G.TYstr  = "%s"
@@ -313,10 +323,14 @@ genExpr (IR.Unary op x t) =  do
 
 genExpr (IR.FuncCall f xs t) = do
     (args, defs) <- mapM genExpr xs >>= (return.unzip)
-    oper <- call (externf fnty (name' f)) args
+    oper <- call (externf fnty (name' f)) (map liftType (zip (map IR.getType xs) args))
     return (oper, concat defs)
     where fnty = toLLVMfnType (toLLVMType t) (map (toLLVMType . IR.getType) xs)
-
-genExpr (IR.FactorDesig (IR.Designator x _ xt) _) =
-    (getvar (toShortBS x) (toLLVMType xt)) >>= load 
+          liftType (ty, oper) = case ty 
+            of G.TYptr _ -> (oper, [Dereferenceable 4])
+               _ -> (oper,[]) 
+          
+genExpr (IR.FactorDesig (IR.Designator x _ xt) dt) =
+    (getvar (toShortBS x) (toLLVMType xt)) 
+    >>= (if dt==xt then load else return . id)
     >>= \oper -> return (oper, [])
