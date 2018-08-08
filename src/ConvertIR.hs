@@ -14,7 +14,7 @@ import Data.List
 -- Environment is a Func/Proc signatures + stack of Contexts
 type Env = (Sig, [Context]) 
 -- Function sig is return type + formal args types
-type Sig = [(Ident, (Type, [Type]))]
+type Sig = [(Ident, (Type, [(Type, CallByRef)]))]
 type Context = [(Ident, Type)]
 
 
@@ -28,7 +28,7 @@ lookupVar (_, contexts) x = case (find (`varInContext` x) contexts) of
                     Just ctx -> case lookup x ctx of
                         Just t   -> t
 
-lookupFun   :: Env -> Ident -> (Type, [Type])
+lookupFun   :: Env -> Ident -> (Type, [(Type, CallByRef)])
 lookupFun (sigs, _) x = 
     case lookup x sigs of Just f  -> f
 
@@ -38,15 +38,15 @@ newBlock (sig, contexts) = (sig, [] : contexts)
 emptyEnv  :: Env
 emptyEnv = ([], [])
 
-getSig :: Decl -> (Ident, (Type, [Type]))
-getSig (DeclFunc x args t _) = (x, (t, map (\(_,b,_) -> b) args))
+getSig :: Decl -> (Ident, (Type, [(Type, CallByRef)]))
+getSig (DeclFunc x args t _) = (x, (t, map (\(_,b,c) -> (b,c)) args))
 
 -- updateVar :: Env -> Ident -> Type -> Either TyErr Env
 
 addVar :: Env -> Ident -> Type -> Env
 addVar (sig , (c:cs)) x t = (sig, ((x,t):c) : cs)
 
-addFunc :: Env -> (Ident, (Type, [Type])) -> Env
+addFunc :: Env -> (Ident, (Type, [(Type, CallByRef)])) -> Env
 addFunc (sigs, ctx) (x, rest) = case lookup x sigs of
         Nothing  -> ((x, rest) : sigs, ctx)
 
@@ -82,8 +82,8 @@ convDecl env (DeclProc x params b) =
     convDeclFunc env (DeclFunc x params Void b)
 convDeclFunc :: Env -> Decl -> (IR.Decl, Env)
 convDeclFunc env df@(DeclFunc x params t b) = let
-    xs   = map (\(a',b',_) -> (a',b')) params
-    addVar' (a',b') c' = addVar c' a' b'
+    xs   = params
+    addVar' (a',b',_) c' = addVar c' a' b'
     env'  = addFunc env (getSig df)
     env'' = foldr addVar' (newBlock env') xs in
     (IR.DeclFunc x params t (fst $ convBlock env'' b) Void, env')

@@ -9,7 +9,7 @@ import Control.Monad (msum)
 -- Environment is a Func/Proc signatures + stack of Contexts
 type Env = (Sig, [Context]) 
 -- Function sig is return type + formal args types
-type Sig = [(Ident, (Type, [Type]))]
+type Sig = [(Ident, (Type, [(Type,CallByRef)]))]
 type Context = [(Ident, Type)]
 
 data TyErr = NotInScope Ident
@@ -21,6 +21,7 @@ data TyErr = NotInScope Ident
     | CondTypeMismatch Type
     | VarRedecl Ident
     | FuncRedecl Ident
+    | VaraibleArgExpected Expr
     deriving (Show, Eq)
 
 
@@ -36,7 +37,7 @@ lookupVar (_, contexts) x = case (find (`varInContext` x) contexts) of
                         Nothing  -> Left  $ NotInScope x
                         Just t   -> Right t
 
-lookupFun   :: Env -> Ident -> Either TyErr (Type, [Type])
+lookupFun   :: Env -> Ident -> Either TyErr (Type, [(Type,CallByRef)])
 lookupFun (sigs, _) x = 
     case lookup x sigs of
         Nothing -> Left $ NotInScope x
@@ -48,8 +49,8 @@ newBlock (sig, contexts) = (sig, [] : contexts)
 emptyEnv  :: Env
 emptyEnv = ([], [])
 
-getSig :: Decl -> (Ident, (Type, [Type]))
-getSig (DeclFunc x args t _) = (x, (t, map (\(_,b,_) -> b) args))
+getSig :: Decl -> (Ident, (Type, [(Type,CallByRef)]))
+getSig (DeclFunc x args t _) = (x, (t, map (\(_,b,c) -> (b,c)) args))
 
 -- updateVar :: Env -> Ident -> Type -> Either TyErr Env
 
@@ -58,7 +59,7 @@ addVar (sig , (c:cs)) x t = if varInContext c x
     then Left $ VarRedecl x
     else Right $ (sig, ((x,t):c) : cs)
 
-addFunc :: Env -> (Ident, (Type, [Type])) -> Either TyErr Env
+addFunc :: Env -> (Ident, (Type, [(Type,CallByRef)])) -> Either TyErr Env
 addFunc (sigs, ctx) (x, rest) = 
     case lookup x sigs of
         Just _   -> Left $ FuncRedecl x
@@ -154,16 +155,23 @@ typechkStatement env (ProcCall x args) = lookupFun env x >>=
     \(t, formalTs) -> 
         if length formalTs /= length args
         then Left $ ArgCountMismatch (length formalTs)
-        else case foldr (>>) (Right t) (map f (zip args formalTs)) 
+        else case foldr (>>) (Right t) (zipWith (matchArgFormal env) args formalTs)
              of Right _ -> Right env
                 Left err -> Left err
-    where f (ex, formalT) = (gettype env ex) >>= \exT -> 
-            if exT /= formalT
-            then Left $ ArgTypeMismatch formalT exT
-            else Right exT
 
 typechkStatement env _ = Right env -- todo
 
+-- check if argument matches expected formal parameter
+matchArgFormal :: Env -> Expr -> (Type, Bool) -> Either TyErr Type
+matchArgFormal env expr (ty, callbyref) = gettype env expr >>= \exprT -> 
+    if   exprT /= ty 
+    then Left $ ArgTypeMismatch ty exprT
+    else if isFactorDesig expr == callbyref -- a CallByRef argument has to be a FactorDesig 
+    then Left $ VaraibleArgExpected expr
+    else Right ty
+    where isFactorDesig a = case a of
+            FactorDesig _ -> True
+            _             -> False
 
 gettype :: Env -> Expr -> Either TyErr Type
 gettype env FactorTrue          = Right TYbool
@@ -177,11 +185,7 @@ gettype env (FuncCall x args) = lookupFun env x >>=
     \(t, formalTs) -> 
         if length formalTs /= length args + 1
         then Left $ ArgCountMismatch (length formalTs)
-        else foldr (>>) (Right t) (map f (zip args formalTs)) 
-    where f (ex, formalT) = (gettype env ex) >>= \exT -> 
-            if exT /= formalT
-            then Left $ ArgTypeMismatch formalT exT
-            else Right exT
+        else foldr (>>) (Right t) (zipWith (matchArgFormal env) args formalTs)
 
 gettype env (FactorDesig (Designator x _)) = 
     lookupVar env x
