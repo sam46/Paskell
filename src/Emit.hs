@@ -118,14 +118,22 @@ genBlock (IR.Block ds s _) = do
     forM ds genDeclVar
     genStatement s
 
+isPtrPtr :: Operand -> Bool
+isPtrPtr oper = case oper of 
+    LocalReference (PointerType (PointerType _ _) _) _ -> True
+    _ -> False
 
 genStatement :: IR.Statement -> Codegen [Definition]
 genStatement (IR.StatementEmpty) = return []
 genStatement (IR.StatementSeq xs _) = (forM xs genStatement) >>= (return.concat)
 genStatement (IR.Assignment (IR.Designator x _ xt) expr _) = do
     (rhs, defs) <- genExpr expr
-    var <- getvar (toShortBS x) (toLLVMType xt)
-    store var rhs
+    var <- getvar (toShortBS x) (toLLVMType xt)  -- var is a pointer
+    if not (isPtrPtr var)    
+        then store var rhs -- store value at memory referred to by pointer
+        else do            -- if var is a pointer to pointer, this means we have something like *x = 123 and we should derference the pointer first
+                ptr <- load var
+                store var rhs     
     return defs
 
 genStatement (IR.StatementIf expr s1 ms2 _) = do 
