@@ -7,10 +7,11 @@ import Data.List
 import Control.Monad (msum)
 
 -- Environment is a Func/Proc signatures + stack of Contexts
-type Env = (Sig, [Context]) 
+type Env = (Sig, [Context], [TContext]) 
 -- Function sig is return type + formal args types
 type Sig = [(Ident, (Type, [(Type,CallByRef)]))]
 type Context = [(Ident, Type)]
+type TContext = [(Ident, Type)]
 
 data TyErr = NotInScope Ident
     | TypeMismatch Type Type 
@@ -22,6 +23,7 @@ data TyErr = NotInScope Ident
     | VarRedecl Ident
     | FuncRedecl Ident
     | VaraibleArgExpected Expr
+    | TypeRedecl Ident
     deriving (Show, Eq)
 
 
@@ -30,24 +32,39 @@ varInContext ctx x = case (lookup x ctx) of
     Nothing -> False
     Just _  -> True
 
+typeInContext :: TContext -> Ident -> Bool
+typeInContext tctx x = case (lookup x tctx) of 
+    Nothing -> False
+    Just _  -> True
+    
 lookupVar   :: Env -> Ident -> Either TyErr Type
-lookupVar (_, contexts) x = case (find (`varInContext` x) contexts) of
+lookupVar (_, contexts, _) x = case (find (`varInContext` x) contexts) of
                     Nothing  -> Left  $ NotInScope x
                     Just ctx -> case lookup x ctx of
                         Nothing  -> Left  $ NotInScope x
                         Just t   -> Right t
 
 lookupFun   :: Env -> Ident -> Either TyErr (Type, [(Type,CallByRef)])
-lookupFun (sigs, _) x = 
+lookupFun (sigs, _, _) x = 
     case lookup x sigs of
         Nothing -> Left $ NotInScope x
         Just f  -> Right f
+    
+lookupType :: Env -> Type -> Either TyErr Type
+lookupType e@(_, _, contexts) (TYident x) = case (find (`typeInContext` x) contexts) of
+                    Nothing  -> undefined --Left  $ NotInScope x
+                    Just ctx -> case lookup x ctx of
+                        Nothing  -> undefined -- Left  $ NotInScope x
+                        Just t   -> lookupType e t
+lookupType _ t = Right t
+
+-- eqType env t1 t2 = (lookupType env t1) == (lookupType env t2)
 
 newBlock  :: Env -> Env
-newBlock (sig, contexts) = (sig, [] : contexts)
+newBlock (sig, ctx, tctx) = (sig, [] : ctx, [] : tctx)
 
 emptyEnv  :: Env
-emptyEnv = ([], [])
+emptyEnv = ([], [], [])
 
 getSig :: Decl -> (Ident, (Type, [(Type,CallByRef)]))
 getSig (DeclFunc x args t _) = (x, (t, map (\(_,b,c) -> (b,c)) args))
@@ -55,15 +72,21 @@ getSig (DeclFunc x args t _) = (x, (t, map (\(_,b,c) -> (b,c)) args))
 -- updateVar :: Env -> Ident -> Type -> Either TyErr Env
 
 addVar :: Env -> Ident -> Type -> Either TyErr Env
-addVar (sig , (c:cs)) x t = if varInContext c x
+addVar (sig, (c:cs), tctx) x t = if varInContext c x
     then Left $ VarRedecl x
-    else Right $ (sig, ((x,t):c) : cs)
+    else Right $ (sig, ((x,t):c) : cs, tctx)
 
 addFunc :: Env -> (Ident, (Type, [(Type,CallByRef)])) -> Either TyErr Env
-addFunc (sigs, ctx) (x, rest) = 
+addFunc (sigs, ctx, tctx) (x, rest) = 
     case lookup x sigs of
         Just _   -> Left $ FuncRedecl x
-        Nothing  -> Right ((x, rest) : sigs, ctx)
+        Nothing  -> Right ((x, rest) : sigs, ctx, tctx)
+
+addType :: Env -> Ident -> Type -> Either TyErr Env
+addType (sig, ctx, (c:cs)) x t = if typeInContext c x
+    then Left $ TypeRedecl x
+    else Right $ (sig, ctx, ((x,t):c) : cs)
+addType env x t = error $ (show env) ++ (show x) ++ (show t)
 
 -- isLeft :: (Either a b) -> Bool 
 -- isLeft (Left _) = True
@@ -88,29 +111,36 @@ typechkDecls env (d:ds) =
 typechkDecl :: Env -> Decl -> Either TyErr Env
 typechkDecl env (DeclVar []) = Right env
 typechkDecl env (DeclVar (d:ds)) = let (x,t) = d in
-    (addVar env x t) >>= \e -> typechkDecl e (DeclVar ds) 
-typechkDecl env (DeclFunc x params t b) = typechkDeclFunc env (DeclFunc x params' t b)
+    lookupType env t >>= \r ->
+    (addVar env x r) >>= \e -> typechkDecl e (DeclVar ds) 
+typechkDecl env (DeclFunc x params t b) = lookupType env t >>= \r ->
+    typechkDeclFunc env (DeclFunc x params' r b)
     where params' = (x,t,False) : params -- added hidden variable for return value
 typechkDecl env (DeclProc x params b) = typechkDeclFunc env (DeclFunc x params Void b)
+typechkDecl env (DeclType []) = Right env
+typechkDecl env (DeclType (t:ts)) = let (x,ty) = t in
+    (addType env x ty) >>= \e -> typechkDecl e (DeclType ts) 
 
-typechkTypeDecl :: Env -> TypeDecl -> Either TyErr Env
-typechkTypeDecl env _ = undefined
+resolveParamsType :: Env -> [(Ident,Type,CallByRef)] -> Either TyErr [(Ident,Type,CallByRef)]
+resolveParamsType env params =
+    mapM (\(x,t,b) -> lookupType env t >>= \r -> Right (x,r,b)) params 
 
 typechkConstDecl :: Env -> ConstDecl -> Either TyErr Env
 typechkConstDecl env _ = undefined
 
 typechkDeclFunc :: Env -> Decl -> Either TyErr Env
 typechkDeclFunc env (DeclFunc x params t b) =
-    let sig = getSig (DeclFunc x params t b) in
+    resolveParamsType env params >>= \resParams -> -- replace params type aliases with their real types
+    let sig = getSig (DeclFunc x resParams t b) in
     (addFunc env sig) >>= \e ->
-        typechkDecls (newBlock e) (map (\(i,ty,_) -> DeclVar [(i, ty)]) params) >>= \e2 ->
+        typechkDecls (newBlock e) (map (\(i,ty,_) -> DeclVar [(i, ty)]) resParams) >>= \e2 ->
             typechkBlock e2 b >> Right e
 
 
 typechkStatement :: Env -> Statement -> Either TyErr Env
 typechkStatement env (Assignment (Designator x _) expr) = 
     gettype env expr >>= \t -> lookupVar env x >>= \xtype -> 
-        if xtype == t
+        if xtype == t 
         then Right env 
         else Left $ TypeMismatch xtype t 
 

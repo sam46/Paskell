@@ -11,32 +11,45 @@ import Text.Parsec.Combinator
 import Utils (p')
 import Data.List
 
--- Environment is a Func/Proc signatures + stack of Contexts
-type Env = (Sig, [Context]) 
+-- Environment is a Func/Proc signatures + stack of Contexts for types and vars
+type Env = (Sig, [Context], [TContext]) 
 -- Function sig is return type + formal args types
 type Sig = [(Ident, (Type, [(Type, CallByRef)]))]
 type Context = [(Ident, Type)]
-
+type TContext = [(Ident, Type)]
 
 varInContext :: Context -> Ident -> Bool
 varInContext ctx x = case (lookup x ctx) of 
     Nothing -> False
     Just _  -> True
 
+typeInContext :: TContext -> Ident -> Bool
+typeInContext tctx x = case (lookup x tctx) of 
+    Nothing -> False
+    Just _  -> True
+
 lookupVar   :: Env -> Ident -> Type
-lookupVar (_, contexts) x = case (find (`varInContext` x) contexts) of
+lookupVar (_, contexts, _) x = case (find (`varInContext` x) contexts) of
                     Just ctx -> case lookup x ctx of
                         Just t   -> t
 
 lookupFun   :: Env -> Ident -> (Type, [(Type, CallByRef)])
-lookupFun (sigs, _) x = 
+lookupFun (sigs, _, _) x = 
     case lookup x sigs of Just f  -> f
 
+lookupType :: Env -> Type -> Type
+lookupType e@(_, _, contexts) (TYident x) = case (find (`typeInContext` x) contexts) of
+                    Nothing  -> undefined --Left  $ NotInScope x
+                    Just ctx -> case lookup x ctx of
+                        Nothing  -> undefined -- Left  $ NotInScope x
+                        Just t   -> lookupType e t
+lookupType _ t = t
+
 newBlock  :: Env -> Env
-newBlock (sig, contexts) = (sig, [] : contexts)
+newBlock (sig, ctx, tctx) = (sig, [] : ctx, [] : tctx)
 
 emptyEnv  :: Env
-emptyEnv = ([], [])
+emptyEnv = ([], [], [])
 
 getSig :: Decl -> (Ident, (Type, [(Type, CallByRef)]))
 getSig (DeclFunc x args t _) = (x, (t, map (\(_,b,c) -> (b,c)) args))
@@ -44,11 +57,15 @@ getSig (DeclFunc x args t _) = (x, (t, map (\(_,b,c) -> (b,c)) args))
 -- updateVar :: Env -> Ident -> Type -> Either TyErr Env
 
 addVar :: Env -> Ident -> Type -> Env
-addVar (sig , (c:cs)) x t = (sig, ((x,t):c) : cs)
+addVar (sig , (c:cs), tctx) x t = (sig, ((x,t):c) : cs, tctx)
 
 addFunc :: Env -> (Ident, (Type, [(Type, CallByRef)])) -> Env
-addFunc (sigs, ctx) (x, rest) = case lookup x sigs of
-        Nothing  -> ((x, rest) : sigs, ctx)
+addFunc (sigs, ctx, tctx) (x, rest) = case lookup x sigs of
+        Nothing  -> ((x, rest) : sigs, ctx, tctx)
+
+
+addType :: Env -> Ident -> Type -> Env
+addType (sig, ctx, (c:cs)) x t = (sig, ctx, ((x,t):c) : cs)
 
 isNum = (`elem` [TYint, TYreal])
 
@@ -71,23 +88,32 @@ convDecls env (d:ds) = let
     (ird:irds, env'')
 
 convDecl :: Env -> Decl -> (IR.Decl, Env)
-convDecl env (DeclVar xs) = let 
-    addVar' (a',b') c' = addVar c' a' b'
-    env'  = foldr addVar' env xs in
-    (IR.DeclVar xs Void, env')
+convDecl env (DeclVar xs) = let
+    xs' =  map (\(x,t) -> (x, lookupType env t)) xs
+    addVar' (x,t) e = addVar e x t
+    env'  = foldr addVar' env xs' in
+    (IR.DeclVar xs' Void, env')
 convDecl env (DeclFunc x params t b) = let
     params' = (x,t,False) : params in -- added hidden variable for return value
-    convDeclFunc env (DeclFunc x params' t b) 
+    convDeclFunc env (DeclFunc x params' t b)
 convDecl env (DeclProc x params b) = 
     convDeclFunc env (DeclFunc x params Void b)
+convDecl env (DeclType xs) = let 
+    addType' (a',b') c' = addType c' a' b'
+    env'  = foldr addType' env xs in
+    (IR.DeclType xs Void, env')
 
 convDeclFunc :: Env -> Decl -> (IR.Decl, Env)
-convDeclFunc env df@(DeclFunc x params t b) = let
-    xs   = params
+convDeclFunc env (DeclFunc x params t b) = let
+    r = lookupType env t
+    resParams = resolveParamsType env params
     addVar' (a',b',_) c' = addVar c' a' b'
-    env'  = addFunc env (getSig df)
-    env'' = foldr addVar' (newBlock env') xs in
-    (IR.DeclFunc x params t (fst $ convBlock env'' b) Void, env')
+    env'  = addFunc env (getSig $ DeclFunc x resParams r b)
+    env'' = foldr addVar' (newBlock env') resParams in
+    (IR.DeclFunc x resParams r (fst $ convBlock env'' b) Void, env')
+
+resolveParamsType :: Env -> [(Ident,Type,CallByRef)] -> [(Ident,Type,CallByRef)]
+resolveParamsType env params = map (\(x,t,b) -> (x,lookupType env t,b)) params 
 
 convStatement :: Env -> Statement -> IR.Statement
 convStatement env (Assignment des expr) = 
@@ -197,9 +223,9 @@ chkConvProgram' s = let p = p' parseProgram s in
 
 
 chkConvDecl :: Decl -> Either TyErr IR.Decl
-chkConvDecl d = case typechkDecl ([],[]) d of
+chkConvDecl d = case typechkDecl ([],[],[]) d of
     Left err -> Left err
-    _        -> Right $ fst $ convDecl ([],[]) d
+    _        -> Right $ fst $ convDecl ([],[],[]) d
 
 chkConvDecl' :: String -> Either String IR.Decl
 chkConvDecl' s = let p = p' parseDecl s in
