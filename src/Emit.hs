@@ -250,7 +250,7 @@ genStatement (IR.StatementWrite xs' _) = do
     (args, defs) <- mapM genExpr xs >>= (return.unzip)
     call (externf printfTy (name' "printf")) (zipWith addParamAttr xs args)
     return $ concat defs
-    where fstr = (foldr (++) "" (map (formatstr. IR.getType) xs)) ++ "\00"
+    where fstr = (foldr (++) "" (map (formatstr. IR.getType) xs')) ++ "\00"
           xs = (IR.FactorStr fstr G.TYstr) : xs' -- add printf format string to arguments
 
 formatstr :: G.Type -> String
