@@ -50,6 +50,7 @@ toLLVMType t = case t of
     G.Void    -> void
     G.TYstr   -> str
     G.TYptr t -> PointerType (toLLVMType t) (AddrSpace 0)
+    _         -> error $ "TYident wasn't resolved. " ++ (show t)
 
 -- add ParameterAtribute to an argument given the argument and 
 -- it's corrosponding Operand
@@ -120,6 +121,8 @@ genDeclVar (IR.DeclVar xs _) = do
 genDeclGlob :: IR.Decl -> LLVM ()
 genDeclGlob d@(IR.DeclVar _ _) = genDeclVarGlob d
 genDeclGlob d@(IR.DeclFunc _ _ _ _ _) = genDeclFunc d 
+genDeclGlob _ = return () 
+
 
 genDeclVarGlob :: IR.Decl -> LLVM ()
 genDeclVarGlob (IR.DeclVar xs _) = do
