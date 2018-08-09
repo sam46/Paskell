@@ -302,23 +302,23 @@ tparseFor = do
 
 
 tgettype = runTestTT $ TestList [
-    let s = "x := 1"               in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]]))                                $ Right ([], [[("x", TYint)]]),          
-    let s = "x := 1+1"             in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]]))                                $ Right ([], [[("x", TYint)]]),                                              
-    let s = "x := 1+1*2"           in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]]))                                $ Right ([], [[("x", TYint)]]),                
-    let s = "x := 1.2"             in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYreal)]]))                               $ Right ([], [[("x", TYreal)]]),                          
-    let s = "x := 1.2 + 1.2"       in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYreal)]]))                               $ Right ([], [[("x", TYreal)]]),                                
-    let s = "x := 1 + 1.2"         in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYreal)]]))                               $ Right ([], [[("x", TYreal)]]),                                                              
-    let s = "x := 1.2 + 1"         in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYreal)]]))                               $ Right ([], [[("x", TYreal)]]),                      
-    let s = "x := True or False"   in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool)]]))                               $ Right ([], [[("x", TYbool)]]),        
-    let s = "x := +1"              in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]]))                                $ Right ([], [[("x", TYint)]]),                               
-    let s = "x := + 1.2"           in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYreal)]]))                               $ Right ([], [[("x", TYreal)]]),                            
-    let s = "x := (1 < 2)"         in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool)]]))                               $ Right ([], [[("x", TYbool)]]),              
-    let s = "x := (1 < 2.3)"       in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool)]]))                               $ Right ([], [[("x", TYbool)]]),            
-    let s = "x := (true > false)"  in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool)]]))                               $ Right ([], [[("x", TYbool)]]),                           
-    let s = "x := (\"a\" = \"b\")" in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool)]]))                               $ Right ([], [[("x", TYbool)]]),  
-    let s = "x := true or (1 < 2)" in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool)]]))                               $ Right ([], [[("x", TYbool)]]),      
-    let s = "x := True or y"       in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool), ("y", TYbool)]]))                $ Right ([], [[("x", TYbool), ("y", TYbool)]]),                                                    
-    let s = "x := (1 < y) or z"    in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool), ("z", TYbool), ("y", TYreal)]])) $ Right ([], [[("x", TYbool), ("z", TYbool), ("y", TYreal)]])   ]
+    let s = "x := 1"               in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]], []))                                $ Right ([], [[("x", TYint)]], []),          
+    let s = "x := 1+1"             in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]], []))                                $ Right ([], [[("x", TYint)]], []),                                              
+    let s = "x := 1+1*2"           in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]], []))                                $ Right ([], [[("x", TYint)]], []),                
+    let s = "x := 1.2"             in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYreal)]], []))                               $ Right ([], [[("x", TYreal)]], []),                          
+    let s = "x := 1.2 + 1.2"       in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYreal)]], []))                               $ Right ([], [[("x", TYreal)]], []),                                
+    let s = "x := 1 + 1.2"         in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYreal)]], []))                               $ Right ([], [[("x", TYreal)]], []),                                                              
+    let s = "x := 1.2 + 1"         in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYreal)]], []))                               $ Right ([], [[("x", TYreal)]], []),                      
+    let s = "x := True or False"   in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool)]], []))                               $ Right ([], [[("x", TYbool)]], []),        
+    let s = "x := +1"              in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]], []))                                $ Right ([], [[("x", TYint)]], []),                               
+    let s = "x := + 1.2"           in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYreal)]], []))                               $ Right ([], [[("x", TYreal)]], []),                            
+    let s = "x := (1 < 2)"         in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool)]], []))                               $ Right ([], [[("x", TYbool)]], []),              
+    let s = "x := (1 < 2.3)"       in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool)]], []))                               $ Right ([], [[("x", TYbool)]], []),            
+    let s = "x := (true > false)"  in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool)]], []))                               $ Right ([], [[("x", TYbool)]], []),                           
+    let s = "x := (\"a\" = \"b\")" in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool)]], []))                               $ Right ([], [[("x", TYbool)]], []),  
+    let s = "x := true or (1 < 2)" in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool)]], []))                               $ Right ([], [[("x", TYbool)]], []),      
+    let s = "x := True or y"       in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool), ("y", TYbool)]], []))                $ Right ([], [[("x", TYbool), ("y", TYbool)]], []),                                                    
+    let s = "x := (1 < y) or z"    in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool), ("z", TYbool), ("y", TYreal)]], [])) $ Right ([], [[("x", TYbool), ("z", TYbool), ("y", TYreal)]], [])   ]
     -- Fail:
     -- foo "x := True or y" [("x", TYbool), ("y", TYint)] [("x", TYbool), ("y", TYint)] 
 
@@ -333,21 +333,21 @@ ttypechkProgram = let chk pr = case p' parseProgram pr of
         let s = "program p; var x:integer; function f(x:boolean):boolean; begin x:=true end; function g(y:integer):boolean; begin y:=0 end; begin if g(f(x)) then x:=1 end." in TestCase $ (flip (assertEqual s)) (chk s) $ Left (ArgTypeMismatch TYbool TYint)]
 
 ttypechkIf = runTestTT $ TestList [
-    let s = "if true then x:=1"                in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]])) $ Right ([], [[("x", TYint)]]),
-    let s = "if true then x:=1 else x:= 2"     in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]])) $ Right ([], [[("x", TYint)]]),
-    let s = "if (5*5) then x:=1"               in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]])) $ Left $ TypeMismatch TYbool TYint,
-    let s = "if true then x:=1 else x:= false" in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]])) $ Left $ TypeMismatch TYint TYbool,   
-    let s = "if true then x:= false else x:=2" in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]])) $ Left $ TypeMismatch TYint TYbool    ]
+    let s = "if true then x:=1"                in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]], [])) $ Right ([], [[("x", TYint)]], []),
+    let s = "if true then x:=1 else x:= 2"     in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]], [])) $ Right ([], [[("x", TYint)]], []),
+    let s = "if (5*5) then x:=1"               in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]], [])) $ Left $ TypeMismatch TYbool TYint,
+    let s = "if true then x:=1 else x:= false" in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]], [])) $ Left $ TypeMismatch TYint TYbool,   
+    let s = "if true then x:= false else x:=2" in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]], [])) $ Left $ TypeMismatch TYint TYbool    ]
 
 ttypechkFor = runTestTT $ TestList [ -- todo add TYchar test cases
-    let s = "for x:=1 to 10 do x:=1"        in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]]))                 $ Right ([], [[("x", TYint)]]),
-    let s = "for x:=5*x to 1 do y:=true"    in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint), ("y", TYbool)]]))  $ Right ([], [[("x", TYint), ("y", TYbool)]]),
-    let s = "for x:=1 to true do x:=2"      in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]]))                 $ Left $ TypeMismatch TYint TYbool,
-    let s = "for x:=5*x to 1 do x:=true"    in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool)]]))                $ Left $ TypeMismatchOrd TYbool,
-    let s = "for x:=1.5 to 10.5 do y:=true" in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYreal), ("y", TYbool)]])) $ Left $ TypeMismatchOrd TYreal,
-    let s = "for x:=1.5 to 10.5 do y:=true" in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint), ("y", TYbool)]]))  $ Left $ TypeMismatch TYint TYreal,
-    let s = "for x:=1 to 1.5 do y:=true"    in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint), ("y", TYbool)]]))  $ Left $ TypeMismatch TYint TYreal,
-    let s = "for x:=1*z to 10 do y:=true"   in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint), ("y", TYbool)]]))  $ Left $ NotInScope ("z")      ]               
+    let s = "for x:=1 to 10 do x:=1"        in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]], []))                 $ Right ([], [[("x", TYint)]], []),
+    let s = "for x:=5*x to 1 do y:=true"    in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint), ("y", TYbool)]], []))  $ Right ([], [[("x", TYint), ("y", TYbool)]], []),
+    let s = "for x:=1 to true do x:=2"      in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint)]], []))                 $ Left $ TypeMismatch TYint TYbool,
+    let s = "for x:=5*x to 1 do x:=true"    in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool)]], []))                $ Left $ TypeMismatchOrd TYbool,
+    let s = "for x:=1.5 to 10.5 do y:=true" in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYreal), ("y", TYbool)]], [])) $ Left $ TypeMismatchOrd TYreal,
+    let s = "for x:=1.5 to 10.5 do y:=true" in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint), ("y", TYbool)]], []))  $ Left $ TypeMismatch TYint TYreal,
+    let s = "for x:=1 to 1.5 do y:=true"    in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint), ("y", TYbool)]], []))  $ Left $ TypeMismatch TYint TYreal,
+    let s = "for x:=1*z to 10 do y:=true"   in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYint), ("y", TYbool)]], []))  $ Left $ NotInScope ("z")      ]               
 
 tparseDeclProc = do
     testParser (parseDeclProc <* eof) True [
@@ -409,6 +409,10 @@ tparseDeclFunc = do
 tEmitProgram p = E.codegen (emptyModule "MainModule") p >>= putStrLn.snd
 
 sampleProgs = [
+    "program p;type t1=integer; t2=t1;var x:integer; x1:t1; x2:t2;"
+    ++ "begin x1:=1; x2:=2; x:=x1; x:=x2; x1:=x; x1:=x2; x2:=x; x2:=x1;end.",    
+    "program p; type tt = integer;function f():tt;var x : integer;begin f:=x;end;begin writeln(f()) end.",
+    "program p; type tt = integer;function f():integer;var x : tt;begin f:=x;end;begin writeln(f()) end.",
     "program p;procedure foo (var x:integer; y:real); begin x := 1; y := 2.5 end;"
     ++ "function bar(z:integer) : integer; begin foo(z, 3.14); bar := z end;"
     ++ "begin writeln(bar(99)) end.", 
