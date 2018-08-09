@@ -78,6 +78,7 @@ All can be run from GHCI.
 - records
 - arrays
 - case statements
+- forward declaration
 
 ### Implementation
 This is a 4-pass compiler:  
