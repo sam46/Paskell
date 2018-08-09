@@ -51,11 +51,11 @@ lookupFun (sigs, _, _) x =
         Just f  -> Right f
     
 lookupType :: Env -> Type -> Either TyErr Type
-lookupType (_, _, contexts) (TYident x) = case (find (`typeInContext` x) contexts) of
+lookupType e@(_, _, contexts) (TYident x) = case (find (`typeInContext` x) contexts) of
                     Nothing  -> undefined --Left  $ NotInScope x
                     Just ctx -> case lookup x ctx of
                         Nothing  -> undefined -- Left  $ NotInScope x
-                        Just t   -> Right t
+                        Just t   -> lookupType e t
 lookupType _ t = Right t
 
 -- eqType env t1 t2 = (lookupType env t1) == (lookupType env t2)
