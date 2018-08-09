@@ -3,7 +3,7 @@ A (reduced) Pascal compiler in Haskell that compiles to LLVM
 Work in Progress, mostly finished!  
 
 ### Features:   
-- Declarations: var 
+- Declarations: var, type (aliases)
 - Types: integer, boolean, string, char, real
 - Control Flow: if, while, for    
 - Functions/Procedures 
@@ -73,7 +73,6 @@ All can be run from GHCI.
 - finish nested functions/procedures:  
   this only requires pulling nested functions to global scope  
   and renaming them during the type-annotation pass
-- add support for Type declarations (aliases) 
 - constants: trivial to implement
 - Read/Readln IO statements
 - records
