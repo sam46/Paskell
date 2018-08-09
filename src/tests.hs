@@ -409,6 +409,12 @@ tparseDeclFunc = do
 tEmitProgram p = E.codegen (emptyModule "MainModule") p >>= putStrLn.snd
 
 sampleProgs = [
+    "program p;procedure foo (var x:integer; y:real); begin x := 1; y := 2.5 end;"
+    ++ "function bar(z:integer) : integer; begin foo(z, 3.14); bar := z end;"
+    ++ "begin writeln(bar(99)) end.", 
+    "program p;function foo (var x:integer; y:real):integer; begin x := 1; y := 2.5 end;"
+    ++ "function bar(z:integer) : integer; begin if foo(z, 3.14) > 2 then; bar := z end;"
+    ++ "begin writeln(bar(99)) end.", 
     "program fib; function fib(n:integer):integer; begin if n < 2 then fib := 1 else fib := fib(n-1)+fib(n-2) end; begin writeln(\"fib 5 = \", fib(5)) end.",
     "program fib; function fib(n:integer):integer; begin if n < 2 then fib := 1 else fib := fib(n-1)+fib(n-2) end; procedure p(n:integer); begin writeln(\"fib = \", fib(n)) end; begin p(1); p(5); p(10) end.",
     "program fib; var i : integer;function fib(n : integer) : integer; begin if n < 2 then fib := 1 else fib := fib(n-1) + fib(n-2) end; "
@@ -435,8 +441,8 @@ sampleProgs = [
     "program p; var z:integer; procedure f(); var x:integer; begin x:=1; end; begin end.",
     "program p; var x:integer; function f(x:integer):integer; begin x:=1 end; begin x:=2 end."]
 
-testCompile n = case (Conv.chkConvProgram' <$> sampleProgs) !! n 
-            of Right x -> tEmitProgram x
+tCodegenSampleProg n = case (Conv.chkConvProgram' <$> sampleProgs) !! n 
+            of Right x -> (print $ sampleProgs !! n) >> tEmitProgram x
                Left x  -> error $ x
 
 testAll = do
