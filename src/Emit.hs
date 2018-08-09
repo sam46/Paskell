@@ -16,6 +16,7 @@ import Paskell as P
 
 import LLVM.AST
 import LLVM.AST.AddrSpace
+import LLVM.AST.Attribute (ParameterAttribute)
 import qualified LLVM.AST as AST
 import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.Float as F
@@ -33,6 +34,10 @@ import qualified Intermediate as IR
 import Codegen
 
 
+-------------------------------------------------------------------------------
+-- Type conversions
+-------------------------------------------------------------------------------
+
 toShortBS =  toShort . BS.pack 
 toString = BS.unpack . fromShort
 name' = Name . toShortBS
@@ -46,7 +51,22 @@ toLLVMType t = case t of
     G.TYstr   -> str
     G.TYptr t -> PointerType (toLLVMType t) (AddrSpace 0)
 
--------------------------------------------------------
+-- add ParameterAtribute to an argument given the argument and 
+-- it's corrosponding Operand
+addParamAttr :: IR.Expr -> Operand -> (Operand, [ParameterAttribute])
+addParamAttr expr oper = let ty = IR.getType expr in 
+        case ty of 
+            G.TYptr _ -> (oper, [Dereferenceable 4])
+            _         -> (oper, []) 
+
+isPtrPtr :: Operand -> Bool  -- checks for a double pointer
+isPtrPtr oper = case oper of 
+    LocalReference (PointerType (PointerType _ _) _) _ -> True
+    _ -> False
+
+-------------------------------------------------------------------------------
+-- Top-level interface 
+-------------------------------------------------------------------------------
 
 liftError :: ExceptT String IO a -> IO a
 liftError = runExceptT >=> either fail return
@@ -65,7 +85,9 @@ printllvm ast = let ir = Conv.convProgram ast in
     do (llvmast, llstr) <- codegen (emptyModule "MainModule") ir
        return llstr
 
--------------------------
+-------------------------------------------------------------------------------
+-- Declarations and Blocks
+-------------------------------------------------------------------------------
 
 genDeclFunc :: IR.Decl -> LLVM ()
 genDeclFunc (IR.DeclFunc x args retty blk _) = do
@@ -120,12 +142,9 @@ genBlock (IR.Block ds s _) = do
     forM ds genDeclVar
     genStatement s
 
-isPtrPtr :: Operand -> Bool
-isPtrPtr oper = case oper of 
-    LocalReference (PointerType (PointerType _ _) _) _ -> True
-    -- Alloca (PointerType (PointerType _ _) _) _ _ _ -> True
-    -- _ -> error $ show oper
-    _ -> False
+-------------------------------------------------------------------------------
+-- Statements
+-------------------------------------------------------------------------------
 
 genStatement :: IR.Statement -> Codegen [Definition]
 genStatement (IR.StatementEmpty) = return []
@@ -223,27 +242,25 @@ genStatement (IR.StatementWhile expr s _) = do
 
 genStatement (IR.ProcCall f xs t) = do
     (args, defs) <- mapM genExpr xs >>= (return.unzip)
-    call' (externf fnty (name' f)) (map liftType (zip (map IR.getType xs) args))
+    call' (externf fnty (name' f)) (zipWith addParamAttr xs args)
     return $ concat defs
     where fnty = toLLVMfnType (toLLVMType t) (map (toLLVMType . IR.getType) xs)
-          liftType (ty, oper) = case ty 
-            of G.TYptr _ -> (oper, [Dereferenceable 4])
-               _ -> (oper,[])
 
-genStatement (IR.StatementWrite xs _) = do
-    (args, defs) <- (mapM genExpr ((IR.FactorStr fstr G.TYstr) : xs)) >>= (return.unzip)
-    call (externf printfTy (name' "printf")) (map liftType (zip (map IR.getType ((IR.FactorStr fstr G.TYstr):xs)) args))
+genStatement (IR.StatementWrite xs' _) = do
+    (args, defs) <- mapM genExpr xs >>= (return.unzip)
+    call (externf printfTy (name' "printf")) (zipWith addParamAttr xs args)
     return $ concat defs
     where fstr = (foldr (++) "" (map (formatstr. IR.getType) xs)) ++ "\00"
-          liftType (ty, oper) = case ty 
-            of G.TYptr _ -> (oper, [Dereferenceable 4])
-               _ -> (oper,[])  
+          xs = (IR.FactorStr fstr G.TYstr) : xs' -- add printf format string to arguments
 
 formatstr :: G.Type -> String
 formatstr G.TYint  = "%d"
 formatstr G.TYstr  = "%s"
 formatstr G.TYreal = "%f"
 
+-------------------------------------------------------------------------------
+-- Expressions
+-------------------------------------------------------------------------------
 
 -- returns %x for final expression value, and stores any intermediate instructions in the block
 genExpr :: IR.Expr -> Codegen (Operand, [Definition])
@@ -323,12 +340,9 @@ genExpr (IR.Unary op x t) =  do
 
 genExpr (IR.FuncCall f xs t) = do
     (args, defs) <- mapM genExpr xs >>= (return.unzip)
-    oper <- call (externf fnty (name' f)) (map liftType (zip (map IR.getType xs) args))
+    oper <- call (externf fnty (name' f)) (zipWith addParamAttr xs args)
     return (oper, concat defs)
     where fnty = toLLVMfnType (toLLVMType t) (map (toLLVMType . IR.getType) xs)
-          liftType (ty, oper) = case ty 
-            of G.TYptr _ -> (oper, [Dereferenceable 4])
-               _ -> (oper,[]) 
           
 genExpr (IR.FactorDesig (IR.Designator x _ xt) dt) =
     (getvar (toShortBS x) (toLLVMType xt)) 
