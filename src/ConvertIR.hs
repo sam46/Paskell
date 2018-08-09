@@ -110,7 +110,14 @@ convStatement env (StatementWrite xs) = IR.StatementWrite (map (convExpr env) xs
 
 convStatement env (StatementWriteLn xs) = convStatement env (StatementWrite $ xs++[FactorStr "\n"])
 
-convStatement env (ProcCall x xs) = IR.ProcCall x (map (convExpr env) xs) Void
+convStatement env (ProcCall f args) = 
+    IR.ProcCall f args''' Void
+    where   (_, sig) = lookupFun env f
+            args''   = map (convExpr env) args -- convert to type annotaed IR args
+            args'''  = map liftType (zip args'' sig) -- lift PassByRef args types to pointers 
+            liftType (expr, (ty,cbr)) = if not cbr then expr
+                else let IR.FactorDesig x factty = expr
+                     in  IR.FactorDesig x (TYptr factty) 
 
 convDesignator :: Env -> Designator -> IR.Designator
 convDesignator env (Designator x _) = IR.Designator x [] (lookupVar env x) 
