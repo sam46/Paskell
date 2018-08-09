@@ -71,17 +71,6 @@ define retty label argtys body = (addDefns bodydefs) >> addDefn (
   where
     (bodydefs, bodystate) = runStateCodegen body
     bls = createBlocks $ bodystate
-      -- do
-        -- body ptrThisType
-        -- body
-    -- ptrThisType = PointerType {
-    --     pointerReferent = FunctionType {
-    --         resultType = retty
-    --       , argumentTypes = map fst argtys
-    --       , isVarArg = False
-    --     }
-    --   , pointerAddrSpace = AddrSpace 0
-    --   }
 
 external ::  Type -> ShortByteString -> [(Type, Name)] -> LLVM ()
 external retty label argtys = addDefn $
@@ -108,6 +97,7 @@ gvar' ty name  =
 gstrVal :: Name -> String -> LLVM ()
 gstrVal name val = addDefn $ gstrVal' name val
 
+-- String literals are declared in global scope
 gstrVal' :: Name -> String -> Definition
 gstrVal' name val =    
   GlobalDefinition globalVariableDefaults
@@ -330,7 +320,7 @@ getvar var ty = do
   syms <- gets symtab
   case lookup var syms of
     Just x  -> return x
-    Nothing -> return $ getGvar var ty
+    Nothing -> return $ getGvar var ty -- if not in symtab then it's a global, or doesn't exist
       -- error $ "unkown variable" ++ show var
 
 getGvar :: ShortByteString -> Type -> Operand
@@ -338,7 +328,7 @@ getGvar var ty = ConstantOperand $ global (PointerType ty (AddrSpace 0)) (Name v
 
 -------------------------------------------------------------------------------
 
-local ::  Type -> Name -> Operand   -- refer to variable defined in local scope (function)
+local ::  Type -> Name -> Operand 
 local = LocalReference
 
 global :: Type -> Name -> C.Constant
@@ -387,9 +377,8 @@ imul a b = instr int $ Mul nowrap nowrap a b []
 isub :: Operand -> Operand -> Codegen Operand
 isub a b = instr int $ Sub nowrap nowrap a b []
 
-
-toArgs :: [Operand] -> [(Operand, [A.ParameterAttribute])]
-toArgs = map (\x -> (x, []))
+-- toArgs :: [Operand] -> [(Operand, [A.ParameterAttribute])]
+-- toArgs = map (\x -> (x, []))
 
 -- Effects
 call :: Operand -> [(Operand, [A.ParameterAttribute])] -> Codegen Operand
@@ -402,6 +391,7 @@ call' fn args = unnminstr $ Call Nothing CC.C [] (Right fn) args [] []
 alloca :: Type -> Codegen Operand
 alloca ty = instr float $ Alloca ty Nothing 0 []
 
+-- same as alloca but returns a pointer to given data type (*ty)
 alloca' :: Type -> Codegen Operand
 alloca' ty  = instr (PointerType ty (AddrSpace 0)) $ Alloca ty Nothing 0 []
 
@@ -427,15 +417,3 @@ ret val = terminator $ Do $ Ret (Just val) []
 retvoid :: Codegen (Named Terminator)
 retvoid = terminator $ Do $ Ret Nothing []
 
--------------------------------------------------------------------------------
-
-module_ :: AST.Module
-module_ = defaultModule
-    { moduleName = "basic"
-    , moduleDefinitions = []
-    }
-
-toLLVM :: AST.Module -> IO ()
-toLLVM mod = withContext $ \ctx -> do
-    llvm <- withModuleFromAST ctx mod moduleLLVMAssembly
-    BS.putStrLn llvm
