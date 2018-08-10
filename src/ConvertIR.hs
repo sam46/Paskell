@@ -154,6 +154,7 @@ convExpr env FactorFalse       = IR.FactorFalse   TYbool
 convExpr env (FactorInt x)     = IR.FactorInt  x  TYint
 convExpr env (FactorReal x)    = IR.FactorReal x  TYreal
 convExpr env (FactorStr x)     = IR.FactorStr  x  TYstr
+convExpr env (FactorChar x)    = IR.FactorStr [x] TYstr
 convExpr env (FactorNot x)     = undefined
 
 convExpr env (FuncCall f args) = 
@@ -199,9 +200,11 @@ convExpr env (Mult x1 op x2) = let
     x2' = convExpr env x2
     t1  = IR.getType x1' 
     t2  = IR.getType x2' 
-    t   = if op `elem` [OPstar, OPdiv] 
-            then if t1 == TYreal then t1 else t2 
-            else TYbool
+    t   | op == OPstar =
+            if t1 == TYreal then t1 else t2 
+        | op == OPdiv = TYreal
+        | op `elem` [OPidiv, OPmod] = TYint
+        | otherwise = TYbool
     in IR.Mult x1' op x2' t
 
 

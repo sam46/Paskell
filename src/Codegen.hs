@@ -19,7 +19,7 @@ import Control.Monad.State
 import LLVM.AST
 import LLVM.AST.Typed (typeOf)
 import LLVM.AST.AddrSpace
-import LLVM.AST.Type
+import LLVM.AST.Type hiding (double)
 import LLVM.AST.Global as G
 import qualified LLVM.AST as AST
 
@@ -377,6 +377,12 @@ imul a b = instr int $ Mul nowrap nowrap a b []
 isub :: Operand -> Operand -> Codegen Operand
 isub a b = instr int $ Sub nowrap nowrap a b []
 
+idiv :: Operand -> Operand -> Codegen Operand
+idiv a b = instr int $ SDiv False a b []  
+
+imod :: Operand -> Operand -> Codegen Operand
+imod a b = instr int $ SRem a b []  
+
 -- toArgs :: [Operand] -> [(Operand, [A.ParameterAttribute])]
 -- toArgs = map (\x -> (x, []))
 
@@ -389,17 +395,29 @@ call' :: Operand -> [(Operand, [A.ParameterAttribute])] -> Codegen ()
 call' fn args = unnminstr $ Call Nothing CC.C [] (Right fn) args [] []
 
 alloca :: Type -> Codegen Operand
-alloca ty = instr float $ Alloca ty Nothing 0 []
+alloca ty = instr ty $ Alloca ty Nothing 0 []
 
 -- same as alloca but returns a pointer to given data type (*ty)
 alloca' :: Type -> Codegen Operand
 alloca' ty  = instr (PointerType ty (AddrSpace 0)) $ Alloca ty Nothing 0 []
 
 store :: Operand -> Operand -> Codegen ()
-store ptr val = unnminstr $ Store False ptr val Nothing 0 []
+store ptr val = 
+  if (isFloat ptr) &&  (isIntVal $ val) 
+  then (sitofp double val) >>=
+      \val' -> unnminstr $ Store False ptr val' Nothing 0 []
+  else unnminstr $ Store False ptr val Nothing 0 []
+  where isFloat x = case x of
+          (LocalReference (FloatingPointType _) _) -> True
+          (ConstantOperand (C.GlobalReference (PointerType (FloatingPointType _) _) _) ) -> True
+          _ -> False
+        isIntVal x = case x of
+            LocalReference (IntegerType _) _ -> True
+            ConstantOperand (C.Int _ _) -> True
+            _ -> False
 
-load :: Operand -> Codegen Operand
-load ptr = instr float $ Load False ptr Nothing 0 []
+load :: Type -> Operand -> Codegen Operand
+load ty ptr = instr ty $ Load False ptr Nothing 0 []
 
 -- Control Flow
 br :: Name -> Codegen (Named Terminator)
@@ -409,11 +427,10 @@ cbr :: Operand -> Name -> Name -> Codegen (Named Terminator)
 cbr cond tr fl = terminator $ Do $ CondBr cond tr fl []
 
 phi :: Type -> [(Operand, Name)] -> Codegen Operand
-phi ty incoming = instr float $ Phi ty incoming []
+phi ty incoming = instr ty $ Phi ty incoming []
 
 ret :: Operand -> Codegen (Named Terminator)
 ret val = terminator $ Do $ Ret (Just val) []
 
 retvoid :: Codegen (Named Terminator)
 retvoid = terminator $ Do $ Ret Nothing []
-

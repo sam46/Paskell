@@ -49,6 +49,7 @@ toLLVMType t = case t of
     G.TYreal  -> double
     G.Void    -> void
     G.TYstr   -> str
+    G.TYchar  -> str
     G.TYptr t -> PointerType (toLLVMType t) (AddrSpace 0)
     _         -> error $ "TYident wasn't resolved. " ++ (show t)
 
@@ -107,7 +108,7 @@ genDeclFunc (IR.DeclFunc x args retty blk _) = do
             if retty == G.Void 
                 then retvoid
                 else getvar (toShortBS x) (toLLVMType retty) 
-                     >>= load >>= ret
+                     >>= load (toLLVMType retty) >>= ret
             return defs
 
 -- used for local var decls only 
@@ -158,7 +159,7 @@ genStatement (IR.Assignment (IR.Designator x _ xt) expr _) = do
     if not (isPtrPtr var)    
         then store var rhs -- store value at memory referred to by pointer
         else do            -- if var is a pointer to pointer, this means we have something like *x = 123 and we should derference the pointer first
-                ptr <- load var
+                ptr <- load (toLLVMType G.Void) var
                 store ptr rhs     
     return defs
 
@@ -260,6 +261,8 @@ formatstr :: G.Type -> String
 formatstr G.TYint  = "%d"
 formatstr G.TYstr  = "%s"
 formatstr G.TYreal = "%f"
+formatstr G.TYbool = "%d"
+formatstr G.TYchar = "%s"
 
 -------------------------------------------------------------------------------
 -- Expressions
@@ -322,15 +325,23 @@ genExpr (IR.Add x1 op x2 t) = do
     return (oper, defs1 ++ defs2)
 
 genExpr (IR.Mult x1 op x2 t) = do
+    let (t1,t2) = (IR.getType x1, IR.getType x2)
     (y1, defs1) <- genExpr x1
     (y2, defs2) <- genExpr x2
-    oper <- case t of 
-        G.TYbool -> undefined
-        G.TYint  -> imul y1 y2
-        G.TYreal -> do
-            fy1 <- if IR.getType x1 == G.TYint then sitofp double y1 else return y1
-            fy2 <- if IR.getType x2 == G.TYint then sitofp double y2 else return y2
-            fmul fy1 fy2 -- todo replace fmul with case on op
+    oper <- case op of 
+        OPdiv -> do
+            fy1 <- sitofp double y1
+            fy2 <- sitofp double y2
+            fdiv fy1 fy2 
+        OPstar -> do
+            fy1 <- if t1 == G.TYint then sitofp double y1 else return y1
+            fy2 <- if t2 == G.TYint then sitofp double y2 else return y2
+            if t1 == G.TYreal || t2 == G.TYreal 
+                then fmul fy1 fy2
+                else imul y1 y2
+        OPidiv -> idiv y1 y2
+        OPmod  -> imod y1 y2
+        _ -> undefined
     return (oper, defs1 ++ defs2)
 
 genExpr (IR.Unary op x t) =  do
@@ -338,7 +349,7 @@ genExpr (IR.Unary op x t) =  do
     oper <- case op of 
         OPor    -> undefined
         OPplus  -> return y
-        OPminus -> fst <$> (genExpr $ IR.Add (IR.FactorInt 0 G.TYbool) op x t)
+        OPminus -> fst <$> (genExpr $ IR.Add (IR.FactorInt 0 G.TYint) op x t)
     return (oper, defs)
 
 genExpr (IR.FuncCall f xs t) = do
@@ -349,5 +360,5 @@ genExpr (IR.FuncCall f xs t) = do
           
 genExpr (IR.FactorDesig (IR.Designator x _ xt) dt) =
     (getvar (toShortBS x) (toLLVMType xt)) 
-    >>= (if dt==xt then load else return . id)
+    >>= (if dt==xt then load (toLLVMType dt) else return . id)
     >>= \oper -> return (oper, [])

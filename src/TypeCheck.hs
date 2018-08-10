@@ -140,7 +140,9 @@ typechkDeclFunc env (DeclFunc x params t b) =
 typechkStatement :: Env -> Statement -> Either TyErr Env
 typechkStatement env (Assignment (Designator x _) expr) = 
     gettype env expr >>= \t -> lookupVar env x >>= \xtype -> 
-        if xtype == t 
+        if xtype == t                      
+           || (xtype == TYstr && t == TYchar)
+           || (xtype == TYreal && t == TYint)
         then Right env 
         else Left $ TypeMismatch xtype t 
 
@@ -209,6 +211,7 @@ gettype env FactorFalse         = Right TYbool
 gettype env (FactorInt _)       = Right TYint
 gettype env (FactorReal _)      = Right TYreal
 gettype env (FactorStr _)       = Right TYstr
+gettype env (FactorChar _)      = Right TYchar
 gettype env (FactorNot x)       = undefined
 
 gettype env (FuncCall x args) = lookupFun env x >>=
@@ -246,11 +249,21 @@ gettype env (Add x1 op x2)
     where [t1, t2] = (gettype env) <$> [x1, x2]
 
 gettype env (Mult x1 op x2)
-    | op `elem` [OPstar, OPdiv] =
+    | op == OPstar =
         t1 >>= \v1 -> t2 >>= \v2 ->
             if not (isNum v1 && isNum v2)
             then Left $ TypeMismatchNum (if isNum v1 then v1 else v2)
             else if v1 == TYreal then t1 else t2
+    | op == OPdiv =
+        t1 >>= \v1 -> t2 >>= \v2 ->
+            if not (isNum v1 && isNum v2)
+            then Left $ TypeMismatchNum (if isNum v1 then v1 else v2)
+            else Right TYreal
+    | op `elem` [OPmod, OPidiv] =
+        t1 >>= \v1 -> t2 >>= \v2 ->
+            if not (v1 == TYint && v2 == TYint)
+            then Left $ TypeMismatch TYint (if v1 == TYint then v1 else v2)
+            else Right TYint
     | otherwise = 
         t1 >>= \v1 -> t2 >>= \v2 ->
             if (v1 /= TYbool) || (v2 /= TYbool)

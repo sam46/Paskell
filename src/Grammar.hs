@@ -71,6 +71,7 @@ data Expr = Relation Expr OP Expr
     | FactorInt Int 
     | FactorReal Double 
     | FactorStr String 
+    | FactorChar Char
     | FactorTrue 
     | FactorFalse 
     | FactorNil 
