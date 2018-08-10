@@ -41,19 +41,20 @@ data DesigProp = DesigPropIdent Ident  Type
     deriving (Show, Eq)
 
 type ExprList = [Expr]
-data Expr = Relation {getOperand :: Expr, getOP :: OP, getOperand' :: Expr, getType :: Type}
+data Expr = 
+    Relation {getOperand :: Expr, getOP :: OP, getOperand' :: Expr, getType :: Type}
     | Unary {getOP :: OP, getOperand :: Expr, getType :: Type}
     | Mult {getOperand :: Expr, getOP :: OP, getOperand' :: Expr, getType :: Type}
     | Add {getOperand :: Expr, getOP :: OP, getOperand' :: Expr, getType :: Type}
     | FactorInt {getOperandi :: Int, getType :: Type}
     | FactorReal {getOperandr :: Double, getType :: Type}
     | FactorStr {getOperands :: String, getType :: Type}
-    | FactorTrue  {getType :: Type}
-    | FactorFalse  {getType :: Type}
-    | FactorNil  {getType :: Type}
+    | FactorTrue {getType :: Type}
+    | FactorFalse {getType :: Type}
+    | FactorNil {getType :: Type}
     | FactorDesig {getOperandd :: Designator, getType :: Type}
     | FactorNot {getOperand :: Expr, getType :: Type}
-    | FuncCall {getIdent :: Ident, getExprs :: ExprList, getType :: Type}
+    | FuncCall {getFunc :: Ident, getExprs :: ExprList, getType :: Type}
     deriving (Eq)
 
 instance Ord Expr where

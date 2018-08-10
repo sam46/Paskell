@@ -154,6 +154,7 @@ convExpr env FactorFalse       = IR.FactorFalse   TYbool
 convExpr env (FactorInt x)     = IR.FactorInt  x  TYint
 convExpr env (FactorReal x)    = IR.FactorReal x  TYreal
 convExpr env (FactorStr x)     = IR.FactorStr  x  TYstr
+convExpr env (FactorChar x)    = IR.FactorStr [x] TYstr
 convExpr env (FactorNot x)     = undefined
 
 convExpr env (FuncCall f args) = 

@@ -140,7 +140,9 @@ typechkDeclFunc env (DeclFunc x params t b) =
 typechkStatement :: Env -> Statement -> Either TyErr Env
 typechkStatement env (Assignment (Designator x _) expr) = 
     gettype env expr >>= \t -> lookupVar env x >>= \xtype -> 
-        if xtype == t 
+        if xtype == t                      
+           || (xtype == TYstr && t == TYchar)
+           || (xtype == TYreal && t == TYint)
         then Right env 
         else Left $ TypeMismatch xtype t 
 
@@ -209,6 +211,7 @@ gettype env FactorFalse         = Right TYbool
 gettype env (FactorInt _)       = Right TYint
 gettype env (FactorReal _)      = Right TYreal
 gettype env (FactorStr _)       = Right TYstr
+gettype env (FactorChar _)      = Right TYchar
 gettype env (FactorNot x)       = undefined
 
 gettype env (FuncCall x args) = lookupFun env x >>=

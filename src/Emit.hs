@@ -49,6 +49,7 @@ toLLVMType t = case t of
     G.TYreal  -> double
     G.Void    -> void
     G.TYstr   -> str
+    G.TYchar  -> str
     G.TYptr t -> PointerType (toLLVMType t) (AddrSpace 0)
     _         -> error $ "TYident wasn't resolved. " ++ (show t)
 
@@ -260,6 +261,8 @@ formatstr :: G.Type -> String
 formatstr G.TYint  = "%d"
 formatstr G.TYstr  = "%s"
 formatstr G.TYreal = "%f"
+formatstr G.TYbool = "%d"
+formatstr G.TYchar = "%s"
 
 -------------------------------------------------------------------------------
 -- Expressions
@@ -346,7 +349,7 @@ genExpr (IR.Unary op x t) =  do
     oper <- case op of 
         OPor    -> undefined
         OPplus  -> return y
-        OPminus -> fst <$> (genExpr $ IR.Add (IR.FactorInt 0 G.TYbool) op x t)
+        OPminus -> fst <$> (genExpr $ IR.Add (IR.FactorInt 0 G.TYint) op x t)
     return (oper, defs)
 
 genExpr (IR.FuncCall f xs t) = do

@@ -120,6 +120,7 @@ parseFactor =
     <|> (exactTok "true"  >> return FactorTrue) -- todo double check exactTok is the right choice
     <|> (exactTok "false" >> return FactorFalse) 
     <|> (parseNumber)
+    <|> (try $ FactorChar <$> parseChar)
     <|> (FactorStr <$> parseString)
     <|> (betweenCharTok '(' ')' parseExpr)
     <|> (try parseFuncCall)
@@ -215,12 +216,20 @@ parseNumber = tok $ do
             else FactorInt  $ read xs
 
 parseString :: Parser String
-parseString = between (char '"') (charTok '"') $ many $
-    (noneOf ['\\', '"']) <|>
+parseString = between (char '\'') (charTok '\'') $ many $
+    (noneOf ['\\', '\'']) <|>
     ((char '\\') >> anyChar >>= \c -> case toSpecialChar c 
     of Just x  -> return (fromSpecialChar x)
        Nothing -> if c == 'u' then undefined  -- todo hex
-                  else unexpected ("char in string " ++ [c]))
+                  else unexpected ("char in string" ++ [c]))
+
+parseChar :: Parser Char
+parseChar = between (char '\'') (charTok '\'') $
+    (noneOf ['\\', '\'']) <|>
+    ((char '\\') >> anyChar >>= \c -> case toSpecialChar c 
+    of Just x  -> return (fromSpecialChar x)
+       Nothing -> if c == 'u' then undefined  -- todo hex
+                  else unexpected ("char literal" ++ [c]))
 
 -- parseSubprogDeclList
 parseDeclProc :: Parser Decl 
