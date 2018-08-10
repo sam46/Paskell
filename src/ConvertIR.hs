@@ -203,7 +203,7 @@ convExpr env (Mult x1 op x2) = let
             if t1 == TYreal then t1 else t2 
         | op == OPdiv = TYreal
         | op `elem` [OPidiv, OPmod] = TYint
-        | otherwise =  TYbool
+        | otherwise = TYbool
     in IR.Mult x1' op x2' t
 
 

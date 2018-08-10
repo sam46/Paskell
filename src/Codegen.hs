@@ -377,6 +377,12 @@ imul a b = instr int $ Mul nowrap nowrap a b []
 isub :: Operand -> Operand -> Codegen Operand
 isub a b = instr int $ Sub nowrap nowrap a b []
 
+idiv :: Operand -> Operand -> Codegen Operand
+idiv a b = instr int $ SDiv False a b []  
+
+imod :: Operand -> Operand -> Codegen Operand
+imod a b = instr int $ SRem a b []  
+
 -- toArgs :: [Operand] -> [(Operand, [A.ParameterAttribute])]
 -- toArgs = map (\x -> (x, []))
 

@@ -256,6 +256,11 @@ gettype env (Mult x1 op x2)
             if not (isNum v1 && isNum v2)
             then Left $ TypeMismatchNum (if isNum v1 then v1 else v2)
             else Right TYreal
+    | op `elem` [OPmod, OPidiv] =
+        t1 >>= \v1 -> t2 >>= \v2 ->
+            if not (v1 == TYint && v2 == TYint)
+            then Left $ TypeMismatch TYint (if v1 == TYint then v1 else v2)
+            else Right TYint
     | otherwise = 
         t1 >>= \v1 -> t2 >>= \v2 ->
             if (v1 /= TYbool) || (v2 /= TYbool)
