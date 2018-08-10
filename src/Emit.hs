@@ -108,7 +108,7 @@ genDeclFunc (IR.DeclFunc x args retty blk _) = do
             if retty == G.Void 
                 then retvoid
                 else getvar (toShortBS x) (toLLVMType retty) 
-                     >>= load >>= ret
+                     >>= load (toLLVMType retty) >>= ret
             return defs
 
 -- used for local var decls only 
@@ -159,7 +159,7 @@ genStatement (IR.Assignment (IR.Designator x _ xt) expr _) = do
     if not (isPtrPtr var)    
         then store var rhs -- store value at memory referred to by pointer
         else do            -- if var is a pointer to pointer, this means we have something like *x = 123 and we should derference the pointer first
-                ptr <- load var
+                ptr <- load (toLLVMType G.Void) var
                 store ptr rhs     
     return defs
 
@@ -360,5 +360,5 @@ genExpr (IR.FuncCall f xs t) = do
           
 genExpr (IR.FactorDesig (IR.Designator x _ xt) dt) =
     (getvar (toShortBS x) (toLLVMType xt)) 
-    >>= (if dt==xt then load else return . id)
+    >>= (if dt==xt then load (toLLVMType dt) else return . id)
     >>= \oper -> return (oper, [])
