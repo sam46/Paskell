@@ -41,35 +41,20 @@ data DesigProp = DesigPropIdent Ident  Type
     deriving (Show, Eq)
 
 type ExprList = [Expr]
-data Expr = Relation Expr OP Expr Type
-    | Unary OP Expr Type
-    | Mult Expr OP Expr Type
-    | Add Expr OP Expr Type
-    | FactorInt Int  Type
-    | FactorReal Double  Type
-    | FactorStr String  Type
-    | FactorTrue  Type
-    | FactorFalse  Type
-    | FactorNil  Type
-    | FactorDesig Designator  Type
-    | FactorNot Expr Type
-    | FuncCall Ident ExprList Type
+data Expr = Relation {getOperand :: Expr, getOP :: OP, getOperand' :: Expr, getType :: Type}
+    | Unary {getOP :: OP, getOperand :: Expr, getType :: Type}
+    | Mult {getOperand :: Expr, getOP :: OP, getOperand' :: Expr, getType :: Type}
+    | Add {getOperand :: Expr, getOP :: OP, getOperand' :: Expr, getType :: Type}
+    | FactorInt {getOperandi :: Int, getType :: Type}
+    | FactorReal {getOperandr :: Double, getType :: Type}
+    | FactorStr {getOperands :: String, getType :: Type}
+    | FactorTrue  {getType :: Type}
+    | FactorFalse  {getType :: Type}
+    | FactorNil  {getType :: Type}
+    | FactorDesig {getOperandd :: Designator, getType :: Type}
+    | FactorNot {getOperand :: Expr, getType :: Type}
+    | FuncCall {getIdent :: Ident, getExprs :: ExprList, getType :: Type}
     deriving (Eq)
-
-getType :: Expr -> Type
-getType (Relation _ _ _ t) = t
-getType (Unary _ _ t) = t
-getType (Mult _ _ _ t) = t
-getType (Add  _ _ _ t) = t
-getType (FactorInt _  t) = t
-getType (FactorReal _  t) = t
-getType (FactorStr _  t) = t
-getType (FactorTrue  t) = t
-getType (FactorFalse  t) = t
-getType (FactorNil  t) = t
-getType (FactorDesig _  t) = t
-getType (FactorNot _ t) = t
-getType (FuncCall _ _ t) = t
 
 instance Ord Expr where
     x1 `compare` x2 = t1 `compare` t2
