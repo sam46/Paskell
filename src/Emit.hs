@@ -322,15 +322,24 @@ genExpr (IR.Add x1 op x2 t) = do
     return (oper, defs1 ++ defs2)
 
 genExpr (IR.Mult x1 op x2 t) = do
+    let (t1,t2) = (IR.getType x1, IR.getType x2)
     (y1, defs1) <- genExpr x1
     (y2, defs2) <- genExpr x2
     oper <- case t of 
         G.TYbool -> undefined
         G.TYint  -> imul y1 y2
-        G.TYreal -> do
-            fy1 <- if IR.getType x1 == G.TYint then sitofp double y1 else return y1
-            fy2 <- if IR.getType x2 == G.TYint then sitofp double y2 else return y2
-            fmul fy1 fy2 -- todo replace fmul with case on op
+        G.TYreal 
+            | op == OPdiv -> do
+              fy1 <- sitofp double y1
+              fy2 <- sitofp double y2
+              fdiv fy1 fy2 
+            | op == OPstar -> do
+              fy1 <- if t1 == G.TYint then sitofp double y1 else return y1
+              fy2 <- if t2 == G.TYint then sitofp double y2 else return y2
+              if t1 == G.TYreal || t2 == G.TYreal 
+                 then fmul fy1 fy2
+                 else imul fy1 fy2
+            | otherwise -> undefined
     return (oper, defs1 ++ defs2)
 
 genExpr (IR.Unary op x t) =  do

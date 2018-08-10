@@ -199,9 +199,11 @@ convExpr env (Mult x1 op x2) = let
     x2' = convExpr env x2
     t1  = IR.getType x1' 
     t2  = IR.getType x2' 
-    t   = if op `elem` [OPstar, OPdiv] 
-            then if t1 == TYreal then t1 else t2 
-            else TYbool
+    t   | op == OPstar =
+            if t1 == TYreal then t1 else t2 
+        | op == OPdiv = TYreal
+        | op `elem` [OPidiv, OPmod] = TYint
+        | otherwise =  TYbool
     in IR.Mult x1' op x2' t
 
 

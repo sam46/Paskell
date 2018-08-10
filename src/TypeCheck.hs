@@ -246,11 +246,16 @@ gettype env (Add x1 op x2)
     where [t1, t2] = (gettype env) <$> [x1, x2]
 
 gettype env (Mult x1 op x2)
-    | op `elem` [OPstar, OPdiv] =
+    | op == OPstar =
         t1 >>= \v1 -> t2 >>= \v2 ->
             if not (isNum v1 && isNum v2)
             then Left $ TypeMismatchNum (if isNum v1 then v1 else v2)
             else if v1 == TYreal then t1 else t2
+    | op == OPdiv =
+        t1 >>= \v1 -> t2 >>= \v2 ->
+            if not (isNum v1 && isNum v2)
+            then Left $ TypeMismatchNum (if isNum v1 then v1 else v2)
+            else Right TYreal
     | otherwise = 
         t1 >>= \v1 -> t2 >>= \v2 ->
             if (v1 /= TYbool) || (v2 /= TYbool)
