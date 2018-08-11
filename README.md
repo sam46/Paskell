@@ -8,6 +8,7 @@ Work in Progress, mostly finished!
 - Control Flow: if, while, for    
 - Functions/Procedures 
 - Pass by reference
+- basic typecasting
 - Nested Functions/Procedures (Not finished yet) 
 - I/O: Write/Writeln
 
