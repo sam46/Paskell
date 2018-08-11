@@ -326,7 +326,7 @@ ttypechkProgram = let chk pr = case p' parseProgram pr of
                         Right p -> typechkProgram p
                         Left err -> error $ "Parse error:\n\t" ++ pr ++ "\nin:" ++ show err
     in runTestTT $ TestList [
-        let s = "program p; var x:bool; begin end." in TestCase $ (flip (assertEqual s)) (chk s) $ Right (),
+        let s = "program p; var x:boolean; begin end." in TestCase $ (flip (assertEqual s)) (chk s) $ Right (),
         let s = "program p; var x:integer; begin x:=1 end." in TestCase $ (flip (assertEqual s)) (chk s) $ Right (),
         let s = "program p; var x:integer; function f(x:boolean):boolean; begin x:=true end; begin x:=1 end." in TestCase $ (flip (assertEqual s)) (chk s) $ Right (),
         let s = "program p; var x:integer; function f(x:boolean):boolean; begin x:=true end; function g(y:integer):boolean; begin y:=0 end; begin if f(g(x)) then x:=1 end." in TestCase $ (flip (assertEqual s)) (chk s) $ Right (),
@@ -446,10 +446,10 @@ sampleProgs = [
     "program p; var z:integer; procedure f(); var x:integer; begin x:=1; end; begin end.",
     "program p; var x:integer; function f(x:integer):integer; begin x:=1 end; begin x:=2 end.",
     "program p; var x:real; begin x:= 1 + 1/2 + 1.0/2 + 1*2.0; writeln(x) end.",
-    -- "program p; var x:boolean; begin x:= (1>2) or (3.14 > 2); writeln(x) end.",
-    -- "program p; var x:boolean; begin x:= (1>2) and (3.14 > 2); writeln(x) end.",
     "program p; var x:boolean; begin writeln(1 mod 5, -1 mod 5) end.",
-    "program p; var x:boolean; begin writeln(1 div 5, -1 div 5) end."]
+    "program p; var x:boolean; begin writeln(1 div 5, -1 div 5) end.",
+    "program p; var x:boolean; begin x:= (1>2) or (3.14 > 2); writeln(x) end.",
+    "program p; var x:boolean; begin x:= (1>2) and (3.14 > 2); writeln(x) end."]
 
 tCodegenSampleProg n =
         putStrLn "--------------------------------" >> 
