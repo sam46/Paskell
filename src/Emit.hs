@@ -102,7 +102,7 @@ genDeclFunc (IR.DeclFunc x args retty blk _) = do
     where 
         toSig xs = map (\(a,b,c) -> (toLLVMType (if c then G.TYptr b else b), name' a, if c then [Dereferenceable (typeSize b)] else [])) xs
         body = do
-            entry' <- addBlock (toShortBS $ x++".entry")
+            entry' <- addBlock "entry"
             setBlock entry'
             forM args $ \(i,t,byref) -> do
                 var <- alloca' $ toLLVMType $ if byref then G.TYptr t else t

@@ -69,7 +69,7 @@ define retty label argtys body = (addDefns bodydefs) >> addDefn (
   , basicBlocks = bls
   })
   where
-    (bodydefs, bodystate) = runStateCodegen body
+    (bodydefs, bodystate) = runStateCodegen body (label)
     bls = createBlocks $ bodystate
 
 external ::  Type -> ShortByteString -> [(Type, Name)] -> LLVM ()
@@ -181,7 +181,8 @@ type SymbolTable = [(ShortByteString, Operand)]
 
 data CodegenState
   = CodegenState {
-    currentBlock :: Name                     -- Name of the active block to append to
+    fnName       :: Name
+  , currentBlock :: Name                     -- Name of the active block to append to
   , blocks       :: Map.Map Name BlockState  -- Blocks for function
   , symtab       :: SymbolTable              -- Function scope symbol table
   , blockCount   :: Int                      -- Count of basic blocks
@@ -221,14 +222,17 @@ entryBlockName = "entry"
 emptyBlock :: Int -> BlockState
 emptyBlock i = BlockState i [] Nothing
 
-emptyCodegen :: CodegenState
-emptyCodegen = CodegenState (Name entryBlockName) Map.empty [] 1 0 Map.empty
+-- emptyCodegen :: CodegenState
+-- emptyCodegen = CodegenState (Name "block") (Name entryBlockName) Map.empty [] 1 0 Map.empty
 
-execCodegen :: Codegen a -> CodegenState
-execCodegen m = execState (runCodegen m) emptyCodegen
+emptyCodegen' :: ShortByteString -> CodegenState
+emptyCodegen' name = CodegenState (Name name) (Name entryBlockName) Map.empty [] 1 0 Map.empty
 
-runStateCodegen :: Codegen a -> (a, CodegenState)
-runStateCodegen m = runState (runCodegen m) emptyCodegen 
+-- execCodegen :: Codegen a -> CodegenState
+-- execCodegen m = execState (runCodegen m) emptyCodegen
+
+runStateCodegen :: Codegen a -> ShortByteString -> (a, CodegenState)
+runStateCodegen m name = runState (runCodegen m) (emptyCodegen' name) 
 
 -- increase instructions count. For unique names
 fresh :: Codegen Word
@@ -274,16 +278,19 @@ entry = gets currentBlock
 -- given block name
 addBlock :: ShortByteString -> Codegen Name
 addBlock bname = do
+  (Name fname) <- getFnName
   bls <- gets blocks
   ix <- gets blockCount
   nms <- gets names
   let new = emptyBlock ix
-      (qname, supply) = uniqueName bname nms
+      (qname, supply) = uniqueName (toShortBS $ (toString fname) ++ "." ++ (toString bname)) nms
   modify $ \s -> s { blocks = Map.insert (Name qname) new bls
                    , blockCount = ix + 1
                    , names = supply
                    }
   return (Name qname)
+  where toShortBS = toShort . BS.pack 
+        toString  = BS.unpack . fromShort
 
 setBlock :: Name -> Codegen Name
 setBlock bname = do
@@ -292,6 +299,9 @@ setBlock bname = do
 
 getBlock :: Codegen Name
 getBlock = gets currentBlock
+
+getFnName :: Codegen Name
+getFnName = gets fnName
 
 modifyBlock :: BlockState -> Codegen ()
 modifyBlock new = do
