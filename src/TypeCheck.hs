@@ -53,9 +53,9 @@ lookupFun (sigs, _, _) x =
     
 lookupType :: Env -> Type -> Either TyErr Type
 lookupType e@(_, _, contexts) (TYident x) = case (find (`typeInContext` x) contexts) of
-                    Nothing  -> Left $ UnkownType x
+                    Nothing  -> Left $ UnknownType x
                     Just ctx -> case lookup x ctx of
-                        Nothing  -> Left $ UnkownType x
+                        Nothing  -> Left $ UnknownType x
                         Just t   -> lookupType e t
 lookupType _ t = Right t
 
