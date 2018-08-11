@@ -24,6 +24,7 @@ data TyErr = NotInScope Ident
     | FuncRedecl Ident
     | VaraibleArgExpected Expr
     | TypeRedecl Ident
+    | UnknownType Ident 
     deriving (Show, Eq)
 
 
@@ -52,9 +53,9 @@ lookupFun (sigs, _, _) x =
     
 lookupType :: Env -> Type -> Either TyErr Type
 lookupType e@(_, _, contexts) (TYident x) = case (find (`typeInContext` x) contexts) of
-                    Nothing  -> undefined --Left  $ NotInScope x
+                    Nothing  -> Left $ UnkownType x
                     Just ctx -> case lookup x ctx of
-                        Nothing  -> undefined -- Left  $ NotInScope x
+                        Nothing  -> Left $ UnkownType x
                         Just t   -> lookupType e t
 lookupType _ t = Right t
 
