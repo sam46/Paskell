@@ -57,9 +57,14 @@ toLLVMType t = case t of
 -- it's corrosponding Operand
 addParamAttr :: IR.Expr -> Operand -> (Operand, [ParameterAttribute])
 addParamAttr expr oper = let ty = IR.getType expr in 
-        case ty of 
-            G.TYptr _ -> (oper, [Dereferenceable 4])
-            _         -> (oper, []) 
+    case ty of 
+        G.TYptr t -> (oper, [Dereferenceable (typeSize t)])
+        _         -> (oper, []) 
+
+typeSize ty = case ty of
+    G.TYreal -> 8
+    G.TYint  -> 4 
+    _        -> 1
 
 isPtrPtr :: Operand -> Bool  -- checks for a double pointer
 isPtrPtr oper = case oper of 
@@ -95,9 +100,9 @@ genDeclFunc :: IR.Decl -> LLVM ()
 genDeclFunc (IR.DeclFunc x args retty blk _) = do
     define (toLLVMType retty) (toShortBS x) (toSig args) body
     where 
-        toSig xs = map (\(a,b,c) -> (toLLVMType (if c then G.TYptr b else b), name' a, if c then [Dereferenceable 4] else [])) xs
+        toSig xs = map (\(a,b,c) -> (toLLVMType (if c then G.TYptr b else b), name' a, if c then [Dereferenceable (typeSize b)] else [])) xs
         body = do
-            entry' <- addBlock (toShortBS "entry")
+            entry' <- addBlock (toShortBS $ x++".entry")
             setBlock entry'
             forM args $ \(i,t,byref) -> do
                 var <- alloca' $ toLLVMType $ if byref then G.TYptr t else t
@@ -252,7 +257,8 @@ genStatement (IR.ProcCall f xs t) = do
 
 genStatement (IR.StatementWrite xs' _) = do
     (args, defs) <- mapM genExpr xs >>= (return.unzip)
-    call (externf printfTy (name' "printf")) (zipWith addParamAttr xs args)
+    -- error $ show $ (zipWith addParamAttr xs args)
+    callNoCast (externf printfTy (name' "printf")) (zipWith addParamAttr xs args)
     return $ concat defs
     where fstr = (foldr (++) "" (map (formatstr. IR.getType) xs')) ++ "\00"
           xs = (IR.FactorStr fstr G.TYstr) : xs' -- add printf format string to arguments
@@ -357,6 +363,7 @@ genExpr (IR.FuncCall f xs t) = do
     oper <- call (externf fnty (name' f)) (zipWith addParamAttr xs args)
     return (oper, concat defs)
     where fnty = toLLVMfnType (toLLVMType t) (map (toLLVMType . IR.getType) xs)
+        -- error $ (show $ map IR.getType xs)
           
 genExpr (IR.FactorDesig (IR.Designator x _ xt) dt) =
     (getvar (toShortBS x) (toLLVMType xt)) 

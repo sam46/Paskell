@@ -140,9 +140,11 @@ convStatement env (ProcCall f args) =
     IR.ProcCall f args''' Void
     where   (_, sig) = lookupFun env f
             args''   = map (convExpr env) args -- convert to type annotaed IR args
-            args'''  = map liftType (zip args'' sig) -- lift PassByRef args types to pointers 
-            liftType (expr, (ty,cbr)) = if not cbr then expr
-                else let IR.FactorDesig x factty = expr
+            args'''  = map liftType (zip args'' sig) -- lift PassByRef args types to pointers, and typecast int to real when necessary
+            liftType (expr, (ty,pbr)) = 
+                let expr' = if ty == TYreal then expr {IR.getType = TYreal} else expr
+                in if not pbr then expr'
+                else let IR.FactorDesig x factty = expr'
                      in  IR.FactorDesig x (TYptr factty) 
 
 convDesignator :: Env -> Designator -> IR.Designator
@@ -165,11 +167,14 @@ convExpr env (FuncCall f args) =
                 TYstr  -> FactorStr ""
                 TYbool -> FactorFalse
                 TYreal -> FactorReal 0.0
+                TYchar -> FactorChar '\00'
             args'    = dummyarg : args  -- add dummy arg
             args''   = map (convExpr env) args' -- convert to type annotaed IR args
-            args'''  = map liftType (zip args'' sig) -- lift PassByRef args types to pointers 
-            liftType (expr, (ty,cbr)) = if not cbr then expr
-                else let IR.FactorDesig x factty = expr
+            args'''  = map liftType (zip args'' sig) -- lift PassByRef args types to pointers, and typecast int to real when necessary
+            liftType (expr, (ty,pbr)) = 
+                let expr' = if ty == TYreal then expr {IR.getType = TYreal} else expr
+                in if not pbr then expr'
+                else let IR.FactorDesig x factty = expr'
                      in  IR.FactorDesig x (TYptr factty) 
 
 convExpr env (FactorDesig des) = let 
