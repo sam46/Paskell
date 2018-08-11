@@ -69,7 +69,7 @@ define retty label argtys body = (addDefns bodydefs) >> addDefn (
   , basicBlocks = bls
   })
   where
-    (bodydefs, bodystate) = runStateCodegen body
+    (bodydefs, bodystate) = runStateCodegen body (label)
     bls = createBlocks $ bodystate
 
 external ::  Type -> ShortByteString -> [(Type, Name)] -> LLVM ()
@@ -181,7 +181,8 @@ type SymbolTable = [(ShortByteString, Operand)]
 
 data CodegenState
   = CodegenState {
-    currentBlock :: Name                     -- Name of the active block to append to
+    fnName       :: Name
+  , currentBlock :: Name                     -- Name of the active block to append to
   , blocks       :: Map.Map Name BlockState  -- Blocks for function
   , symtab       :: SymbolTable              -- Function scope symbol table
   , blockCount   :: Int                      -- Count of basic blocks
@@ -221,14 +222,17 @@ entryBlockName = "entry"
 emptyBlock :: Int -> BlockState
 emptyBlock i = BlockState i [] Nothing
 
-emptyCodegen :: CodegenState
-emptyCodegen = CodegenState (Name entryBlockName) Map.empty [] 1 0 Map.empty
+-- emptyCodegen :: CodegenState
+-- emptyCodegen = CodegenState (Name "block") (Name entryBlockName) Map.empty [] 1 0 Map.empty
 
-execCodegen :: Codegen a -> CodegenState
-execCodegen m = execState (runCodegen m) emptyCodegen
+emptyCodegen' :: ShortByteString -> CodegenState
+emptyCodegen' name = CodegenState (Name name) (Name entryBlockName) Map.empty [] 1 0 Map.empty
 
-runStateCodegen :: Codegen a -> (a, CodegenState)
-runStateCodegen m = runState (runCodegen m) emptyCodegen 
+-- execCodegen :: Codegen a -> CodegenState
+-- execCodegen m = execState (runCodegen m) emptyCodegen
+
+runStateCodegen :: Codegen a -> ShortByteString -> (a, CodegenState)
+runStateCodegen m name = runState (runCodegen m) (emptyCodegen' name) 
 
 -- increase instructions count. For unique names
 fresh :: Codegen Word
@@ -274,16 +278,19 @@ entry = gets currentBlock
 -- given block name
 addBlock :: ShortByteString -> Codegen Name
 addBlock bname = do
+  (Name fname) <- getFnName
   bls <- gets blocks
   ix <- gets blockCount
   nms <- gets names
   let new = emptyBlock ix
-      (qname, supply) = uniqueName bname nms
+      (qname, supply) = uniqueName (toShortBS $ (toString fname) ++ "." ++ (toString bname)) nms
   modify $ \s -> s { blocks = Map.insert (Name qname) new bls
                    , blockCount = ix + 1
                    , names = supply
                    }
   return (Name qname)
+  where toShortBS = toShort . BS.pack 
+        toString  = BS.unpack . fromShort
 
 setBlock :: Name -> Codegen Name
 setBlock bname = do
@@ -292,6 +299,9 @@ setBlock bname = do
 
 getBlock :: Codegen Name
 getBlock = gets currentBlock
+
+getFnName :: Codegen Name
+getFnName = gets fnName
 
 modifyBlock :: BlockState -> Codegen ()
 modifyBlock new = do
@@ -388,11 +398,24 @@ imod a b = instr int $ SRem a b []
 
 -- Effects
 call :: Operand -> [(Operand, [A.ParameterAttribute])] -> Codegen Operand
-call fn args = instr float $ Call Nothing CC.C [] (Right fn) args [] []
+call fn args = do  -- figure out the signature, and typecast args as necessary
+  let (opers, attrs) = unzip args
+      ts = extractParams fn
+  tcastOpers <- mapM tycast (zip ts opers)
+  -- error $ show tcastOpers
+  instr (extractFnRetType fn) $ Call Nothing CC.C [] (Right fn) (zip tcastOpers attrs) [] []
+
+callNoCast :: Operand -> [(Operand, [A.ParameterAttribute])] -> Codegen Operand
+callNoCast fn args = instr (extractFnRetType fn) $ Call Nothing CC.C [] (Right fn) args [] []
 
 -- UnNamed instruction Call. Used when return type is void
 call' :: Operand -> [(Operand, [A.ParameterAttribute])] -> Codegen ()
-call' fn args = unnminstr $ Call Nothing CC.C [] (Right fn) args [] []
+call' fn args = do -- figure out the signature, and typecast args as necessary
+  let (opers, attrs) = unzip args
+      ts = extractParams fn
+  tcastOpers <- mapM tycast (zip ts opers)
+  unnminstr $ Call Nothing CC.C [] (Right fn) (zip tcastOpers attrs) [] []
+  -- unnminstr $ Call Nothing CC.C [] (Right fn) args [] []
 
 alloca :: Type -> Codegen Operand
 alloca ty = instr ty $ Alloca ty Nothing 0 []
@@ -403,18 +426,10 @@ alloca' ty  = instr (PointerType ty (AddrSpace 0)) $ Alloca ty Nothing 0 []
 
 store :: Operand -> Operand -> Codegen ()
 store ptr val = 
-  if (isFloat ptr) &&  (isIntVal $ val) 
-  then (sitofp double val) >>=
-      \val' -> unnminstr $ Store False ptr val' Nothing 0 []
-  else unnminstr $ Store False ptr val Nothing 0 []
-  where isFloat x = case x of
-          (LocalReference (FloatingPointType _) _) -> True
-          (ConstantOperand (C.GlobalReference (PointerType (FloatingPointType _) _) _) ) -> True
-          _ -> False
-        isIntVal x = case x of
-            LocalReference (IntegerType _) _ -> True
-            ConstantOperand (C.Int _ _) -> True
-            _ -> False
+  if (isFloat' ptr) && (isIntVal $ val) 
+  then (sitofp double val) >>=    -- typecast int to real
+       \val' -> unnminstr $ Store False ptr val' Nothing 0 []
+  else unnminstr $ Store False ptr val Nothing 0 [] 
 
 load :: Type -> Operand -> Codegen Operand
 load ty ptr = instr ty $ Load False ptr Nothing 0 []
@@ -434,3 +449,33 @@ ret val = terminator $ Do $ Ret (Just val) []
 
 retvoid :: Codegen (Named Terminator)
 retvoid = terminator $ Do $ Ret Nothing []
+
+-------------------------------------------------------------------------------
+-- Helpers used for typecasting stuff
+-------------------------------------------------------------------------------
+
+isIntVal x = case x of
+  LocalReference (IntegerType _) _ -> True
+  ConstantOperand (C.Int _ _) -> True
+  _ -> False
+
+isFloat x = case x of
+  (FloatingPointType _) -> True
+  (PointerType (FloatingPointType _) _) -> True
+  _ -> False
+
+isFloat' x = case x of
+  (LocalReference (FloatingPointType _) _) -> True
+  (ConstantOperand (C.GlobalReference (PointerType (FloatingPointType _) _) _) ) -> True
+  _ -> False
+
+tycast (dst, oper) = 
+  if (isFloat dst) && (isIntVal oper)
+  then sitofp double oper    -- typecast int to real
+  else return oper 
+
+extractParams (ConstantOperand (C.GlobalReference fn _)) = 
+  case fn of (PointerType (FunctionType _ ts _) _) -> ts
+
+extractFnRetType (ConstantOperand (C.GlobalReference fn _)) =
+  case fn of (PointerType (FunctionType t _ _) _) -> t

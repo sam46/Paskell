@@ -192,14 +192,14 @@ tparseTerm = do
         "true",
         "x",
         "true and x",
-        "\"hello\"",
-        "\"hello\" * \"123\"",
+        "'hello'",
+        "'hello' * '123'",
         "true and false ",
-        "true mod \"hello\"",
+        "true mod 'hello'",
         -- follwing cases will succeed by only consuming some of the input
         "true abcd",
         "true + false",
-        "\"hello\" \"123\"",
+        "'hello' '123'",
         "true false",
         "true *"]
     testParser parseTerm False [
@@ -211,18 +211,18 @@ tparseTerm = do
         -- ]
 
 --     mapM (\s -> putStrLn $ s ++ " :\n" ++ show (p' parseString s)) [
---         "\"\"",
---         "\" \" ",
---         "\"abc\" ",
---         "\" ab \" ",
---         "\" \\\\abc\" ",
---         "\" \ \nabc\" ",
---         "\" \\xyz\" ",
---         "\" \\\\ \" ",
---         "\"\\ab\\\\c\" " ]
+--         "''",
+--         "' ' ",
+--         "'abc' ",
+--         "' ab ' ",
+--         "' \\\\abc' ",
+--         "' \ \nabc' ",
+--         "' \\xyz' ",
+--         "' \\\\ ' ",
+--         "'\\ab\\\\c' " ]
     
 --     -- testParser parseString False [
---     --     "\" \\abc\" ",
+--     --     "' \\abc' ",
 --     -- ]
 
 tparseSimpleExpr = undefined
@@ -315,7 +315,7 @@ tgettype = runTestTT $ TestList [
     let s = "x := (1 < 2)"         in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool)]], []))                               $ Right ([], [[("x", TYbool)]], []),              
     let s = "x := (1 < 2.3)"       in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool)]], []))                               $ Right ([], [[("x", TYbool)]], []),            
     let s = "x := (true > false)"  in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool)]], []))                               $ Right ([], [[("x", TYbool)]], []),                           
-    let s = "x := (\"a\" = \"b\")" in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool)]], []))                               $ Right ([], [[("x", TYbool)]], []),  
+    let s = "x := ('a' = 'b')" in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool)]], []))                               $ Right ([], [[("x", TYbool)]], []),  
     let s = "x := true or (1 < 2)" in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool)]], []))                               $ Right ([], [[("x", TYbool)]], []),      
     let s = "x := True or y"       in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool), ("y", TYbool)]], []))                $ Right ([], [[("x", TYbool), ("y", TYbool)]], []),                                                    
     let s = "x := (1 < y) or z"    in TestCase $ (flip (assertEqual s)) (typechkStr s ([], [[("x", TYbool), ("z", TYbool), ("y", TYreal)]], [])) $ Right ([], [[("x", TYbool), ("z", TYbool), ("y", TYreal)]], [])   ]
@@ -419,14 +419,14 @@ sampleProgs = [
     "program p;function foo (var x:integer; y:real):integer; begin x := 1; y := 2.5 end;"
     ++ "function bar(z:integer) : integer; begin if foo(z, 3.14) > 2 then; bar := z end;"
     ++ "begin writeln(bar(99)) end.", 
-    "program fib; function fib(n:integer):integer; begin if n < 2 then fib := 1 else fib := fib(n-1)+fib(n-2) end; begin writeln(\"fib 5 = \", fib(5)) end.",
-    "program fib; function fib(n:integer):integer; begin if n < 2 then fib := 1 else fib := fib(n-1)+fib(n-2) end; procedure p(n:integer); begin writeln(\"fib = \", fib(n)) end; begin p(1); p(5); p(10) end.",
+    "program fib; function fib(n:integer):integer; begin if n < 2 then fib := 1 else fib := fib(n-1)+fib(n-2) end; begin writeln('fib 5 = ', fib(5)) end.",
+    "program fib; function fib(n:integer):integer; begin if n < 2 then fib := 1 else fib := fib(n-1)+fib(n-2) end; procedure p(n:integer); begin writeln('fib = ', fib(n)) end; begin p(1); p(5); p(10) end.",
     "program fib; var i : integer;function fib(n : integer) : integer; begin if n < 2 then fib := 1 else fib := fib(n-1) + fib(n-2) end; "
-    ++ "procedure p(n:integer); begin writeln(\"fib = \", fib(n)) end; begin for i:= 0 to 10 do p(i) end.",
-    "program p; begin write(\"hello world\") end.",
-    "program p; var x:integer; begin write(\"hello world\") end.",
-    "program p; var s:string; begin write(\"hello world\") end.",
-    "program p; function f():integer; var s:string; begin s:= \"ok\" end; begin end.",
+    ++ "procedure p(n:integer); begin writeln('fib = ', fib(n)) end; begin for i:= 0 to 10 do p(i) end.",
+    "program p; begin write('hello world') end.",
+    "program p; var x:integer; begin write('hello world') end.",
+    "program p; var s:string; begin write('hello world') end.",
+    "program p; function f():integer; var s:string; begin s:= 'ok' end; begin end.",
     "program p; function f():integer; begin f:=2 end; begin end.",
     "program p; var x:integer; function f():integer; begin f:=2 end; begin x:=f() end.",
     "program p; function f1 (a:integer; b:boolean) : integer; begin end; begin end.",
@@ -442,12 +442,26 @@ sampleProgs = [
     "program p; function f():integer; var x,y:integer; begin for x:=0 to 10 do y:=1 end; begin end.",
     "program p; function f():integer; var x,y:integer; begin for x:=10 downto 0 do y:=1 end; begin end.",
     "program p; function f():integer; var x:integer; begin x:=1; while x>1 do x:=2 end; begin end.",
+    "program p; var x: char; begin x:='a'; x:='b'; if true then writeln(x); if true then writeln(x); end.",
     "program p; var z:integer; procedure f(); var x:integer; begin x:=1; end; begin end.",
-    "program p; var x:integer; function f(x:integer):integer; begin x:=1 end; begin x:=2 end."]
+    "program p; var x:integer; function f(x:integer):integer; begin x:=1 end; begin x:=2 end.",
+    "program p; var x:real; begin x:= 1 + 1/2 + 1.0/2 + 1*2.0; writeln(x) end.",
+    -- "program p; var x:boolean; begin x:= (1>2) or (3.14 > 2); writeln(x) end.",
+    -- "program p; var x:boolean; begin x:= (1>2) and (3.14 > 2); writeln(x) end.",
+    "program p; var x:boolean; begin writeln(1 mod 5, -1 mod 5) end.",
+    "program p; var x:boolean; begin writeln(1 div 5, -1 div 5) end."]
 
-tCodegenSampleProg n = case (Conv.chkConvProgram' <$> sampleProgs) !! n 
-            of Right x -> (print $ sampleProgs !! n) >> tEmitProgram x
+tCodegenSampleProg n =
+        putStrLn "--------------------------------" >> 
+        (print $ sampleProgs !! n) >>
+        putStrLn "\n------------------" >>
+        case (Conv.chkConvProgram' <$> sampleProgs) !! n 
+            of Right x -> print x
+                          >> tEmitProgram x
                Left x  -> error $ x
+
+tCodegenSampleProgAll = forM_ [0..length sampleProgs -1] tCodegenSampleProg 
+    >> putStrLn "OK. All sample progs compiled"
 
 testAll = do
     tparseKeywords
