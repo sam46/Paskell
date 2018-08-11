@@ -393,6 +393,12 @@ idiv a b = instr int $ SDiv False a b []
 imod :: Operand -> Operand -> Codegen Operand
 imod a b = instr int $ SRem a b []  
 
+band :: Operand -> Operand -> Codegen Operand
+band a b = instr (IntegerType 1) $ And a b []  
+
+bor :: Operand -> Operand -> Codegen Operand
+bor a b = instr (IntegerType 1) $ Or a b []  
+
 -- toArgs :: [Operand] -> [(Operand, [A.ParameterAttribute])]
 -- toArgs = map (\x -> (x, []))
 
