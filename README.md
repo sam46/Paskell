@@ -86,9 +86,12 @@ This is a 4-pass compiler:
 
 **pass 1**: lex/parsing  
 **pass 2**: type checking  
-**pass 3**: Constructing IR: type-annotation, type resolution, (future: identifier-renaming, nested-function extraction)  
-**pass 4**: code gen  
+**pass 3**: constructing IR: type-annotation, type resolution, (future: identifier-renaming, nested-function extraction)  
+**pass 4**: code generation  
   
+### Contributions:    
+Bug reports, added features, etc are welcome  
+
 ### References
 - [Language grammar](http://courses.washington.edu/css448/zander/Project/grammar.pdf)
 - Stephen Diehl's Haskell [llvm-tutorial](http://www.stephendiehl.com/llvm/)
