@@ -1,6 +1,5 @@
 # Paskell
 A (reduced) Pascal compiler in Haskell that compiles to LLVM  
-Work in Progress, mostly finished!  
 
 ### Features:   
 - Declarations: var, type (aliases)
