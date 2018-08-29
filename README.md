@@ -49,8 +49,9 @@ Example:
 ### Building the compiler from source:
 You need to have llvm installed
 ```
-> sudo apt-get install llvm
+> sudo apt-get install llvm-5.0
 ```
+`lli` should be in $PATH to be able to execute Pascal programs
 
 Then, you can use Cabal or Stack.  
 To build using Cabal:
