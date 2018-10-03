@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Tests where
+module Main where
 
 import Text.Parsec
 import Text.Parsec.String
@@ -491,10 +491,12 @@ testFiles = do
 
 compileFile path = do
     e <- parseFromFile parseProgram path
-    case e of Left errP -> print errP 
+    case e of Left errP -> print errP
               Right ast -> case typechkProgram ast of
                                 Left  errTC -> print errTC
                                 Right _     -> E.printllvm ast >>= putStrLn
 -- foo path = do
 --     x <- compileFile path
 --     case x
+
+main = testAll
