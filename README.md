@@ -1,5 +1,6 @@
 # Paskell
-A (reduced) Pascal compiler in Haskell that compiles to LLVM  
+[![Build Status](https://travis-ci.org/sam46/Paskell.svg?branch=master)](https://travis-ci.org/sam46/Paskell)
+A (reduced) Pascal compiler in Haskell that compiles to LLVM
 
 ### Features:   
 - Declarations: var, type (aliases)
