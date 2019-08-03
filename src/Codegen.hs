@@ -15,7 +15,7 @@ import qualified Data.Map as Map
 
 import Control.Applicative
 import Control.Monad.State
-
+import Control.Monad.Fail (fail, MonadFail)
 import LLVM.AST
 import LLVM.AST.Typed (typeOf)
 import LLVM.AST.AddrSpace
@@ -36,6 +36,9 @@ import qualified Data.ByteString.Char8 as BS
 
 import Data.Char (ord)
 
+instance MonadFail Codegen where
+    fail = error
+
 -------------------------------------------------------------------------------
 -- Module Level
 -------------------------------------------------------------------------------
@@ -46,8 +49,12 @@ newtype LLVM a = LLVM (State AST.Module a)
 runLLVM :: AST.Module -> LLVM a -> AST.Module
 runLLVM mod (LLVM m) = execState m mod
 
-emptyModule :: ShortByteString -> AST.Module
+emptyModule :: ShortByteString ->  AST.Module
 emptyModule label = defaultModule { moduleName = label }
+
+-- | Include file path
+emptyModulePath :: ShortByteString -> ShortByteString ->  AST.Module
+emptyModulePath label path = defaultModule { moduleName = label, moduleSourceFileName = path }
 
 addDefns :: [Definition] -> LLVM ()
 addDefns ds = do
@@ -160,6 +167,12 @@ str = PointerType (IntegerType 8) (AddrSpace 0)
 
 charArrType :: Int -> Type
 charArrType len = ArrayType (fromIntegral $ len) (IntegerType 8)
+
+intArrType :: Int -> Type
+intArrType len = ArrayType (fromIntegral $ len) (IntegerType 32)
+
+realArrType :: Int -> Type
+realArrType len = ArrayType (fromIntegral $ len) double
 
 -------------------------------------------------------------------------------
 -- Names
@@ -323,7 +336,7 @@ current = do
 assign :: ShortByteString -> Operand -> Codegen ()
 assign var x = do
   lcls <- gets symtab
-  modify $ \s -> s { symtab = [(var, x)] ++ lcls }
+  modify $ \s -> s { symtab = (var, x) : lcls }
 
 getvar :: ShortByteString -> Type -> Codegen Operand
 getvar var ty = do
@@ -349,16 +362,16 @@ externf ty nm = ConstantOperand (C.GlobalReference ty nm)
 
 -- Arithmetic and Constants
 fadd :: Operand -> Operand -> Codegen Operand
-fadd a b = instr float $ FAdd NoFastMathFlags a b []
+fadd a b = instr float $ FAdd noFastMathFlags a b []
 
 fsub :: Operand -> Operand -> Codegen Operand
-fsub a b = instr float $ FSub NoFastMathFlags a b []
+fsub a b = instr float $ FSub noFastMathFlags a b []
 
 fmul :: Operand -> Operand -> Codegen Operand
-fmul a b = instr float $ FMul NoFastMathFlags a b []
+fmul a b = instr float $ FMul noFastMathFlags a b []
 
 fdiv :: Operand -> Operand -> Codegen Operand
-fdiv a b = instr float $ FDiv NoFastMathFlags a b []
+fdiv a b = instr float $ FDiv noFastMathFlags a b []
 
 fcmp :: FP.FloatingPointPredicate -> Operand -> Operand -> Codegen Operand
 fcmp cond a b = instr float $ FCmp cond a b []
@@ -406,7 +419,7 @@ bor a b = instr (IntegerType 1) $ Or a b []
 call :: Operand -> [(Operand, [A.ParameterAttribute])] -> Codegen Operand
 call fn args = do  -- figure out the signature, and typecast args as necessary
   let (opers, attrs) = unzip args
-      ts = extractParams fn
+  let ts = extractParams fn
   tcastOpers <- mapM tycast (zip ts opers)
   -- error $ show tcastOpers
   instr (extractFnRetType fn) $ Call Nothing CC.C [] (Right fn) (zip tcastOpers attrs) [] []
@@ -418,7 +431,7 @@ callNoCast fn args = instr (extractFnRetType fn) $ Call Nothing CC.C [] (Right f
 call' :: Operand -> [(Operand, [A.ParameterAttribute])] -> Codegen ()
 call' fn args = do -- figure out the signature, and typecast args as necessary
   let (opers, attrs) = unzip args
-      ts = extractParams fn
+  let ts = extractParams fn
   tcastOpers <- mapM tycast (zip ts opers)
   unnminstr $ Call Nothing CC.C [] (Right fn) (zip tcastOpers attrs) [] []
   -- unnminstr $ Call Nothing CC.C [] (Right fn) args [] []

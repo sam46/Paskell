@@ -494,7 +494,7 @@ compileFile path = do
     case e of Left errP -> print errP
               Right ast -> case typechkProgram ast of
                                 Left  errTC -> print errTC
-                                Right _     -> E.printllvm ast >>= putStrLn
+                                Right _     -> E.printllvm ast (E.toShortBS path) >>= putStrLn
 -- foo path = do
 --     x <- compileFile path
 --     case x

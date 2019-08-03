@@ -22,7 +22,8 @@ import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.Float as F
 import qualified LLVM.AST.IntegerPredicate as IP
 import qualified LLVM.AST.FloatingPointPredicate as FP
-
+import LLVM.Analysis
+import LLVM.Internal.PassManager
 import LLVM.AST.Global
 import LLVM.Context
 import LLVM.Module
@@ -81,15 +82,26 @@ liftError = runExceptT >=> either fail return
 -- LLVM-IR and LLVM-AST given IR
 codegen :: AST.Module -> IR.Program -> IO (AST.Module, String)
 codegen mod pr = withContext $ \context ->
-    liftIO $ withModuleFromAST context newast $ \m -> 
-    do llstr <- moduleLLVMAssembly m
-       return (newast, BS.unpack llstr)
-    where newast = runLLVM mod (genProgram pr)
-
+    liftIO $ withModuleFromAST context newast $ \m -> do
+        -- Optimization passes => Segmentation Fault :/
+        {-
+        withPassManager passes $ \pm -> do
+            verify m
+            runPassManager pm m
+        -}
+        llstr <- moduleLLVMAssembly m
+        return (newast, BS.unpack llstr)
+    where 
+        newast = runLLVM mod (genProgram pr)
+        {-
+        passes :: PassSetSpec
+        passes = defaultCuratedPassSetSpec { optLevel = Just 1 }
+        -}
+        
 -- LLVM-IR given parse tree
-printllvm :: G.Program -> IO String
-printllvm ast = let ir = Conv.convProgram ast in
-    do (llvmast, llstr) <- codegen (emptyModule "MainModule") ir
+printllvm :: G.Program -> ShortByteString -> IO String
+printllvm ast path = let ir = Conv.convProgram ast in
+    do (llvmast, llstr) <- codegen (emptyModulePath "MainModule" path) ir
        return llstr
 
 -------------------------------------------------------------------------------

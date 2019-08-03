@@ -7,11 +7,12 @@ import Data.Char
 import Utils (p')
 
 comments :: Parser ()
-comments = spaces -- todo change to actual comment parser
+comments = return ()  -- todo change to actual comment parser
 
 whitespace :: Parser ()
-whitespace = spaces >> comments 
+whitespace = spaces >> comments
 
+-- Case insensitive
 charIgnoreCase :: Char -> Parser Char
 charIgnoreCase c = char (toUpper c) <|> char (toLower c)
 
@@ -42,6 +43,9 @@ stringTok = tok . string -- Doesn't parse exact words! e.g. parse (stringTok "ab
 
 betweenCharTok :: Char -> Char -> Parser a -> Parser a
 betweenCharTok c1 c2 p = between (charTok c1) (charTok c2) p
+
+betweenStringTok :: String -> String -> Parser a -> Parser a
+betweenStringTok s1 s2 p = between (stringTok s1) (stringTok s2) p
 
 betweenSepbyComma :: Char -> Char -> Parser a -> Parser [a]
 betweenSepbyComma c1 c2 p = betweenCharTok c1 c2 $

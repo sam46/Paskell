@@ -9,16 +9,17 @@ import ExtraParsers
 import KeywordParse
 import Utils (p')
 
-
+-- | Parse Identifier
 parseIdent :: Parser Ident
 parseIdent = tok . try $ do
     x  <- letter
     xs <- many alphaNum
     let ident = x:xs
     if (toLower <$> ident) `elem` keywords 
-    then fail ("Expecting identifier but found keyword " ++ ident)
+    then fail ("parseIdent: Expecting identifier but found keyword \'" ++ ident ++ "\'")
     else return ident
 
+-- | Parse Type
 parseType :: Parser Type
 parseType = tok $ 
     (TYident <$> parseIdent)                 <|>
@@ -27,18 +28,23 @@ parseType = tok $
     (TYreal  <$  stringIgnoreCase "real")    <|>
     (TYchar  <$  stringIgnoreCase "char")    <|>
     (TYstr   <$  stringIgnoreCase "string")
+    -- TYarr
+    -- TYptr
 
+-- | Parse Identifier List
 parseIdentList :: Parser IdentList
 parseIdentList = sepBy1 parseIdent commaTok
 
+-- | Parse Variable Declaration
 parseDeclVar :: Parser Decl -- var a,b : char; c,d : integer;
-parseDeclVar = DeclVar <$>( (parseKWvar <?> "expecting keyword 'var'") >>
+parseDeclVar = DeclVar <$> ( (parseKWvar <?> "expecting keyword 'var'") >>
     ((concat <$> (many1 $ try  -- todo try separating many1 into initial parse and then many for better error messages
         (do {xs <- parseIdentList; charTok ':';
              t <- parseType; semicolTok; 
              return $ zip xs (repeat t)})
      )) <?> "Missing or incorrect variable declaration"))
 
+-- | Parse Type Declaration
 parseDeclType :: Parser Decl
 parseDeclType = DeclType <$> ((parseKWtype <?> "expecting keyword 'type'") >> 
     ((concat <$> (many1 $ try  -- todo try separating many1 into initial parse and then many for better error messages
@@ -48,18 +54,21 @@ parseDeclType = DeclType <$> ((parseKWtype <?> "expecting keyword 'type'") >>
      )) <?> "Missing or incorrect type declaration"))
 
 parseConstDecl :: Parser [ConstDecl]
-parseConstDecl = undefined -- todo
+parseConstDecl = error $ "parseConstDecl" -- todo
 
+-- | Parse Program definition
 parseProgram :: Parser Program
 parseProgram = between parseKWprogram (charTok '.') 
-    (do prog <- parseIdent
-        semicolTok
-        blok <- parseBlock
-        return $ Program prog blok)
+    (do prog <- parseIdent  -- program name
+        semicolTok          -- semicolon ;
+        block <- parseBlock -- statement block
+        return $ Program prog block)
 
+-- | Parse Block (Declarations ++ Statements)
 parseBlock :: Parser Block
 parseBlock = Block <$> many parseDecl <*> parseStmntSeq
 
+-- | Parse Declaration
 parseDecl :: Parser Decl
 parseDecl = 
     (parseDeclType) <|>
@@ -113,6 +122,7 @@ parseTerm = (try $ Mult <$>
         parseFactor <*> parseOPmult <*> parseTerm)
     <|> parseFactor
 
+-- | Parse Factors
 parseFactor :: Parser Expr
 parseFactor = 
         (parseKWnil >> return FactorNil)
@@ -126,6 +136,7 @@ parseFactor =
     <|> (try parseFuncCall)
     <|> (FactorDesig <$> parseDesignator)
 
+-- | Parse Block of Statements (begin stmt_block end)
 parseStmntSeq :: Parser Statement -- non-empty
 parseStmntSeq = parseKWbegin 
     >>  (sepBy1 parseStatement semicolTok)
@@ -133,15 +144,16 @@ parseStmntSeq = parseKWbegin
     >>= \_     -> return $ StatementSeq stmts
 
 parseStatement :: Parser Statement 
-parseStatement = choice [parseStmntSeq,
-    (try parseAssignment), 
-    (try parseProcCall),
-    parseIf, parseFor,
-   
-    parseWhile, parseStmntWriteLn,
-    parseStmntWrite, 
-    pure StatementEmpty]
+parseStatement = choice [parseStmntSeq,         -- statements block
+    (try parseAssignment),                      -- assignment
+    (try parseProcCall),                        -- procedure call
+    parseIf, parseFor,                          -- if, for
+    -- parseCase, parseStmtNew, parseStmtDispose,  -- case, new, dispose
+    parseWhile, parseStmntWriteLn,              -- while, writeln
+    parseStmntWrite,                            -- write
+    pure StatementEmpty]                        -- emptyStmtBlock
 
+-- | Parse If expr then stmt1 (else stmt2)?
 parseIf :: Parser Statement
 parseIf = do 
     expr  <- between parseKWif parseKWthen parseExpr 
@@ -149,12 +161,15 @@ parseIf = do
     mstmt <- optionMaybe $ parseKWelse >> parseStatement
     return $ StatementIf expr stmt mstmt
 
+-- | Parse Case of
 parseCase :: Parser Statement
-parseCase = undefined
+parseCase = error $ "parseCase"
 
+-- | Parse Repeat loop
 parseRepeat :: Parser Statement
-parseRepeat = undefined
+parseRepeat = error $ "parseRepeat"
 
+-- | Parse While loop
 parseWhile :: Parser Statement
 parseWhile = do
     parseKWwhile
@@ -163,6 +178,7 @@ parseWhile = do
     s <- parseStatement
     return $ StatementWhile ex s
 
+-- | Parse For loop
 parseFor :: Parser Statement
 parseFor = do
     parseKWfor
@@ -175,24 +191,32 @@ parseFor = do
     stmt  <- parseStatement
     return $ StatementFor x expr direc expr2 stmt
 
+-- | Parse New
 parseStmtNew :: Parser Statement
-parseStmtNew = undefined
+parseStmtNew = do
+    parseKWnew
+    error $ "parseStmtNew"
 
+-- | Parse Dispose
 parseStmtDispose :: Parser Statement
-parseStmtDispose = undefined
+parseStmtDispose = do
+    parseKWdispose
+    error $ "parseStmtDispose"
 
+-- | Parse Assignment
 parseAssignment :: Parser Statement
 parseAssignment = parseDesignator >>= \x -> stringTok ":="
     >>= \_     -> parseExpr
     >>= \expr  -> return $ Assignment x expr
 
+-- | Parse a procedure call
 parseProcCall :: Parser Statement
 parseProcCall = ProcCall <$> parseIdent 
     <*> ((betweenCharTok '(' ')' parseExprList) 
          <|> pure [])
 
-parseStmntMem :: Parser Statement
-parseStmntMem = undefined
+parseStmtMem :: Parser Statement
+parseStmtMem = error $ "parseStmtMem"
 
 parseStmntWrite :: Parser Statement
 parseStmntWrite = StatementWrite <$> (parseKWwrite >>
@@ -202,10 +226,12 @@ parseStmntWriteLn :: Parser Statement
 parseStmntWriteLn = StatementWriteLn <$> (parseKWwriteln >>
     ((betweenCharTok '(' ')' parseExprList)))
 
+-- | Parse a function call
 parseFuncCall :: Parser Expr
 parseFuncCall = FuncCall <$> parseIdent 
     <*> ((betweenCharTok '(' ')' parseExprList))
 
+-- | Parse a numeric value integer or double
 parseNumber :: Parser Expr
 parseNumber = tok $ do
     pre  <- many1 digit
@@ -215,23 +241,25 @@ parseNumber = tok $ do
             then FactorReal $ read xs
             else FactorInt  $ read xs
 
+-- | Parse a string between double quotes
 parseString :: Parser String
 parseString = between (char '\'') (charTok '\'') $ many $
     (noneOf ['\\', '\'']) <|>
     ((char '\\') >> anyChar >>= \c -> case toSpecialChar c 
     of Just x  -> return (fromSpecialChar x)
-       Nothing -> if c == 'u' then undefined  -- todo hex
+       Nothing -> if c == 'u' then error $ "parseString: Undefined"  -- todo hex
                   else unexpected ("char in string" ++ [c]))
 
+-- | Parse a character between single quotes
 parseChar :: Parser Char
 parseChar = between (char '\'') (charTok '\'') $
     (noneOf ['\\', '\'']) <|>
     ((char '\\') >> anyChar >>= \c -> case toSpecialChar c 
     of Just x  -> return (fromSpecialChar x)
-       Nothing -> if c == 'u' then undefined  -- todo hex
+       Nothing -> if c == 'u' then error $ "parseChar: Undefined"  -- todo hex
                   else unexpected ("char literal" ++ [c]))
 
--- parseSubprogDeclList
+-- | Parse a procedure declaration
 parseDeclProc :: Parser Decl 
 parseDeclProc = do
     parseKWprocedure
@@ -242,6 +270,7 @@ parseDeclProc = do
     semicolTok
     return $ DeclProc f params blk
 
+-- | Parse a function declaration
 parseDeclFunc :: Parser Decl
 parseDeclFunc = do
     parseKWfunction
@@ -254,10 +283,13 @@ parseDeclFunc = do
     semicolTok
     return $ DeclFunc f params rtype blk
 
+-- | Parse formal parameters [(name, type, byReference)]
 parseFormalParams :: Parser [(Ident,Type,Bool)]
 parseFormalParams = (concatMap id) <$>
     (betweenCharTok '(' ')' $ sepBy parseFormalParam semicolTok)
 
+-- var x,y,z : int => [(x, int, True), (y, int, True), (z, int, True)]
+-- x,y,z : int => [(x, int, False), (y, int, False), (z, int, False)]
 parseFormalParam :: Parser [(Ident,Type,Bool)]
 parseFormalParam = do
     mvar <- (/= Nothing) <$> (optionMaybe parseKWvar)

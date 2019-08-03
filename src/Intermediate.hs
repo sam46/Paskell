@@ -10,14 +10,17 @@ import Prelude hiding (showList)
 data Program = Program Ident Block Type deriving (Eq)
 data Block = Block [Decl] Statement Type deriving (Eq)
 
-data Decl = DeclVar [VarDecl] Type
+data Decl 
+    = DeclVar [VarDecl] Type
     | DeclType [TypeDecl]  Type
     | DeclConst [ConstDecl]  Type
     | DeclFunc Ident [(Ident,Type,CallByRef)] Type Block Type
     deriving (Eq)
+
 data ConstDecl = ConstDecl Type deriving (Show, Eq) -- todo 
 
-data Statement = StatementSeq [Statement] Type
+data Statement 
+    = StatementSeq [Statement] Type
     | Assignment Designator Expr Type
     | ProcCall Ident ExprList Type
     | StatementIf Expr Statement (Maybe Statement) Type
@@ -35,14 +38,15 @@ data Statement = StatementSeq [Statement] Type
 
 data Designator = Designator Ident [DesigProp] Type deriving (Eq)
 data DesigList = DesigList [Designator] Type deriving (Show, Eq)
-data DesigProp = DesigPropIdent Ident  Type
+data DesigProp 
+    = DesigPropIdent Ident  Type
     | DesigPropExprList ExprList  Type
     | DesigPropPtr  Type
     deriving (Show, Eq)
 
 type ExprList = [Expr]
-data Expr = 
-    Relation {getOperand :: Expr, getOP :: OP, getOperand' :: Expr, getType :: Type}
+data Expr
+    = Relation {getOperand :: Expr, getOP :: OP, getOperand' :: Expr, getType :: Type}
     | Unary {getOP :: OP, getOperand :: Expr, getType :: Type}
     | Mult {getOperand :: Expr, getOP :: OP, getOperand' :: Expr, getType :: Type}
     | Add {getOperand :: Expr, getOP :: OP, getOperand' :: Expr, getType :: Type}
@@ -111,8 +115,6 @@ pshowSt n (ProcCall f exs _) = (tab n) ++ f
 pshowSt n (StatementWrite exs _) = (tab n) ++ 
     "Write(" ++ (if length exs == 0 then "" else showListSep exs) ++"):"
 pshowSt n _ = (tab n) ++ "??" ++ ";\n"
-
-
 
 instance Show Expr where
     show x = pshowEx 0 x

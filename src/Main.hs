@@ -63,7 +63,7 @@ processCompile path dest = do
     case e of Left errP -> print errP 
               Right ast -> case T.typechkProgram ast of
                                 Left  errTC -> print errTC
-                                Right _ -> E.printllvm ast >>= 
+                                Right _ -> E.printllvm ast (E.toShortBS path) >>= 
                                                 if dest /= ""
                                                 then writeFile dest
                                                 else putStrLn
@@ -73,7 +73,7 @@ processExec path = do
     e <- P.parsePascalFile path
     case e of Left errP -> print errP 
               Right ast -> case T.typechkProgram ast of
-                                Right _     -> E.printllvm ast >>= execLLVM
+                                Right _     -> E.printllvm ast (E.toShortBS path) >>= execLLVM
                                 Left errTC  -> print errTC
       
 execLLVM :: String -> IO ()
@@ -82,7 +82,7 @@ execLLVM llvm = do
     putStr res
     if length stderr > 0 
         then putStr $ stderr ++ "\n" ++ (show excode)  
-        else putStr ""                                      
+        else putStr ""
 
 main :: IO ()
 main = do

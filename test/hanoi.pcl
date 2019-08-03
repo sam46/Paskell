@@ -1,0 +1,29 @@
+program solve;
+  var numberOfRings : integer;
+
+  procedure hanoi (var source, target, auxiliary : array of char; rings : integer);
+
+    procedure move (var source, target : array of char);
+    begin
+      writeString("Move from");
+      writeString(source);
+      writeString(" to ");
+      writeString(target);
+      writeString(".\n")
+    end;
+  
+  begin
+    if rings >= 1 then
+    begin
+      hanoi(source,auxiliary,target,rings-1);
+      move(source,target);
+      hanoi(auxiliary,target,source,rings-1)
+    end
+  end;
+
+begin
+  writeString("numberOfRings: ");
+  numberOfRings := readInteger();
+  writeString("Solution:\n\n");
+  hanoi("left", "right", "middle", numberOfRings)
+end.

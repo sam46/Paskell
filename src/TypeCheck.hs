@@ -13,7 +13,9 @@ type Sig = [(Ident, (Type, [(Type,CallByRef)]))]
 type Context = [(Ident, Type)]
 type TContext = [(Ident, Type)]
 
-data TyErr = NotInScope Ident
+-- | Errors
+data TyErr 
+    = NotInScope Ident
     | TypeMismatch Type Type 
     | TypeMismatchOrd Type
     | TypeMismatchNum Type
@@ -27,25 +29,28 @@ data TyErr = NotInScope Ident
     | UnknownType Ident 
     deriving (Show, Eq)
 
-
+-- | Returns True if Variable is in Context. False otherwise
 varInContext :: Context -> Ident -> Bool
 varInContext ctx x = case (lookup x ctx) of 
     Nothing -> False
     Just _  -> True
 
+-- | Returns True if identifier has known type in Context. False otherwise
 typeInContext :: TContext -> Ident -> Bool
 typeInContext tctx x = case (lookup x tctx) of 
     Nothing -> False
     Just _  -> True
-    
-lookupVar   :: Env -> Ident -> Either TyErr Type
+
+-- | Lookup Variable in all Contexts
+lookupVar :: Env -> Ident -> Either TyErr Type
 lookupVar (_, contexts, _) x = case (find (`varInContext` x) contexts) of
                     Nothing  -> Left  $ NotInScope x
                     Just ctx -> case lookup x ctx of
                         Nothing  -> Left  $ NotInScope x
                         Just t   -> Right t
 
-lookupFun   :: Env -> Ident -> Either TyErr (Type, [(Type,CallByRef)])
+-- | Lookup Function in Context
+lookupFun :: Env -> Ident -> Either TyErr (Type, [(Type,CallByRef)])
 lookupFun (sigs, _, _) x = 
     case lookup x sigs of
         Nothing -> Left $ NotInScope x
@@ -61,22 +66,27 @@ lookupType _ t = Right t
 
 -- eqType env t1 t2 = (lookupType env t1) == (lookupType env t2)
 
+-- | Appends a new block in the Environment
 newBlock  :: Env -> Env
 newBlock (sig, ctx, tctx) = (sig, [] : ctx, [] : tctx)
 
+-- | Initial Empty Environment
 emptyEnv  :: Env
 emptyEnv = ([], [], [])
 
+-- | Get Function Signature
 getSig :: Decl -> (Ident, (Type, [(Type,CallByRef)]))
 getSig (DeclFunc x args t _) = (x, (t, map (\(_,b,c) -> (b,c)) args))
 
 -- updateVar :: Env -> Ident -> Type -> Either TyErr Env
 
+-- | Add Variable in Context. If its already in Context returns error
 addVar :: Env -> Ident -> Type -> Either TyErr Env
 addVar (sig, (c:cs), tctx) x t = if varInContext c x
     then Left $ VarRedecl x
     else Right $ (sig, ((x,t):c) : cs, tctx)
 
+-- | Add Function in Environment. Error if it is already declared
 addFunc :: Env -> (Ident, (Type, [(Type,CallByRef)])) -> Either TyErr Env
 addFunc (sigs, ctx, tctx) (x, rest) = 
     case lookup x sigs of
@@ -98,7 +108,7 @@ addType env x t = error $ (show env) ++ (show x) ++ (show t)
 isNum = (`elem` [TYint, TYreal])
 
 typechkProgram :: Program -> Either TyErr ()
-typechkProgram (Program _ b) = typechkBlock (newBlock emptyEnv) b >> return () 
+typechkProgram (Program _ b) = typechkBlock (newBlock emptyEnv) b >> return ()
 
 typechkBlock :: Env -> Block -> Either TyErr Env
 typechkBlock env (Block ds s) = 
@@ -258,17 +268,17 @@ gettype env (Add x1 op x2)
     where [t1, t2] = (gettype env) <$> [x1, x2]
 
 gettype env (Mult x1 op x2)
-    | op == OPstar =
+    | op == OPstar =    -- *
         t1 >>= \v1 -> t2 >>= \v2 ->
             if not (isNum v1 && isNum v2)
             then Left $ TypeMismatchNum (if isNum v1 then v1 else v2)
             else if v1 == TYreal then t1 else t2
-    | op == OPdiv =
+    | op == OPdiv =     -- /
         t1 >>= \v1 -> t2 >>= \v2 ->
             if not (isNum v1 && isNum v2)
             then Left $ TypeMismatchNum (if isNum v1 then v1 else v2)
             else Right TYreal
-    | op `elem` [OPmod, OPidiv] =
+    | op `elem` [OPmod, OPidiv] =   -- mod, div
         t1 >>= \v1 -> t2 >>= \v2 ->
             if not (v1 == TYint && v2 == TYint)
             then Left $ TypeMismatch TYint (if v1 == TYint then v1 else v2)

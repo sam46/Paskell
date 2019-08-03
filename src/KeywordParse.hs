@@ -10,14 +10,53 @@ import ExtraParsers
 import Utils (p')
 
 -- make sure keywords are lower-cased
-keywords = ["and","downto","if","or",
-    "then","array","else","in","packed",
-    "to","begin","end","label","procedure",
-    "type","case","file","mod","program","until",
-    "const","for","nil","record","var", "writeln",
-    "div","function","not","repeat","while",
-    "do","goto","of","set","with", "write",
-    "boolean", "integer", "char", "string", "real"]
+keywords = [
+    -- a
+    "and", "array",
+    -- b
+    "boolean", "begin",
+    -- c
+    "char", "case", "const",
+    -- d
+    "do", "downto", "div", "dispose",
+    -- e
+    "else", "end", 
+    -- f
+    "for", "function", "file",
+    -- g
+    "goto",
+    -- h
+    -- i
+    "if", "integer", "in",
+    -- j
+    -- k
+    -- l
+    "label", 
+    -- m
+    "mod",
+    -- n
+    "not", "nil", "new",
+    -- o
+    "or", "of",
+    -- p
+    "program", "procedure", "packed",
+    -- q
+    -- r
+    "real", "repeat", "record",
+    -- s
+    "string", "set",
+    -- t
+    "to", "type", "then",
+    -- u
+    "until", 
+    -- v
+    "var", 
+    -- w
+    "write", "writeln", "with", "while"
+    -- x
+    -- y
+    -- z
+    ]
 special  = [":=","+","-","*","/","=",
     "<",">","<>","<=",">=","(",")","[",
     "]",",",".",";",":","..","^"]
@@ -46,54 +85,89 @@ fromSpecialChar Backslash = '\\'
 
 toSpecialChar :: Char -> Maybe SpecialChar
 toSpecialChar c =  snd <$> find ((==) c . fst) table
-    where table = [('b', BackSpace), ('"' , DoubleQuote),
-            ('f', FormFeed), ('n', NewLine), ('t', Tab),
-            ('r', CarriageReturn), ('\\', Backslash),
-            ('v', VerticalTab), ('\'', SingleQuote)]
-
-----------------------------------------------------
-
+    where table = [
+            ('b',  BackSpace), 
+            ('"',  DoubleQuote),
+            ('f',  FormFeed),
+            ('n',  NewLine),
+            ('t',  Tab),
+            ('r',  CarriageReturn),
+            ('\\', Backslash),
+            ('v',  VerticalTab),
+            ('\'', SingleQuote)]
+    
+    ----------------------------------------------------
+    
 parseReserved :: String -> Reserved -> Parser Reserved
 parseReserved kw ctor = exactTok kw >> return ctor
+
+-- a
 parseKWand       = parseReserved "and" KWand
-parseKWdownto    = parseReserved "downto" KWdownto
-parseKWif        = parseReserved "if" KWif
-parseKWor        = parseReserved "or" KWor
-parseKWthen      = parseReserved "then" KWthen
 parseKWarray     = parseReserved "array" KWarray
-parseKWelse      = parseReserved "else" KWelse
-parseKWin        = parseReserved "in" KWin
-parseKWpacked    = parseReserved "packed" KWpacked
-parseKWto        = parseReserved "to" KWto
+-- b
 parseKWbegin     = parseReserved "begin" KWbegin
-parseKWend       = parseReserved "end" KWend
-parseKWlabel     = parseReserved "label" KWlabel
-parseKWprocedure = parseReserved "procedure" KWprocedure
-parseKWtype      = parseReserved "type" KWtype
-parseKWcase      = parseReserved "case" KWcase
-parseKWfile      = parseReserved "file" KWfile
-parseKWmod       = parseReserved "mod" KWmod
-parseKWprogram   = parseReserved "program" KWprogram
-parseKWuntil     = parseReserved "until" KWuntil
-parseKWconst     = parseReserved "const" KWconst
-parseKWfor       = parseReserved "for" KWfor
-parseKWnil       = parseReserved "nil" KWnil
-parseKWrecord    = parseReserved "record" KWrecord
-parseKWvar       = parseReserved "var" KWvar
-parseKWdiv       = parseReserved "div" KWdiv
-parseKWfunction  = parseReserved "function" KWfunction
-parseKWnot       = parseReserved "not" KWnot
-parseKWrepeat    = parseReserved "repeat" KWrepeat
-parseKWwhile     = parseReserved "while" KWwhile
-parseKWdo        = parseReserved "do" KWdo
-parseKWgoto      = parseReserved "goto" KWgoto
-parseKWof        = parseReserved "of" KWof
-parseKWset       = parseReserved "set" KWset
-parseKWwith      = parseReserved "with" KWwith
 parseKWboolean   = parseReserved "boolean" KWboolean
-parseKWstring    = parseReserved "string" KWstring
+-- c
+parseKWcase      = parseReserved "case" KWcase
 parseKWchar      = parseReserved "char" KWchar
+parseKWconst     = parseReserved "const" KWconst
+-- d
+parseKWdiv       = parseReserved "div" KWdiv
+parseKWdispose   = parseReserved "dispose" KWdispose
+parseKWdownto    = parseReserved "downto" KWdownto
+parseKWdo        = parseReserved "do" KWdo
+-- e
+parseKWelse      = parseReserved "else" KWelse
+parseKWend       = parseReserved "end" KWend
+-- f
+parseKWfile      = parseReserved "file" KWfile
+parseKWfor       = parseReserved "for" KWfor
+parseKWfunction  = parseReserved "function" KWfunction
+-- g
+parseKWgoto      = parseReserved "goto" KWgoto
+-- h
+-- i
+parseKWif        = parseReserved "if" KWif
+parseKWin        = parseReserved "in" KWin
 parseKWinteger   = parseReserved "integer" KWinteger
+-- j
+-- k
+-- l
+parseKWlabel     = parseReserved "label" KWlabel
+-- m
+parseKWmod       = parseReserved "mod" KWmod
+-- n
+parseKWnew       = parseReserved "new" KWnew
+parseKWnil       = parseReserved "nil" KWnil
+parseKWnot       = parseReserved "not" KWnot
+-- o
+parseKWof        = parseReserved "of" KWof
+parseKWor        = parseReserved "or" KWor
+-- p
+parseKWpacked    = parseReserved "packed" KWpacked
+parseKWprocedure = parseReserved "procedure" KWprocedure
+parseKWprogram   = parseReserved "program" KWprogram
+-- q
+-- r
 parseKWreal      = parseReserved "real" KWreal
+parseKWrepeat    = parseReserved "repeat" KWrepeat
+parseKWrecord    = parseReserved "record" KWrecord
+-- s
+parseKWset       = parseReserved "set" KWset
+parseKWstring    = parseReserved "string" KWstring
+-- t
+parseKWto        = parseReserved "to" KWto
+parseKWtype      = parseReserved "type" KWtype
+parseKWthen      = parseReserved "then" KWthen
+-- u
+parseKWuntil     = parseReserved "until" KWuntil
+-- v
+parseKWvar       = parseReserved "var" KWvar
+-- w
+parseKWwhile     = parseReserved "while" KWwhile
+parseKWwith      = parseReserved "with" KWwith
 parseKWwrite     = parseReserved "write" KWreal
 parseKWwriteln   = parseReserved "writeln" KWreal
+-- x
+-- y
+-- z

@@ -10,17 +10,18 @@ data Reserved = KWand | KWdownto | KWif | KWor | KWthen
     | KWfile | KWmod | KWprogram | KWuntil | KWconst
     | KWfor | KWnil | KWrecord | KWvar | KWdiv | KWfunction
     | KWnot | KWrepeat | KWwhile | KWdo | KWgoto | KWof
-    | KWset | KWwith | KWboolean | KWreal | KWinteger
-    | KWstring | KWchar deriving (Show, Eq)
+    | KWset | KWwith | KWboolean | KWreal | KWinteger | KWdispose
+    | KWstring | KWchar | KWnew deriving (Show, Eq)
 
 data OP = OPplus | OPminus | OPstar | OPdiv | OPidiv | OPmod
     | OPand | OPeq | OPneq | OPless | OPgreater | OPle | OPge
     | OPin | OPor deriving (Eq)
 
 data Type = TYident Ident | TYbool
-    | TYint | TYreal | TYchar |TYstr 
-    | TYptr Type | Void 
+    | TYint | TYreal | TYchar | TYstr 
+    | TYptr Type | TYarr Int Type | Void
     deriving (Show, Eq, Ord)
+
 type Ident = String 
 type IdentList = [Ident]
 
@@ -30,15 +31,19 @@ data Block = Block [Decl] Statement deriving (Show, Eq)
 type VarDecl = (Ident, Type) -- var a,b:char; 
 type TypeDecl = (Ident, Type) -- var a,b:char; 
 type CallByRef = Bool
-data Decl = DeclVar [VarDecl] 
+
+data Decl 
+    = DeclVar [VarDecl] 
     | DeclType [TypeDecl] 
     | DeclConst [ConstDecl] 
     | DeclProc  Ident [(Ident,Type,CallByRef)] Block
     | DeclFunc Ident [(Ident,Type,CallByRef)] Type Block 
     deriving (Show, Eq)
+
 data ConstDecl = ConstDecl deriving (Show, Eq) -- todo 
 
-data Statement = StatementSeq [Statement] 
+data Statement 
+    = StatementSeq [Statement] 
     | Assignment Designator Expr
     | ProcCall Ident ExprList
     | StatementIf Expr Statement (Maybe Statement)
@@ -54,17 +59,22 @@ data Statement = StatementSeq [Statement]
     | StatementWrite ExprList
     | StatementWriteLn ExprList 
     deriving (Show, Eq) 
+
 type ToDownTo = Bool
 
 data Designator = Designator Ident [DesigProp] deriving (Show, Eq)
+
 data DesigList = DesigList [Designator] deriving (Show, Eq)
+
 data DesigProp = DesigPropIdent Ident 
     | DesigPropExprList ExprList 
     | DesigPropPtr 
     deriving (Show, Eq)
 
 type ExprList = [Expr]
-data Expr = Relation Expr OP Expr
+
+data Expr 
+    = Relation Expr OP Expr
     | Unary OP Expr
     | Mult Expr OP Expr
     | Add Expr OP Expr
