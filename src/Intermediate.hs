@@ -36,7 +36,11 @@ data Statement
     | StatementWrite ExprList Type
     deriving (Eq) 
 
-data Designator = Designator Ident [DesigProp] Type deriving (Eq)
+data Designator 
+    = Designator Ident [DesigProp] Type
+    | DesignatorArr Ident Expr Type
+    deriving (Eq)
+
 data DesigList = DesigList [Designator] Type deriving (Show, Eq)
 data DesigProp 
     = DesigPropIdent Ident  Type

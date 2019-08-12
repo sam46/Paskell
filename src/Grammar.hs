@@ -19,7 +19,7 @@ data OP = OPplus | OPminus | OPstar | OPdiv | OPidiv | OPmod
 
 data Type = TYident Ident | TYbool
     | TYint | TYreal | TYchar | TYstr 
-    | TYptr Type | TYarr Int Type | Void
+    | TYptr Type | TYarr (Maybe Int) Type | Void
     deriving (Show, Eq, Ord)
 
 type Ident = String 
@@ -48,16 +48,17 @@ data Statement
     | ProcCall Ident ExprList
     | StatementIf Expr Statement (Maybe Statement)
     | StatementCase
-    | StatementWhile Expr Statement
+    | StatementWhile Expr Statement                     -- "while" <expr> "do" <stmt> 
     | StatementRepeat Statement Expr
     | StatementFor Ident Expr ToDownTo Expr Statement
-    | StatementNew Ident
-    | StatementDispose Ident
+    | StatementNew Ident (Maybe Expr)                   -- "new" [ "[" <expr> "]" ] <l-value>
+    | StatementDispose Ident Bool
     | StatementEmpty
     | StatmentRead DesigList
     | StatementReadLn DesigList
-    | StatementWrite ExprList
-    | StatementWriteLn ExprList 
+    | StatementWrite ExprList                           -- "goto" <id> 
+    | StatementWriteLn ExprList
+    | StatementGoTo Ident 
     deriving (Show, Eq) 
 
 type ToDownTo = Bool
@@ -66,9 +67,11 @@ data Designator = Designator Ident [DesigProp] deriving (Show, Eq)
 
 data DesigList = DesigList [Designator] deriving (Show, Eq)
 
-data DesigProp = DesigPropIdent Ident 
+data DesigProp 
+    = DesigPropIdent Ident 
     | DesigPropExprList ExprList 
-    | DesigPropPtr 
+    | DesigPropPtr
+    | DesigPropArr Expr
     deriving (Show, Eq)
 
 type ExprList = [Expr]

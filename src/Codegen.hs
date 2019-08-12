@@ -98,7 +98,7 @@ gvar' ty name  =
     { name = name
     , G.type' = ty
     , linkage = L.Weak
-    , initializer = Just $ C.Null ty
+    , initializer = Nothing
     }
 
 gstrVal :: Name -> String -> LLVM ()
@@ -109,7 +109,7 @@ gstrVal' :: Name -> String -> Definition
 gstrVal' name val =    
   GlobalDefinition globalVariableDefaults
     { name = name
-    , G.type' = charArrType (length val)
+    , G.type' = arrType (length val) char
     , linkage = L.Private
     , unnamedAddr = Just GlobalAddr
     , isConstant = True
@@ -125,13 +125,17 @@ printf = GlobalDefinition $ functionDefaults
   }
 
 printfTy :: Type
-printfTy = PointerType {pointerReferent  = (FunctionType int [str] True), 
-                        pointerAddrSpace = AddrSpace 0}
+printfTy = PointerType {
+  pointerReferent  = (FunctionType int [str] True), 
+  pointerAddrSpace = AddrSpace 0
+  }
 
 -- construct function type given ret type and signature
 toLLVMfnType :: Type -> [Type] -> Type
-toLLVMfnType t ts = PointerType {pointerReferent  = (FunctionType t ts False), 
-                        pointerAddrSpace = AddrSpace 0}
+toLLVMfnType t ts = PointerType {
+  pointerReferent  = (FunctionType t ts False), 
+  pointerAddrSpace = AddrSpace 0
+  }
 
 fnPtr :: Name -> LLVM Type
 fnPtr nm = findType <$> gets moduleDefinitions
@@ -139,40 +143,40 @@ fnPtr nm = findType <$> gets moduleDefinitions
     findType defs =
       case fnDefByName of
         []   -> error $ "Undefined function: " ++ show nm
-        [fn] -> PointerType (typeOf fn) (AddrSpace 0)
+        [fn] -> ptr (typeOf fn)
         _    -> error $ "Ambiguous function name: " ++ show nm
       where
         globalDefs  = [g | GlobalDefinition g <- defs]
         fnDefByName = [f | f@(Function { name = nm' }) <- globalDefs, nm' == nm]
 
 ---------------------------------------------------------------------------------
--- Types
+-- Types (https://hackage.haskell.org/package/llvm-hs-pure-8.0.0/docs/src/LLVM.AST.Type.html#Type)
 -------------------------------------------------------------------------------
 
 -- IEEE 754 double
+
+-- | An abbreviation for 'FloatingPointType' 'DoubleFP'
 double :: Type
 double = FloatingPointType DoubleFP
 
+-- | An abbreviation for 'VoidType'
 void :: Type
-void = AST.VoidType
+void = VoidType
 
 int :: Type
-int = IntegerType 32
+int = i32
 
 bool :: Type
-bool = IntegerType 1
+bool = i1
+
+char :: Type
+char = i8
 
 str :: Type
-str = PointerType (IntegerType 8) (AddrSpace 0)
+str = ptr i8
 
-charArrType :: Int -> Type
-charArrType len = ArrayType (fromIntegral $ len) (IntegerType 8)
-
-intArrType :: Int -> Type
-intArrType len = ArrayType (fromIntegral $ len) (IntegerType 32)
-
-realArrType :: Int -> Type
-realArrType len = ArrayType (fromIntegral $ len) double
+arrType :: Int -> Type -> Type
+arrType len ty = ArrayType (fromIntegral $ len) ty
 
 -------------------------------------------------------------------------------
 -- Names
@@ -267,7 +271,7 @@ instr ty ins = do
   blk <- current
   let i = stack blk
   modifyBlock (blk { stack = (ref := ins) : i } ) -- add named instruction to current block's stack
-  return $ local ty ref
+  return $ local ({-ptr-} ty) ref
 
 unnminstr :: Instruction -> Codegen ()
 unnminstr ins = do
@@ -347,7 +351,7 @@ getvar var ty = do
       -- error $ "unkown variable" ++ show var
 
 getGvar :: ShortByteString -> Type -> Operand
-getGvar var ty = ConstantOperand $ global (PointerType ty (AddrSpace 0)) (Name var)
+getGvar var ty = ConstantOperand $ global ({-ptr-} ty) (Name var)
 
 -------------------------------------------------------------------------------
 
@@ -358,7 +362,7 @@ global :: Type -> Name -> C.Constant
 global = C.GlobalReference
 
 externf :: Type -> Name -> Operand 
-externf ty nm = ConstantOperand (C.GlobalReference ty nm)
+externf ty nm = ConstantOperand (global ty nm)
 
 -- Arithmetic and Constants
 fadd :: Operand -> Operand -> Codegen Operand
@@ -407,10 +411,10 @@ imod :: Operand -> Operand -> Codegen Operand
 imod a b = instr int $ SRem a b []  
 
 band :: Operand -> Operand -> Codegen Operand
-band a b = instr (IntegerType 1) $ And a b []  
+band a b = instr bool $ And a b []  
 
 bor :: Operand -> Operand -> Codegen Operand
-bor a b = instr (IntegerType 1) $ Or a b []  
+bor a b = instr bool $ Or a b []  
 
 -- toArgs :: [Operand] -> [(Operand, [A.ParameterAttribute])]
 -- toArgs = map (\x -> (x, []))
@@ -441,17 +445,17 @@ alloca ty = instr ty $ Alloca ty Nothing 0 []
 
 -- same as alloca but returns a pointer to given data type (*ty)
 alloca' :: Type -> Codegen Operand
-alloca' ty  = instr (PointerType ty (AddrSpace 0)) $ Alloca ty Nothing 0 []
+alloca' ty = instr ty $ Alloca (ptr ty) Nothing 0 []
 
 store :: Operand -> Operand -> Codegen ()
-store ptr val = 
-  if (isFloat' ptr) && (isIntVal $ val) 
+store ptrv val = 
+  if (isFloat' ptrv) && (isIntVal $ val) 
   then (sitofp double val) >>=    -- typecast int to real
-       \val' -> unnminstr $ Store False ptr val' Nothing 0 []
-  else unnminstr $ Store False ptr val Nothing 0 [] 
+       \val' -> unnminstr $ Store False ptrv val' Nothing 0 []
+  else unnminstr $ Store False ptrv val Nothing 0 [] 
 
 load :: Type -> Operand -> Codegen Operand
-load ty ptr = instr ty $ Load False ptr Nothing 0 []
+load ty ptrv = instr ty $ Load False ptrv Nothing 0 []
 
 -- Control Flow
 br :: Name -> Codegen (Named Terminator)
@@ -472,6 +476,12 @@ retvoid = terminator $ Do $ Ret Nothing []
 -------------------------------------------------------------------------------
 -- Helpers used for typecasting stuff
 -------------------------------------------------------------------------------
+
+zero :: Operand
+zero = cons $ C.Int 32 0
+
+getElementPtr :: Type -> Operand -> Codegen Operand
+getElementPtr ty op = instr ty $ GetElementPtr True op [zero, zero] []
 
 isIntVal x = case x of
   LocalReference (IntegerType _) _ -> True

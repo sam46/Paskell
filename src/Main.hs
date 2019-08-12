@@ -66,7 +66,7 @@ processCompile path dest = do
                                 Right _ -> E.printllvm ast (E.toShortBS path) >>= 
                                                 if dest /= ""
                                                 then writeFile dest
-                                                else putStrLn
+                                                else putStrLn       -- stdout
 
 processExec :: String -> IO ()
 processExec path = do

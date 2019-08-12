@@ -19,24 +19,34 @@ parseIdent = tok . try $ do
     then fail ("parseIdent: Expecting identifier but found keyword \'" ++ ident ++ "\'")
     else return ident
 
+-- | Parse array declaration
+parseArrayDecl :: Parser Type
+parseArrayDecl = tok . try $ do
+    exactTok "array"
+    mbsz <- optionMaybe $ betweenCharTok '[' ']' (many1 digit)
+    exactTok "of"
+    ty <- parseType
+    return $ TYarr (read <$> mbsz) ty
+
 -- | Parse Type
 parseType :: Parser Type
 parseType = tok $ 
-    (TYident <$> parseIdent)                 <|>
-    (TYbool  <$  stringIgnoreCase "boolean") <|>
-    (TYint   <$  stringIgnoreCase "integer") <|>
-    (TYreal  <$  stringIgnoreCase "real")    <|>
-    (TYchar  <$  stringIgnoreCase "char")    <|>
-    (TYstr   <$  stringIgnoreCase "string")
-    -- TYarr
-    -- TYptr
+    (TYident <$> parseIdent)                  <|>
+    (TYbool  <$  stringIgnoreCase "boolean")  <|>
+    (TYint   <$  stringIgnoreCase "integer")  <|>
+    (TYreal  <$  stringIgnoreCase "real")     <|>
+    (TYchar  <$  stringIgnoreCase "char")     <|>
+    (TYstr   <$  stringIgnoreCase "string")   <|>
+    parseArrayDecl
+
 
 -- | Parse Identifier List
 parseIdentList :: Parser IdentList
 parseIdentList = sepBy1 parseIdent commaTok
 
 -- | Parse Variable Declaration
-parseDeclVar :: Parser Decl -- var a,b : char; c,d : integer;
+-- | var a,b : char;
+parseDeclVar :: Parser Decl
 parseDeclVar = DeclVar <$> ( (parseKWvar <?> "expecting keyword 'var'") >>
     ((concat <$> (many1 $ try  -- todo try separating many1 into initial parse and then many for better error messages
         (do {xs <- parseIdentList; charTok ':';
@@ -54,11 +64,12 @@ parseDeclType = DeclType <$> ((parseKWtype <?> "expecting keyword 'type'") >>
      )) <?> "Missing or incorrect type declaration"))
 
 parseConstDecl :: Parser [ConstDecl]
-parseConstDecl = error $ "parseConstDecl" -- todo
+parseConstDecl 
+    = error $ "parseConstDecl" -- todo
 
 -- | Parse Program definition
 parseProgram :: Parser Program
-parseProgram = between parseKWprogram (charTok '.') 
+parseProgram = between parseKWprogram (charTok '.')     -- between 'program' and '.'
     (do prog <- parseIdent  -- program name
         semicolTok          -- semicolon ;
         block <- parseBlock -- statement block
@@ -66,15 +77,15 @@ parseProgram = between parseKWprogram (charTok '.')
 
 -- | Parse Block (Declarations ++ Statements)
 parseBlock :: Parser Block
-parseBlock = Block <$> many parseDecl <*> parseStmntSeq
+parseBlock = Block <$> many parseDecl <*> parseStmtSeq
 
 -- | Parse Declaration
 parseDecl :: Parser Decl
-parseDecl = 
-    (parseDeclType) <|>
-    (parseDeclVar)  <|>
-    (parseDeclFunc) <|>
-    (parseDeclProc) -- <|>
+parseDecl
+    =   (parseDeclType)     -- type declaration
+    <|> (parseDeclVar)      -- variable declaration
+    <|> (parseDeclFunc)     -- function declaration
+    <|> (parseDeclProc)     -- procedure declaration
     -- (DeclConst <$> parseDeclConst)
 
 makeOPparser :: [(String, OP)] -> Parser OP
@@ -137,20 +148,21 @@ parseFactor =
     <|> (FactorDesig <$> parseDesignator)
 
 -- | Parse Block of Statements (begin stmt_block end)
-parseStmntSeq :: Parser Statement -- non-empty
-parseStmntSeq = parseKWbegin 
+parseStmtSeq :: Parser Statement -- non-empty
+parseStmtSeq = parseKWbegin 
     >>  (sepBy1 parseStatement semicolTok)
     >>= \stmts -> parseKWend 
     >>= \_     -> return $ StatementSeq stmts
 
+-- | Parse a statement
 parseStatement :: Parser Statement 
-parseStatement = choice [parseStmntSeq,         -- statements block
+parseStatement = choice [parseStmtSeq,         -- statements block
     (try parseAssignment),                      -- assignment
     (try parseProcCall),                        -- procedure call
     parseIf, parseFor,                          -- if, for
     -- parseCase, parseStmtNew, parseStmtDispose,  -- case, new, dispose
-    parseWhile, parseStmntWriteLn,              -- while, writeln
-    parseStmntWrite,                            -- write
+    parseWhile, parseStmtWriteLn,              -- while, writeln
+    parseStmtWrite,                            -- write
     pure StatementEmpty]                        -- emptyStmtBlock
 
 -- | Parse If expr then stmt1 (else stmt2)?
@@ -192,18 +204,26 @@ parseFor = do
     return $ StatementFor x expr direc expr2 stmt
 
 -- | Parse New
+-- | "new" [ "[" <expr> "]" ] <l-value> 
 parseStmtNew :: Parser Statement
 parseStmtNew = do
     parseKWnew
-    error $ "parseStmtNew"
+    -- mbarraySize <- (Just $ try parseSimpleExpr) <|> (pure Nothing)
+    mbarraySizeExpr <- optionMaybe $ (try parseSimpleExpr)
+    ident <- parseIdent
+    return $ StatementNew ident mbarraySizeExpr
 
 -- | Parse Dispose
+-- | "dispose" [ "[" "]" ] <l-value>
 parseStmtDispose :: Parser Statement
 parseStmtDispose = do
     parseKWdispose
-    error $ "parseStmtDispose"
+    let isArray = True  -- todo: implement isArray.
+    ident <- parseIdent
+    return $ StatementDispose ident isArray
 
 -- | Parse Assignment
+-- | <l-value> ":=" <expr>
 parseAssignment :: Parser Statement
 parseAssignment = parseDesignator >>= \x -> stringTok ":="
     >>= \_     -> parseExpr
@@ -218,12 +238,12 @@ parseProcCall = ProcCall <$> parseIdent
 parseStmtMem :: Parser Statement
 parseStmtMem = error $ "parseStmtMem"
 
-parseStmntWrite :: Parser Statement
-parseStmntWrite = StatementWrite <$> (parseKWwrite >>
+parseStmtWrite :: Parser Statement
+parseStmtWrite = StatementWrite <$> (parseKWwrite >>
      ((betweenCharTok '(' ')' parseExprList)))
 
-parseStmntWriteLn :: Parser Statement
-parseStmntWriteLn = StatementWriteLn <$> (parseKWwriteln >>
+parseStmtWriteLn :: Parser Statement
+parseStmtWriteLn = StatementWriteLn <$> (parseKWwriteln >>
     ((betweenCharTok '(' ')' parseExprList)))
 
 -- | Parse a function call

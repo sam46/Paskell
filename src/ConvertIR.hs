@@ -69,9 +69,6 @@ addFunc (sigs, ctx, tctx) (x, rest) = case lookup x sigs of
 addType :: Env -> Ident -> Type -> Env
 addType (sig, ctx, (c:cs)) x t = (sig, ctx, ((x,t):c) : cs)
 
-isNum = (`elem` [TYint, TYreal])
-
-
 convProgram :: Program -> IR.Program
 convProgram (Program x b) = 
     IR.Program x (fst $ convBlock (newBlock emptyEnv) b) Void

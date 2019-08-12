@@ -15,6 +15,7 @@ import Utils (p')
 import Paskell as P
 
 import LLVM.AST
+import LLVM.AST.Type (ptr)
 import LLVM.AST.AddrSpace
 import LLVM.AST.Attribute (ParameterAttribute)
 import qualified LLVM.AST as AST
@@ -51,8 +52,15 @@ toLLVMType t = case t of
     G.Void    -> void
     G.TYstr   -> str
     G.TYchar  -> str
-    G.TYptr t -> PointerType (toLLVMType t) (AddrSpace 0)
-    _         -> error $ "TYident wasn't resolved. " ++ (show t)
+    G.TYptr t -> ptr $ toLLVMType t
+    G.TYarr (Just sz) ty
+        -> case ty of
+            G.TYint   -> arrType sz int
+            G.TYreal  -> arrType sz double
+            G.TYchar  -> arrType sz char
+            G.TYarr _ _ -> error $ "toLLVMType: 2D Array"
+    G.TYarr Nothing ty -> ptr $ toLLVMType ty
+    _         -> error $ "TYident wasn't resolved.\n" ++ (show t)
 
 -- add ParameterAtribute to an argument given the argument and 
 -- it's corrosponding Operand
@@ -64,8 +72,9 @@ addParamAttr expr oper = let ty = IR.getType expr in
 
 typeSize ty = case ty of
     G.TYreal -> 8
-    G.TYint  -> 4 
-    _        -> 1
+    G.TYint  -> 4
+    G.TYchar -> 1
+    _        -> 4
 
 isPtrPtr :: Operand -> Bool  -- checks for a double pointer
 isPtrPtr oper = case oper of 
@@ -97,7 +106,7 @@ codegen mod pr = withContext $ \context ->
         passes :: PassSetSpec
         passes = defaultCuratedPassSetSpec { optLevel = Just 1 }
         -}
-        
+
 -- LLVM-IR given parse tree
 printllvm :: G.Program -> ShortByteString -> IO String
 printllvm ast path = let ir = Conv.convProgram ast in
@@ -112,13 +121,20 @@ genDeclFunc :: IR.Decl -> LLVM ()
 genDeclFunc (IR.DeclFunc x args retty blk _) = do
     define (toLLVMType retty) (toShortBS x) (toSig args) body
     where 
-        toSig xs = map (\(a,b,c) -> (toLLVMType (if c then G.TYptr b else b), name' a, if c then [Dereferenceable (typeSize b)] else [])) xs
+        toSig xs = map (\(a,b,c) -> (toLLVMType (if c 
+                                                    then G.TYptr b 
+                                                    else b), 
+                                                name' a, 
+                                                if c 
+                                                    then [Dereferenceable (typeSize b)] 
+                                                    else [])) xs
         body = do
             entry' <- addBlock "entry"
             setBlock entry'
             forM args $ \(i,t,byref) -> do
-                var <- alloca' $ toLLVMType $ if byref then G.TYptr t else t
-                store var (local (toLLVMType t) (name' i))
+                let ty = toLLVMType $ if byref then G.TYptr t else t
+                var <- alloca ty
+                store var (local (ty) (name' i))
                 assign (toShortBS i) var
             defs <- genBlock blk
             -- return dummy variable value for functions, or void for procedures 
@@ -132,7 +148,8 @@ genDeclFunc (IR.DeclFunc x args retty blk _) = do
 genDeclVar :: IR.Decl -> Codegen ()
 genDeclVar (IR.DeclVar xs _) = do
     forM xs $ \(i,t) -> do
-        var <- alloca (toLLVMType t)
+        var <- alloca' ({- ptr $ -} toLLVMType $ t)
+        -- var <- alloca (toLLVMType $ t)
         assign (toShortBS i) var
     return ()
 
@@ -149,7 +166,7 @@ genDeclVarGlob (IR.DeclVar xs _) = do
 
 -- generate entry point main()
 genMain :: IR.Statement -> LLVM ()
-genMain s = genDeclFunc (IR.DeclFunc "main" args G.TYint (IR.Block [] s G.Void) G.Void) 
+genMain s = genDeclFunc (IR.DeclFunc "main" args (G.TYint) (IR.Block [] s G.Void) G.Void) 
     where args = [("main", G.TYint, False)] -- dummy return value variable
 
 genProgram :: IR.Program -> LLVM ()
@@ -172,12 +189,13 @@ genStatement (IR.StatementEmpty) = return []
 genStatement (IR.StatementSeq xs _) = (forM xs genStatement) >>= (return.concat)
 genStatement (IR.Assignment (IR.Designator x _ xt) expr _) = do
     (rhs, defs) <- genExpr expr
-    var <- getvar (toShortBS x) (toLLVMType xt)  -- var is a pointer
+    let ty = toLLVMType xt
+    var <- getvar (toShortBS x) ty  -- var is a pointer
     if not (isPtrPtr var)    
         then store var rhs -- store value at memory referred to by pointer
         else do            -- if var is a pointer to pointer, this means we have something like *x = 123 and we should derference the pointer first
-                ptr <- load (toLLVMType G.Void) var
-                store ptr rhs     
+                ptrv <- load ({- ptr -}void) var
+                store ptrv rhs
     return defs
 
 genStatement (IR.StatementIf expr s1 ms2 _) = do 
@@ -242,7 +260,7 @@ genStatement (IR.StatementFor x expr1 todownto expr2 s _) = do
 
 
 genStatement (IR.StatementWhile expr s _) = do
-    wtest  <- addBlock "while.test"
+    wtest <- addBlock "while.test"
     wbody <- addBlock "while.body"
     wexit <- addBlock "while.exit"
     br wtest
@@ -275,6 +293,7 @@ genStatement (IR.StatementWrite xs' _) = do
     where fstr = (foldr (++) "" (map (formatstr. IR.getType) xs')) ++ "\00"
           xs = (IR.FactorStr fstr G.TYstr) : xs' -- add printf format string to arguments
 
+-- | printf format specifiers
 formatstr :: G.Type -> String
 formatstr G.TYint  = "%d"
 formatstr G.TYstr  = "%s"
@@ -293,13 +312,15 @@ genExpr (IR.FactorReal x _) = return (cons $ C.Float (F.Double x), [])
 genExpr (IR.FactorStr x _)  = do 
     strglobal <- freshStrName
     def <- return $ gstrVal' (name' strglobal) x'
-    (ConstantOperand ptr) <- getvar (toShortBS strglobal) (charArrType $ length x')
-    oper <- return $ cons $ C.GetElementPtr True ptr [C.Int 32 0, C.Int 32 0]
+    (ConstantOperand ptrv) <- getvar (toShortBS strglobal) (ptr $ arrType (length x') char)
+    oper <- return $ cons $ C.GetElementPtr True ptrv [C.Int 32 0, C.Int 32 0]
     return (oper, [def])
     where x' = if last x /= '\00' then x ++ "\00" else x
-genExpr (IR.FactorTrue _)   = return (cons $ C.Int 1 1, [])
-genExpr (IR.FactorFalse _)  = return (cons $ C.Int 1 0, [])
-genExpr (IR.Relation x1 op x2 _) = let 
+
+genExpr (IR.FactorTrue _)   = return (cons $ C.Int 1 1, []) -- True
+genExpr (IR.FactorFalse _)  = return (cons $ C.Int 1 0, []) -- False
+
+genExpr (IR.Relation x1 op x2 _) = let
     (t1,t2) = (IR.getType x1, IR.getType x2)
     cmpFloat y1 y2 = do
         fy1 <- if t1 == G.TYint then sitofp double y1 else return y1
@@ -309,8 +330,8 @@ genExpr (IR.Relation x1 op x2 _) = let
             OPle      -> fcmp FP.OLE fy1 fy2
             OPgreater -> fcmp FP.OGT fy1 fy2
             OPge      -> fcmp FP.OGE fy1 fy2
-            OPeq      -> fcmp FP.OEQ  fy1 fy2
-            OPneq     -> fcmp FP.ONE  fy1 fy2
+            OPeq      -> fcmp FP.OEQ fy1 fy2
+            OPneq     -> fcmp FP.ONE fy1 fy2
     cmpInt y1 y2 = do
         case op of 
             OPless    -> icmp IP.SLT y1 y2
@@ -323,7 +344,7 @@ genExpr (IR.Relation x1 op x2 _) = let
                then cmpFloat 
           else if t1 `elem` [G.TYint, G.TYbool] || t2 `elem` [G.TYint,G.TYbool]
                then cmpInt -- int and bool
-               else undefined -- todo: other cases
+               else error $ "genExpr: IR.Relation" -- todo: other cases
     in do
         (y1, defs1) <- genExpr x1
         (y2, defs2) <- genExpr x2
@@ -347,27 +368,27 @@ genExpr (IR.Mult x1 op x2 t) = do
     (y1, defs1) <- genExpr x1
     (y2, defs2) <- genExpr x2
     oper <- case op of 
-        OPdiv -> do
+        OPdiv -> do -- /
             fy1 <- sitofp double y1
             fy2 <- sitofp double y2
             fdiv fy1 fy2 
-        OPstar -> do
+        OPstar -> do -- *
             fy1 <- if t1 == G.TYint then sitofp double y1 else return y1
             fy2 <- if t2 == G.TYint then sitofp double y2 else return y2
             if t1 == G.TYreal || t2 == G.TYreal 
                 then fmul fy1 fy2
                 else imul y1 y2
-        OPidiv -> idiv y1 y2
-        OPmod  -> imod y1 y2
-        OPand  -> band y1 y2
+        OPidiv -> idiv y1 y2 -- div
+        OPmod  -> imod y1 y2 -- mod
+        OPand  -> band y1 y2 -- and
     return (oper, defs1 ++ defs2)
 
 genExpr (IR.Unary op x t) =  do
     (y, defs) <- genExpr x
     oper <- case op of 
-        OPor    -> undefined
-        OPplus  -> return y
-        OPminus -> fst <$> (genExpr $ IR.Add (IR.FactorInt 0 G.TYint) op x t)
+        OPor    -> error $ "genExpr: IR.Unary"
+        OPplus  -> return y -- +x = x
+        OPminus -> fst <$> (genExpr $ IR.Add (IR.FactorInt 0 G.TYint) op x t) -- -x = 0 - x
     return (oper, defs)
 
 genExpr (IR.FuncCall f xs t) = do

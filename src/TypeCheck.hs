@@ -105,7 +105,10 @@ addType env x t = error $ (show env) ++ (show x) ++ (show t)
 -- pickLeft x y = if isLeft x then x else y
 -- fromRight (Right x) = x
 
-isNum = (`elem` [TYint, TYreal])
+isNum :: Type -> Bool
+isNum (TYarr _ TYint) = True
+isNum (TYarr _ TYreal) = True
+isNum x = x `elem` [TYint, TYreal] 
 
 typechkProgram :: Program -> Either TyErr ()
 typechkProgram (Program _ b) = typechkBlock (newBlock emptyEnv) b >> return ()
@@ -149,13 +152,23 @@ typechkDeclFunc env (DeclFunc x params t b) =
 
 
 typechkStatement :: Env -> Statement -> Either TyErr Env
-typechkStatement env (Assignment (Designator x _) expr) = 
-    gettype env expr >>= \t -> lookupVar env x >>= \xtype -> 
+typechkStatement env (Assignment (Designator x _) expr) = -- todo: assignment to array
+    gettype env expr >>= \t -> lookupVar env x >>= \xtype -> do
         if xtype == t                      
            || (xtype == TYstr && t == TYchar)
            || (xtype == TYreal && t == TYint)
-        then Right env 
-        else Left $ TypeMismatch xtype t 
+        then Right env
+        else if (isArray xtype && getArrType xtype == t)
+            then Right env
+        else Left $ TypeMismatch xtype t
+        where
+            isArray :: Type -> Bool
+            isArray (TYarr _ _) = True
+            isArray _ = False
+            -- | Get array type
+            getArrType :: Type -> Type
+            getArrType (TYarr _ ty) = ty
+            getArrType ty = error $ "getArrType: Undefined"
 
 typechkStatement env (StatementIf expr s1 ms2) =
     gettype env expr >>= \t ->
@@ -239,6 +252,8 @@ gettype env (FuncCall x args) = lookupFun env x >>=
         then Left $ ArgCountMismatch (length formalTs)
         else foldr (>>) (Right t) (zipWith (matchArgFormal env) args formalTs)
 
+-- array access
+
 gettype env (FactorDesig (Designator x _)) = 
     lookupVar env x
 
@@ -255,7 +270,7 @@ gettype env (Relation x1 op x2) =
     where [t1, t2] = (gettype env) <$> [x1, x2]
 
 gettype env (Add x1 op x2)
-    | op `elem` [OPplus, OPminus] =
+    | op `elem` [OPplus, OPminus] = -- +|-
         t1 >>= \v1 -> t2 >>= \v2 ->
             if not (isNum v1 && isNum v2)
             then Left $ TypeMismatchNum (if isNum v1 then v1 else v2)
