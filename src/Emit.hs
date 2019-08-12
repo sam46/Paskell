@@ -148,7 +148,7 @@ genDeclFunc (IR.DeclFunc x args retty blk _) = do
 genDeclVar :: IR.Decl -> Codegen ()
 genDeclVar (IR.DeclVar xs _) = do
     forM xs $ \(i,t) -> do
-        var <- alloca' ({- ptr $ -} toLLVMType $ t)
+        var <- alloca' (toLLVMType $ t)
         -- var <- alloca (toLLVMType $ t)
         assign (toShortBS i) var
     return ()
@@ -190,11 +190,11 @@ genStatement (IR.StatementSeq xs _) = (forM xs genStatement) >>= (return.concat)
 genStatement (IR.Assignment (IR.Designator x _ xt) expr _) = do
     (rhs, defs) <- genExpr expr
     let ty = toLLVMType xt
-    var <- getvar (toShortBS x) ty  -- var is a pointer
+    var <- getvar (toShortBS x) (ptr ty)  -- var is a pointer
     if not (isPtrPtr var)    
         then store var rhs -- store value at memory referred to by pointer
         else do            -- if var is a pointer to pointer, this means we have something like *x = 123 and we should derference the pointer first
-                ptrv <- load ({- ptr -}void) var
+                ptrv <- load (void) var
                 store ptrv rhs
     return defs
 

@@ -97,7 +97,7 @@ gvar' ty name  =
   GlobalDefinition globalVariableDefaults
     { name = name
     , G.type' = ty
-    , linkage = L.Weak
+    , linkage = L.Private
     , initializer = Nothing
     }
 
@@ -351,7 +351,7 @@ getvar var ty = do
       -- error $ "unkown variable" ++ show var
 
 getGvar :: ShortByteString -> Type -> Operand
-getGvar var ty = ConstantOperand $ global ({-ptr-} ty) (Name var)
+getGvar var ty = ConstantOperand $ global ty (Name var)
 
 -------------------------------------------------------------------------------
 
