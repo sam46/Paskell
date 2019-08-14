@@ -119,23 +119,23 @@ resolveParamsType env params = map (\(x,t,b) -> (x,lookupType env t,b)) params
 convStatement :: Env -> Statement -> IR.Statement
 convStatement env (Assignment des expr) =  -- Assignment
     IR.Assignment (convDesignator env des) (convExpr env expr) Void
--- | StatementIf
+-- StatementIf
 convStatement env (StatementIf expr s1 ms2) =
     IR.StatementIf (convExpr env expr) (convStatement env s1) ((convStatement env) <$> ms2) Void
--- | StatementFor
+-- StatementFor
 convStatement env (StatementFor i x1 b x2 s) = -- todo: add i to s's env?
     IR.StatementFor i (convExpr env x1) b (convExpr env x2) (convStatement env s) Void
--- | StatementWhile
+-- StatementWhile
 convStatement env (StatementWhile expr s) = 
     IR.StatementWhile (convExpr env expr) (convStatement env s) Void
--- | StatementEmpty
+-- StatementEmpty
 convStatement env StatementEmpty = IR.StatementEmpty
--- | StatementSeq
+-- StatementSeq
 convStatement env (StatementSeq xs) = IR.StatementSeq (map (convStatement env) xs) Void
--- | StatementWrite
+-- StatementWrite
 convStatement env (StatementWrite xs) = IR.StatementWrite (map (convExpr env) xs) Void
--- | StatementWriteLn: Append NEWLINE at the end of string
-convStatement env (StatementWriteLn xs) = convStatement env (StatementWrite $ xs ++ [FactorStr "\n"])
+-- StatementWriteLn
+convStatement env (StatementWriteLn xs) = convStatement env (StatementWrite $ xs++[FactorStr "\n"])
 -- ProcCall
 convStatement env (ProcCall f args) = 
     IR.ProcCall f args''' Void
@@ -158,22 +158,22 @@ convExpr env FactorFalse       = IR.FactorFalse   TYbool    -- False
 convExpr env (FactorInt x)     = IR.FactorInt  x  TYint     -- Int
 convExpr env (FactorReal x)    = IR.FactorReal x  TYreal    -- Double
 convExpr env (FactorStr x)     = IR.FactorStr  x  TYstr     -- String
-convExpr env (FactorChar x)    = IR.FactorStr [x] TYstr     -- String >> char todo
+convExpr env (FactorChar x)    = IR.FactorStr [x] TYstr     -- String
 convExpr env (FactorNot x)     = error $ "convExpr: FactorNot"
 -- FunCall
 convExpr env (FuncCall f args) = 
     IR.FuncCall f args''' fty
     where   (fty, sig) = lookupFun env f    -- lookup function f in env
-            initialVal = case fty of        -- initial dummy value
+            initialVal = case fty of 
                 TYint  -> FactorInt 0       -- FactorInt
-                TYstr  -> FactorStr "\0"    -- FactorStr
+                TYstr  -> FactorStr ""      -- FactorStr
                 TYbool -> FactorFalse       -- FactorFalse
                 TYreal -> FactorReal 0.0    -- FactorReal
                 TYchar -> FactorChar '\00'  -- FactorChar
             args'    = initialVal : args    -- add dummy arg
             args''   = map (convExpr env) args' -- convert to type annotaed IR args
             args'''  = map liftType (zip args'' sig) -- lift PassByRef args types to pointers, and typecast int to real when necessary
-            liftType (expr, (ty, pbr)) = 
+            liftType (expr, (ty,pbr)) = 
                 let expr' = if ty == TYreal then expr {IR.getType = TYreal} else expr
                 in if not pbr then expr'
                 else let IR.FactorDesig x factty = expr'

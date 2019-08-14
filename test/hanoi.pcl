@@ -5,11 +5,11 @@ program solve;
 
     procedure move (var source, target : array of char);
     begin
-      writeString("Move from");
-      writeString(source);
-      writeString(" to ");
-      writeString(target);
-      writeString(".\n")
+      writeLn('Move from');
+      writeLn(source);
+      writeLn(' to ');
+      writeLn(target);
+      writeLn('.\n')
     end;
   
   begin
@@ -22,8 +22,8 @@ program solve;
   end;
 
 begin
-  writeString("numberOfRings: ");
+  writeLn('numberOfRings: ');
   numberOfRings := readInteger();
-  writeString("Solution:\n\n");
-  hanoi("left", "right", "middle", numberOfRings)
+  writeLn('Solution:\n\n');
+  hanoi('left', 'right', 'middle', numberOfRings)
 end.

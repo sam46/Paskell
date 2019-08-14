@@ -1,0 +1,9 @@
+program functest;
+function add(a, b : integer) : integer;
+begin
+  add := a + b
+end;
+begin
+  writeLn('FuncTest');
+  writeLn(add(1, 2))
+end.

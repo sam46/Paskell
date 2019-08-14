@@ -1,0 +1,6 @@
+src/Codegen.hs:450:store :: Operand -> Operand -> Codegen ()
+src/Codegen.hs:451:store ptrv val = 
+src/Emit.hs:138:                store var (local (ty) (name' i))
+src/Emit.hs:196:        then store var rhs -- store value at memory referred to by pointer
+src/Emit.hs:199:                store ptrv rhs
+src/Emit.hs:309:-- returns %x for final expression value, and stores any intermediate instructions in the block

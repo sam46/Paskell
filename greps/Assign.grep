@@ -1,0 +1,14 @@
+src/ConvertIR.hs:120:convStatement env (Assignment des expr) =  -- Assignment
+src/ConvertIR.hs:121:    IR.Assignment (convDesignator env des) (convExpr env expr) Void
+src/Emit.hs:191:genStatement (IR.Assignment (IR.Designator x _ xt) expr _) = do
+src/Emit.hs:235:    defs1 <- genStatement (IR.Assignment loopvar expr1 G.Void) 
+src/Emit.hs:251:    defs4 <- genStatement (IR.Assignment loopvar step G.Void) 
+src/Grammar.hs:47:    | Assignment Designator Expr
+src/Intermediate.hs:24:    | Assignment Designator Expr Type
+src/Intermediate.hs:109:pshowSt n (Assignment x ex t) = (pshowDes n x) ++ " := " ++ (pshowEx 0 ex) ++ ";\n"
+src/Paskell.hs:160:    (try parseAssignment),                      -- assignment
+src/Paskell.hs:225:-- | Parse Assignment
+src/Paskell.hs:227:parseAssignment :: Parser Statement
+src/Paskell.hs:228:parseAssignment = parseDesignator >>= \x -> stringTok ":="
+src/Paskell.hs:230:    >>= \expr  -> return $ Assignment x expr
+src/TypeCheck.hs:155:typechkStatement env (Assignment (Designator x _) expr) = -- todo: assignment to array

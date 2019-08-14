@@ -1,0 +1,19 @@
+; ModuleID = 'MainModule'
+source_filename = "test/int_variable.pcl"
+
+@i = common global i32 0
+@str.main.entry.2 = private unnamed_addr constant [5 x i8] c"%s%s\00"
+@str.main.entry.3 = private unnamed_addr constant [17 x i8] c"Integer Variable\00"
+@str.main.entry.4 = private unnamed_addr constant [2 x i8] c"\0A\00"
+
+declare i32 @printf(i8*, ...)
+
+define i32 @main(i32 %main) {
+main.entry:
+  %0 = alloca i32
+  store i32 %main, i32* %0
+  store i32 42, i32* @i
+  %1 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @str.main.entry.2, i32 0, i32 0), i8* getelementptr inbounds ([17 x i8], [17 x i8]* @str.main.entry.3, i32 0, i32 0), i8* getelementptr inbounds ([2 x i8], [2 x i8]* @str.main.entry.4, i32 0, i32 0))
+  %2 = load i32, i32* %0
+  ret i32 %2
+}

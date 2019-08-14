@@ -1,0 +1,7 @@
+program variable;
+var f : real;
+begin
+  f := 1.3;
+  if f < 2.0 then
+    writeLn('Double Variable Example')
+end.

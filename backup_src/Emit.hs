@@ -51,7 +51,7 @@ toLLVMType t = case t of
     G.TYreal  -> double
     G.Void    -> void
     G.TYstr   -> str
-    G.TYchar  -> char
+    G.TYchar  -> str
     G.TYptr t -> ptr $ toLLVMType t
     G.TYarr (Just sz) ty
         -> case ty of
@@ -65,17 +65,16 @@ toLLVMType t = case t of
 -- add ParameterAtribute to an argument given the argument and 
 -- it's corrosponding Operand
 addParamAttr :: IR.Expr -> Operand -> (Operand, [ParameterAttribute])
-addParamAttr expr oper 
-    = let ty = IR.getType expr in 
-        case ty of 
-            G.TYptr t -> (oper, [Dereferenceable (typeSize t)])
-            _         -> (oper, []) 
+addParamAttr expr oper = let ty = IR.getType expr in 
+    case ty of 
+        G.TYptr t -> (oper, [Dereferenceable (typeSize t)])
+        _         -> (oper, []) 
 
 typeSize ty = case ty of
     G.TYreal -> 8
     G.TYint  -> 4
     G.TYchar -> 1
-    _        -> 1
+    _        -> 4
 
 isPtrPtr :: Operand -> Bool  -- checks for a double pointer
 isPtrPtr oper = case oper of 
@@ -135,7 +134,7 @@ genDeclFunc (IR.DeclFunc x args retty blk _) = do
             setBlock entry'
             forM args $ \(i,t,byref) -> do
                 let ty = toLLVMType $ if byref then G.TYptr t else t
-                var <- alloca ty
+                var <- alloca' ty
                 store var (local (ty) (name' i))
                 assign (toShortBS i) var
             defs <- genBlock blk
@@ -192,14 +191,17 @@ genStatement (IR.StatementSeq xs _) = (forM xs genStatement) >>= (return.concat)
 genStatement (IR.Assignment (IR.Designator x _ xt) expr _) = do
     (rhs, defs) <- genExpr expr
     let ty = toLLVMType xt
-    var <- getvar (toShortBS x) (ty)  -- var is a pointer
+    var <- getvar (toShortBS x) (ptr ty)  -- var is a pointer
+    store var rhs
+    {-
     if not (isPtrPtr var)    
         then store var rhs -- store value at memory referred to by pointer
         else do            -- if var is a pointer to pointer, this means we have something like *x = 123 and we should derference the pointer first
                 ptrv <- load (void) var
                 store ptrv rhs
+    -}
     return defs
--- | Generate IF statements
+
 genStatement (IR.StatementIf expr s1 ms2 _) = do 
     ifthen <- addBlock "if.then"
     ifelse <- addBlock "if.else"
@@ -226,7 +228,7 @@ genStatement (IR.StatementIf expr s1 ms2 _) = do
     where s2 = case ms2 of 
                 Nothing -> IR.StatementEmpty
                 Just x  -> x
--- | Generate For Loops
+
 genStatement (IR.StatementFor x expr1 todownto expr2 s _) = do
     ftest <- addBlock "for.test"
     fbody <- addBlock "for.body"
@@ -260,7 +262,7 @@ genStatement (IR.StatementFor x expr1 todownto expr2 s _) = do
           (optest, opstep) = if todownto then (OPle, OPplus) else (OPge, OPminus)
           step = IR.Add varfactor opstep (IR.FactorInt 1 G.TYint) (IR.getType expr1)
 
--- | Generate While statements
+
 genStatement (IR.StatementWhile expr s _) = do
     wtest <- addBlock "while.test"
     wbody <- addBlock "while.body"
@@ -280,28 +282,28 @@ genStatement (IR.StatementWhile expr s _) = do
     -- exit
     _ <- setBlock wexit
     return $ defs1 ++ defs2 
--- | Generate Procedure calls
+
 genStatement (IR.ProcCall f xs t) = do
-    (args, defs) <- mapM genExpr xs >>= (return . unzip)
+    (args, defs) <- mapM genExpr xs >>= (return.unzip)
     call' (externf fnty (name' f)) (zipWith addParamAttr xs args)
     return $ concat defs
     where fnty = toLLVMfnType (toLLVMType t) (map (toLLVMType . IR.getType) xs)
--- | Generate Write statements
+
 genStatement (IR.StatementWrite xs' _) = do
-    (args, defs) <- mapM genExpr xs >>= (return . unzip)
+    (args, defs) <- mapM genExpr xs >>= (return.unzip)
     -- error $ show $ (zipWith addParamAttr xs args)
     callNoCast (externf printfTy (name' "printf")) (zipWith addParamAttr xs args)
     return $ concat defs
-    where fstr = (foldr (++) "" (map (formatstr . IR.getType) xs')) ++ "\00"
+    where fstr = (foldr (++) "" (map (formatstr. IR.getType) xs')) ++ "\00"
           xs = (IR.FactorStr fstr G.TYstr) : xs' -- add printf format string to arguments
 
 -- | printf format specifiers
 formatstr :: G.Type -> String
 formatstr G.TYint  = "%d"
 formatstr G.TYstr  = "%s"
-formatstr G.TYreal = "%lf"
+formatstr G.TYreal = "%f"
 formatstr G.TYbool = "%d"
-formatstr G.TYchar = "%c"
+formatstr G.TYchar = "%s"
 
 -------------------------------------------------------------------------------
 -- Expressions
@@ -315,7 +317,7 @@ genExpr (IR.FactorStr x _)  = do
     strglobal <- freshStrName
     def <- return $ gstrVal' (name' strglobal) x'
     (ConstantOperand ptrv) <- getvar (toShortBS strglobal) (ptr $ arrType (length x') char)
-    oper <- return $ cons $ C.GetElementPtr True (ptrv) [C.Int 32 0, C.Int 32 0]
+    oper <- return $ cons $ C.GetElementPtr True ptrv [C.Int 32 0, C.Int 32 0]
     return (oper, [def])
     where x' = if last x /= '\00' then x ++ "\00" else x
 

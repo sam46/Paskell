@@ -1,0 +1,6 @@
+src/Codegen.hs:340:assign :: ShortByteString -> Operand -> Codegen ()
+src/Codegen.hs:341:assign var x = do
+src/Emit.hs:139:                assign (toShortBS i) var
+src/Emit.hs:154:        assign (toShortBS i) var
+src/Paskell.hs:160:    (try parseAssignment),                      -- assignment
+src/TypeCheck.hs:155:typechkStatement env (Assignment (Designator x _) expr) = -- todo: assignment to array

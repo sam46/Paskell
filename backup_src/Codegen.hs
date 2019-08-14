@@ -29,7 +29,7 @@ import qualified LLVM.AST.Attribute as A
 import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.FloatingPointPredicate as FP
 import qualified LLVM.AST.IntegerPredicate as IP
-import qualified LLVM.AST.Float as F
+
 import LLVM.Context
 import LLVM.Module
 import qualified Data.ByteString.Char8 as BS
@@ -97,13 +97,9 @@ gvar' ty name  =
   GlobalDefinition globalVariableDefaults
     { name = name
     , G.type' = ty
-    , linkage = L.Common
-    , initializer = defaultInitializer ty
+    , linkage = L.External
+    , initializer = Nothing
     }
-  where
-    defaultInitializer (IntegerType _) = Just $ C.Int 32 0
-    defaultInitializer (FloatingPointType _) = Just $ C.Float (F.Double 0.0)
-    defaultInitializer _ = Nothing
 
 gstrVal :: Name -> String -> LLVM ()
 gstrVal name val = addDefn $ gstrVal' name val
@@ -117,7 +113,7 @@ gstrVal' name val =
     , linkage = L.Private
     , unnamedAddr = Just GlobalAddr
     , isConstant = True
-    , initializer = Just $ C.Array (i8) (map constchar val)
+    , initializer = Just $ C.Array (IntegerType 8) (map constchar val)
     }
   where constchar c = C.Int 8 (toInteger $ ord c)
 
@@ -423,7 +419,7 @@ bor a b = instr bool $ Or a b []
 -- toArgs :: [Operand] -> [(Operand, [A.ParameterAttribute])]
 -- toArgs = map (\x -> (x, []))
 
--- | Function Call
+-- Effects
 call :: Operand -> [(Operand, [A.ParameterAttribute])] -> Codegen Operand
 call fn args = do  -- figure out the signature, and typecast args as necessary
   let (opers, attrs) = unzip args
@@ -435,7 +431,7 @@ call fn args = do  -- figure out the signature, and typecast args as necessary
 callNoCast :: Operand -> [(Operand, [A.ParameterAttribute])] -> Codegen Operand
 callNoCast fn args = instr (extractFnRetType fn) $ Call Nothing CC.C [] (Right fn) args [] []
 
--- Procedure Call (retvoid funcall)
+-- UnNamed instruction Call. Used when return type is void
 call' :: Operand -> [(Operand, [A.ParameterAttribute])] -> Codegen ()
 call' fn args = do -- figure out the signature, and typecast args as necessary
   let (opers, attrs) = unzip args
@@ -485,7 +481,7 @@ zero :: Operand
 zero = cons $ C.Int 32 0
 
 getElementPtr :: Type -> Operand -> Codegen Operand
-getElementPtr ty op = instr (ty) $ GetElementPtr True op [zero, zero] []
+getElementPtr ty op = instr ty $ GetElementPtr True op [zero, zero] []
 
 isIntVal x = case x of
   LocalReference (IntegerType _) _ -> True

@@ -1,0 +1,5 @@
+program arrayTest;
+var a : array [5] of integer;
+begin
+  a[1 + 2] := 3
+end.

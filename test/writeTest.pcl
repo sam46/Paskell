@@ -1,5 +1,11 @@
 program hello;
+var a : string;
+var b : integer;
+var c : real;
 begin
-  writeln('hello world')
+  c := 1.2;
+  b := 2;
+  a := 'Hello World';
+  writeln(a)
 end.
 

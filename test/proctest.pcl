@@ -1,4 +1,9 @@
 program test;
-
+procedure hi();
 begin
+  writeLn('ProcTest');
+  writeLn('Hello')
+end;
+begin
+  hi()
 end.

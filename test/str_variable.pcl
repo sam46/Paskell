@@ -1,0 +1,6 @@
+program variable;
+var s : string;
+begin
+  s := 'Hello World!';
+  writeLn(s)
+end.

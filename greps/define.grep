@@ -1,0 +1,9 @@
+src/Codegen.hs:70:define ::  Type -> ShortByteString -> [(Type, Name, [A.ParameterAttribute])] -> Codegen [Definition] -> LLVM ()
+src/Codegen.hs:71:define retty label argtys body = (addDefns bodydefs) >> addDefn (
+src/Codegen.hs:145:        []   -> error $ "Undefined function: " ++ show nm
+src/Emit.hs:122:    define (toLLVMType retty) (toShortBS x) (toSig args) body
+src/Intermediate.hs:137:pshowEx n (FactorNot ex t) = undefined
+src/Paskell.hs:270:       Nothing -> if c == 'u' then error $ "parseString: Undefined"  -- todo hex
+src/Paskell.hs:279:       Nothing -> if c == 'u' then error $ "parseChar: Undefined"  -- todo hex
+src/TypeCheck.hs:143:typechkConstDecl env _ = error $ "typechkConstDecl: undefined"
+src/TypeCheck.hs:251:gettype env (FactorNot x)       = undefined
