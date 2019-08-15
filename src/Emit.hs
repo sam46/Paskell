@@ -59,7 +59,7 @@ toLLVMType t = case t of
             G.TYreal  -> arrType sz double
             G.TYchar  -> arrType sz char
             G.TYarr _ _ -> error $ "toLLVMType: 2D Array"
-    G.TYarr Nothing ty -> ptr $ toLLVMType ty
+    G.TYarr Nothing ty -> error $ "G.TYarr Nothing " ++ show ty
     _         -> error $ "TYident wasn't resolved.\n" ++ (show t)
 
 -- add ParameterAtribute to an argument given the argument and 
@@ -150,7 +150,7 @@ genDeclFunc (IR.DeclFunc x args retty blk _) = do
 genDeclVar :: IR.Decl -> Codegen ()
 genDeclVar (IR.DeclVar xs _) = do
     forM xs $ \(i,t) -> do
-        var <- alloca (toLLVMType $ t)
+        var <- alloca' (toLLVMType $ t)     {- ptr -}
         -- var <- alloca (toLLVMType $ t)
         assign (toShortBS i) var
     return ()
@@ -188,15 +188,15 @@ genBlock (IR.Block ds s _) = do
 
 genStatement :: IR.Statement -> Codegen [Definition]
 genStatement (IR.StatementEmpty) = return []
-genStatement (IR.StatementSeq xs _) = (forM xs genStatement) >>= (return.concat)
+genStatement (IR.StatementSeq xs _) = (forM xs genStatement) >>= (return . concat)
 genStatement (IR.Assignment (IR.Designator x _ xt) expr _) = do
     (rhs, defs) <- genExpr expr
     let ty = toLLVMType xt
-    var <- getvar (toShortBS x) (ty)  -- var is a pointer
+    var <- getvar (toShortBS x) (ptr $ ty)  -- var is a pointer {- ptr -}
     if not (isPtrPtr var)    
         then store var rhs -- store value at memory referred to by pointer
         else do            -- if var is a pointer to pointer, this means we have something like *x = 123 and we should derference the pointer first
-                ptrv <- load (void) var
+                ptrv <- load (ptr $ void) var {- ptr -}
                 store ptrv rhs
     return defs
 -- | Generate IF statements
@@ -401,6 +401,6 @@ genExpr (IR.FuncCall f xs t) = do
         -- error $ (show $ map IR.getType xs)
           
 genExpr (IR.FactorDesig (IR.Designator x _ xt) dt) =
-    (getvar (toShortBS x) (toLLVMType xt)) 
-    >>= (if dt==xt then load (toLLVMType dt) else return . id)
+    (getvar (toShortBS x) (ptr $ toLLVMType xt)) {-- ptr --}
+    >>= (if dt == xt then load (toLLVMType dt) else return . id)
     >>= \oper -> return (oper, [])

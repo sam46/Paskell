@@ -2,8 +2,7 @@ program hello;
 var c : char;
 var i : integer;
 var f : real;
-var s : string;
 begin
-  i := 1;
+  i := 1 + 5;
   writeLn('hello')
 end.

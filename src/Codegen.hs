@@ -103,6 +103,7 @@ gvar' ty name  =
   where
     defaultInitializer (IntegerType _) = Just $ C.Int 32 0
     defaultInitializer (FloatingPointType _) = Just $ C.Float (F.Double 0.0)
+    defaultInitializer (ArrayType sz ty) = Just (C.AggregateZero $ arrType (fromIntegral sz) ty)
     defaultInitializer _ = Nothing
 
 gstrVal :: Name -> String -> LLVM ()
@@ -449,7 +450,7 @@ alloca ty = instr ty $ Alloca ty Nothing 0 []
 
 -- same as alloca but returns a pointer to given data type (*ty)
 alloca' :: Type -> Codegen Operand
-alloca' ty = instr (ptr ty) $ Alloca (ty) Nothing 0 []
+alloca' ty = instr (ptr ty) $ Alloca (ptr $ ty) Nothing 0 []
 
 store :: Operand -> Operand -> Codegen ()
 store ptrv val = 
@@ -459,7 +460,7 @@ store ptrv val =
   else unnminstr $ Store False ptrv val Nothing 0 [] 
 
 load :: Type -> Operand -> Codegen Operand
-load ty ptrv = instr (ty) $ Load False ptrv Nothing 0 []
+load ty ptrv = instr (ptr ty) $ Load False ptrv Nothing 0 [] {- ptr -}
 
 -- Control Flow
 br :: Name -> Codegen (Named Terminator)
@@ -485,7 +486,7 @@ zero :: Operand
 zero = cons $ C.Int 32 0
 
 getElementPtr :: Type -> Operand -> Codegen Operand
-getElementPtr ty op = instr (ty) $ GetElementPtr True op [zero, zero] []
+getElementPtr ty op = instr (ty) $ GetElementPtr True op [zero, zero] [] {- ptr -}
 
 isIntVal x = case x of
   LocalReference (IntegerType _) _ -> True
