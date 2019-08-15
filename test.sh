@@ -18,3 +18,7 @@ echo ''
 echo 'Real Variable'
 .stack-work/dist/x86_64-linux-tinfo6/Cabal-2.4.0.1/build/Paskell/Paskell -c test/str_variable.pcl outputs/str_variable.ll
 echo ''
+
+echo 'Array Test'
+.stack-work/dist/x86_64-linux-tinfo6/Cabal-2.4.0.1/build/Paskell/Paskell -c test/arrayTest.pcl outputs/arrayTest.ll
+echo ''

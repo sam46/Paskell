@@ -1,5 +1,10 @@
 program arrayTest;
-var a : array [5] of integer;
+var i : array [5] of integer;
+var j : integer;
 begin
-  a[1 + 2] := 3
+  while (j < 5) do
+  begin
+    i[j] := j;
+    j := j + 1;
+  end;
 end.
