@@ -2,6 +2,7 @@ program variable;
 var i : integer;
 begin
   i := 42;
+  writeLn(i);
   if (i > 0) then
     write('YES\n')
   else
