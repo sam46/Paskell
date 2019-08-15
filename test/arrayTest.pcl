@@ -1,10 +1,12 @@
 program arrayTest;
 var i : array [5] of integer;
+var s : array [5] of char;
+var f : array [5] of real;
 var j : integer;
 begin
   while (j < 5) do
   begin
-    i[j] := j;
+    i[j] := 1;
     j := j + 1;
   end;
 end.

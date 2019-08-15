@@ -2,6 +2,8 @@
 source_filename = "test/arrayTest.pcl"
 
 @i = common global [5 x i32] zeroinitializer
+@s = common global [5 x i8] zeroinitializer
+@f = common global [5 x double] zeroinitializer
 @j = common global i32 0
 
 declare i32 @printf(i8*, ...)
@@ -18,14 +20,13 @@ main.while.test:                                  ; preds = %main.while.body, %m
   br i1 %2, label %main.while.body, label %main.while.exit
 
 main.while.body:                                  ; preds = %main.while.test
+  store i32 1, [5 x i32]* @i
   %3 = load i32, i32* @j
-  store i32 %3, [5 x i32]* @i
-  %4 = load i32, i32* @j
-  %5 = add i32 %4, 1
-  store i32 %5, i32* @j
+  %4 = add i32 %3, 1
+  store i32 %4, i32* @j
   br label %main.while.test
 
 main.while.exit:                                  ; preds = %main.while.test
-  %6 = load i32, i32* %0
-  ret i32 %6
+  %5 = load i32, i32* %0
+  ret i32 %5
 }

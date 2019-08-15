@@ -103,7 +103,11 @@ gvar' ty name  =
   where
     defaultInitializer (IntegerType _) = Just $ C.Int 32 0
     defaultInitializer (FloatingPointType _) = Just $ C.Float (F.Double 0.0)
-    defaultInitializer (ArrayType sz ty) = Just (C.AggregateZero $ arrType (fromIntegral sz) ty)
+    defaultInitializer (ArrayType sz ty)
+      = case ty of 
+          IntegerType bits' -> Just (C.Array int $ C.Int (fromIntegral $ bits') <$> (take (fromIntegral $ sz) $ repeat 0))
+          FloatingPointType _ -> Just (C.Array float $ C.Float <$> (take (fromIntegral $ sz) $ repeat $ F.Double 0.0))
+          _ -> Nothing
     defaultInitializer _ = Nothing
 
 gstrVal :: Name -> String -> LLVM ()
@@ -352,7 +356,7 @@ getvar var ty = do
   syms <- gets symtab
   case lookup var syms of
     Just x  -> return x
-    Nothing -> return $ getGvar var ty -- if not in symtab then it's a global, or doesn't exist
+    Nothing -> return $ getGvar var ty -- if not in symtab then it's a global, or doesn't exist {- ptr -}
       -- error $ "unkown variable" ++ show var
 
 getGvar :: ShortByteString -> Type -> Operand
@@ -482,34 +486,48 @@ retvoid = terminator $ Do $ Ret Nothing []
 -- Helpers used for typecasting stuff
 -------------------------------------------------------------------------------
 
+-- | Constant Zero
 zero :: Operand
 zero = cons $ C.Int 32 0
 
+-- | GEP
 getElementPtr :: Type -> Operand -> Codegen Operand
 getElementPtr ty op = instr (ty) $ GetElementPtr True op [zero, zero] [] {- ptr -}
 
+{-
+-- | Typecast
+bitcast :: Operand -> Type -> Codegen Operand
+bitcast op tp = instr $ BitCast op tp []
+-}
+
+-- | Check if integer type
 isIntVal x = case x of
   LocalReference (IntegerType _) _ -> True
   ConstantOperand (C.Int _ _) -> True
   _ -> False
 
+-- | Check if floating point type
 isFloat x = case x of
   (FloatingPointType _) -> True
   (PointerType (FloatingPointType _) _) -> True
   _ -> False
 
+-- | Check if floating point type
 isFloat' x = case x of
   (LocalReference (FloatingPointType _) _) -> True
   (ConstantOperand (C.GlobalReference (PointerType (FloatingPointType _) _) _) ) -> True
   _ -> False
 
+-- | Typecast int -> real
 tycast (dst, oper) = 
   if (isFloat dst) && (isIntVal oper)
   then sitofp double oper    -- typecast int to real
   else return oper 
 
+-- | Extract parameters
 extractParams (ConstantOperand (C.GlobalReference fn _)) = 
   case fn of (PointerType (FunctionType _ ts _) _) -> ts
 
+-- | Extract function return type
 extractFnRetType (ConstantOperand (C.GlobalReference fn _)) =
   case fn of (PointerType (FunctionType t _ _) _) -> t
