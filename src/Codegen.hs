@@ -89,6 +89,7 @@ external retty label argtys = addDefn $
   , basicBlocks = []
   }
 
+-- | Add GlobalDefinition
 gvar :: Type -> Name -> LLVM ()
 gvar ty name  = addDefn $ gvar' ty name
 
@@ -107,8 +108,8 @@ gvar' ty name  =
       = case ty of 
           IntegerType bits' -> Just (C.Array int $ C.Int (fromIntegral $ bits') <$> (take (fromIntegral $ sz) $ repeat 0))
           FloatingPointType _ -> Just (C.Array float $ C.Float <$> (take (fromIntegral $ sz) $ repeat $ F.Double 0.0))
-          _ -> Nothing
-    defaultInitializer _ = Nothing
+          _ -> error $ "defaultInitializer: ArrayType '" ++ show ty ++ "' is not supported"
+    defaultInitializer _ = error $ "defaultInitializer: Type '" ++ show ty ++ "' is not supported"
 
 gstrVal :: Name -> String -> LLVM ()
 gstrVal name val = addDefn $ gstrVal' name val
