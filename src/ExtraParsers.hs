@@ -6,8 +6,17 @@ import Text.Parsec.Combinator
 import Data.Char
 import Utils (p')
 
-comments :: Parser ()
-comments = return ()  -- todo change to actual comment parser
+-- todo: multiline comments
+comments :: Parser () 
+comments = try comment <|> return ()
+  where
+    nestedComment = comments >> comments
+    comment = do
+      _ <- stringTok "(*"
+      skipMany $ noneOf "(**)"
+      try nestedComment
+      _ <- stringTok "*)"
+      return ()
 
 whitespace :: Parser ()
 whitespace = spaces >> comments

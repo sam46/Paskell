@@ -4,9 +4,11 @@ var s : array [5] of char;
 var f : array [5] of real;
 var j : integer;
 begin
+  i[0] := 42;
+  s[0] := 'a';
+  f[0] := 42.0;
   while (j < 5) do
   begin
-    i[j] := 1;
     j := j + 1;
   end;
 end.

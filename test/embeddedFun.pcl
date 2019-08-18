@@ -1,0 +1,12 @@
+program funfun;
+
+procedure say(s : string);
+begin
+  writeLn(s);
+end;
+
+begin
+
+  say('Inside say(): Hello')
+
+end.

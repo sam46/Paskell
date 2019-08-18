@@ -1,0 +1,6 @@
+program hellocomments;
+begin
+  (* Print greet *)
+  writeLn('Hello World!')
+  (* Exit *)
+end.

@@ -62,11 +62,13 @@ addDefns ds = do
     addDefn d
   return ()
 
+-- | Add Definition to LLVM module
 addDefn :: Definition -> LLVM ()
 addDefn d = do
   defs <- gets moduleDefinitions
   modify $ \s -> s { moduleDefinitions = defs ++ [d] }
 
+-- | Define a function
 define ::  Type -> ShortByteString -> [(Type, Name, [A.ParameterAttribute])] -> Codegen [Definition] -> LLVM ()
 define retty label argtys body = (addDefns bodydefs) >> addDefn (
   GlobalDefinition $ functionDefaults {
@@ -79,6 +81,7 @@ define retty label argtys body = (addDefns bodydefs) >> addDefn (
     (bodydefs, bodystate) = runStateCodegen body (label)
     bls = createBlocks $ bodystate
 
+-- | Global Function Definition: External Linkage
 external ::  Type -> ShortByteString -> [(Type, Name)] -> LLVM ()
 external retty label argtys = addDefn $
   GlobalDefinition $ functionDefaults {
@@ -104,6 +107,7 @@ gvar' ty name  =
   where
     defaultInitializer (IntegerType _) = Just $ C.Int 32 0
     defaultInitializer (FloatingPointType _) = Just $ C.Float (F.Double 0.0)
+    defaultInitializer (PointerType _ _) = Nothing
     defaultInitializer (ArrayType sz ty)
       = case ty of 
           IntegerType bits' -> Just (C.Array int $ C.Int (fromIntegral $ bits') <$> (take (fromIntegral $ sz) $ repeat 0))
@@ -111,6 +115,7 @@ gvar' ty name  =
           _ -> error $ "defaultInitializer: ArrayType '" ++ show ty ++ "' is not supported"
     defaultInitializer _ = error $ "defaultInitializer: Type '" ++ show ty ++ "' is not supported"
 
+-- | String Definition
 gstrVal :: Name -> String -> LLVM ()
 gstrVal name val = addDefn $ gstrVal' name val
 
@@ -127,6 +132,7 @@ gstrVal' name val =
     }
   where constchar c = C.Int 8 (toInteger $ ord c)
 
+-- | printf: Internal Function
 printf :: Definition
 printf = GlobalDefinition $ functionDefaults
   { returnType = int
@@ -140,7 +146,7 @@ printfTy = PointerType {
   pointerAddrSpace = AddrSpace 0
   }
 
--- construct function type given ret type and signature
+-- | Construct function type given ret type and signature
 toLLVMfnType :: Type -> [Type] -> Type
 toLLVMfnType t ts = PointerType {
   pointerReferent  = (FunctionType t ts False), 
@@ -173,18 +179,23 @@ double = FloatingPointType DoubleFP
 void :: Type
 void = VoidType
 
+-- | Integer 32 bits
 int :: Type
 int = i32
 
+-- | Integer 1 bit
 bool :: Type
 bool = i1
 
+-- | Integer 8 bits
 char :: Type
 char = i8
 
+-- | Integer Pointer 8 bits
 str :: Type
 str = ptr i8
 
+-- | ArrayType
 arrType :: Int -> Type -> Type
 arrType len ty = ArrayType (fromIntegral $ len) ty
 
@@ -194,6 +205,7 @@ arrType len ty = ArrayType (fromIntegral $ len) ty
 
 type Names = Map.Map ShortByteString Int
 
+-- | Unique name generation scheme
 uniqueName :: ShortByteString -> Names -> (ShortByteString, Names)
 uniqueName nm ns =
   case Map.lookup nm ns of
@@ -274,6 +286,7 @@ freshStrName = do
   (Name bname) <- getBlock
   return $ "str." ++ (BS.unpack.fromShort $ bname) ++ "." ++ (show n)
 
+-- | Generate Instruction
 instr :: Type -> Instruction -> Codegen (Operand)
 instr ty ins = do
   n <- fresh
@@ -283,12 +296,14 @@ instr ty ins = do
   modifyBlock (blk { stack = (ref := ins) : i } ) -- add named instruction to current block's stack
   return $ local (ty) ref
 
+-- | Unnamed instruction
 unnminstr :: Instruction -> Codegen ()
 unnminstr ins = do
   blk <- current
   let i = stack blk
   modifyBlock (blk { stack = (Do ins) : i } )
 
+-- | Block Terminator
 terminator :: Named Terminator -> Codegen (Named Terminator)
 terminator trm = do
   blk <- current
@@ -302,7 +317,7 @@ terminator trm = do
 entry :: Codegen Name
 entry = gets currentBlock
 
--- given block name
+-- | Append block
 addBlock :: ShortByteString -> Codegen Name
 addBlock bname = do
   (Name fname) <- getFnName
@@ -319,11 +334,13 @@ addBlock bname = do
   where toShortBS = toShort . BS.pack 
         toString  = BS.unpack . fromShort
 
+-- | Set active block
 setBlock :: Name -> Codegen Name
 setBlock bname = do
   modify $ \s -> s { currentBlock = bname }
   return bname
 
+-- | Get active block
 getBlock :: Codegen Name
 getBlock = gets currentBlock
 
@@ -347,11 +364,13 @@ current = do
 -- Symbol Table
 -------------------------------------------------------------------------------
 
+-- | Assign to a variable
 assign :: ShortByteString -> Operand -> Codegen ()
 assign var x = do
   lcls <- gets symtab
   modify $ \s -> s { symtab = (var, x) : lcls }
 
+-- | Lookup variable
 getvar :: ShortByteString -> Type -> Codegen Operand
 getvar var ty = do
   syms <- gets symtab
@@ -360,6 +379,7 @@ getvar var ty = do
     Nothing -> return $ getGvar var ty -- if not in symtab then it's a global, or doesn't exist {- ptr -}
       -- error $ "unkown variable" ++ show var
 
+-- | Get global variable
 getGvar :: ShortByteString -> Type -> Operand
 getGvar var ty = ConstantOperand $ global ty (Name var)
 
@@ -450,6 +470,7 @@ call' fn args = do -- figure out the signature, and typecast args as necessary
   unnminstr $ Call Nothing CC.C [] (Right fn) (zip tcastOpers attrs) [] []
   -- unnminstr $ Call Nothing CC.C [] (Right fn) args [] []
 
+-- | Allocate memory
 alloca :: Type -> Codegen Operand
 alloca ty = instr ty $ Alloca ty Nothing 0 []
 
@@ -457,6 +478,7 @@ alloca ty = instr ty $ Alloca ty Nothing 0 []
 alloca' :: Type -> Codegen Operand
 alloca' ty = instr (ptr ty) $ Alloca (ptr $ ty) Nothing 0 []
 
+-- | Store to pointer (memory)
 store :: Operand -> Operand -> Codegen ()
 store ptrv val = 
   if (isFloat' ptrv) && (isIntVal $ val) 
@@ -464,6 +486,7 @@ store ptrv val =
        \val' -> unnminstr $ Store False ptrv val' Nothing 0 []
   else unnminstr $ Store False ptrv val Nothing 0 [] 
 
+-- | Load from pointer (memory)
 load :: Type -> Operand -> Codegen Operand
 load ty ptrv = instr (ptr ty) $ Load False ptrv Nothing 0 [] {- ptr -}
 

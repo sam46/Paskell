@@ -1,0 +1,13 @@
+program comments;
+(*
+ This is
+ a multiline
+ comment
+ *)
+begin
+  (* Another comment *)
+  (*
+    This is a (* nested comment in (* a nested comment *) (*
+        *) *)
+   *)
+end.
