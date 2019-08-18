@@ -1,7 +1,7 @@
 program variable;
 var i : integer;
 begin
-  i := 42;
+  i := 42 + 10 - 10;
   writeLn(i);
   if (i > 0) then
     write('YES\n')

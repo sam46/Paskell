@@ -24,6 +24,7 @@ import qualified LLVM.AST.Float as F
 import qualified LLVM.AST.IntegerPredicate as IP
 import qualified LLVM.AST.FloatingPointPredicate as FP
 import LLVM.Analysis
+import LLVM.Transforms
 import LLVM.Internal.PassManager
 import LLVM.AST.Global
 import LLVM.Context
@@ -93,25 +94,51 @@ liftError = runExceptT >=> either fail return
 codegen :: AST.Module -> IR.Program -> IO (AST.Module, String)
 codegen mod pr = withContext $ \context ->
     liftIO $ withModuleFromAST context newast $ \m -> do
-        -- Optimization passes => Segmentation Fault :/
-        {-
-        withPassManager passes $ \pm -> do
-            verify m
-            runPassManager pm m
-        -}
         llstr <- moduleLLVMAssembly m
         return (newast, BS.unpack llstr)
     where 
         newast = runLLVM mod (genProgram pr)
-        {-
-        passes :: PassSetSpec
-        passes = defaultCuratedPassSetSpec { optLevel = Just 1 }
-        -}
+
+-- | Same as codegen, applying optimization passes to generated LLVM module
+codegen' :: AST.Module -> IR.Program -> IO (AST.Module, String)
+codegen' mod pr = withContext $ \context ->
+    liftIO $ withModuleFromAST context newast $ \m -> do
+        withPassManager passes $ \pm -> do
+            runPassManager pm m
+        llstr <- moduleLLVMAssembly m
+        return (newast, BS.unpack llstr)
+    where 
+        newast = runLLVM mod (genProgram pr)
+
+-- | List of LLVM optimization passes
+passes :: PassSetSpec
+passes = defaultPassSetSpec { 
+    transforms = [
+        -- c
+          ConstantPropagation
+        , CorrelatedValuePropagation
+        -- d
+        , DeadCodeElimination
+        , DeadInstructionElimination
+        , DeadStoreElimination
+        -- g
+        , GlobalDeadCodeElimination
+        -- i
+        , InstructionCombining
+        -- l
+        , LoopDeletion
+        -- p
+        , PromoteMemoryToRegister
+        -- s
+        , SimplifyControlFlowGraph
+        , SparseConditionalConstantPropagation
+        , StripSymbols True
+      ]}
 
 -- LLVM-IR given parse tree
 printllvm :: G.Program -> ShortByteString -> IO String
 printllvm ast path = let ir = Conv.convProgram ast in
-    do (llvmast, llstr) <- codegen (emptyModulePath "MainModule" path) ir
+    do (llvmast, llstr) <- codegen' (emptyModulePath "MainModule" path) ir
        return llstr
 
 -------------------------------------------------------------------------------
