@@ -134,6 +134,9 @@ typechkDecl env (DeclProc x params b) = typechkDeclFunc env (DeclFunc x params V
 typechkDecl env (DeclType []) = Right env
 typechkDecl env (DeclType (t:ts)) = let (x,ty) = t in
     (addType env x ty) >>= \e -> typechkDecl e (DeclType ts) 
+typechkDecl env (DeclForwardFunc _ _ _) = error $ "typechkDecl: Not implemented"
+typechkDecl env (DeclForwardProc _ _) = error $ "typechkDecl: Not implemented"
+typechkDecl _ _ = error $ "typechkDecl: Not recognized"
 
 resolveParamsType :: Env -> [(Ident,Type,CallByRef)] -> Either TyErr [(Ident,Type,CallByRef)]
 resolveParamsType env params =
@@ -141,6 +144,9 @@ resolveParamsType env params =
 
 typechkConstDecl :: Env -> ConstDecl -> Either TyErr Env
 typechkConstDecl env _ = error $ "typechkConstDecl: undefined"
+
+typechkForwardDecl :: Env -> Decl -> Either TyErr Env
+typechkForwardDecl env _ = error $ "typechkForwardDecl: undefined"
 
 typechkDeclFunc :: Env -> Decl -> Either TyErr Env
 typechkDeclFunc env (DeclFunc x params t b) =

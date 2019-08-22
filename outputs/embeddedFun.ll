@@ -10,12 +10,12 @@ source_filename = "test/embeddedFun.pcl"
 declare i32 @printf(i8*, ...)
 
 define void @say(i8*) {
-  %2 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @0, i64 0, i64 0), i8* getelementptr inbounds ([18 x i8], [18 x i8]* @1, i64 0, i64 0))
-  %3 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @2, i64 0, i64 0), i8* %0, i8* getelementptr inbounds ([2 x i8], [2 x i8]* @3, i64 0, i64 0))
+  %2 = tail call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @0, i64 0, i64 0), i8* getelementptr inbounds ([18 x i8], [18 x i8]* @1, i64 0, i64 0))
+  %3 = tail call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @2, i64 0, i64 0), i8* %0, i8* getelementptr inbounds ([2 x i8], [2 x i8]* @3, i64 0, i64 0))
   ret void
 }
 
 define i32 @main(i32) {
-  call void @say(i8* getelementptr inbounds ([20 x i8], [20 x i8]* @4, i64 0, i64 0))
+  tail call void @say(i8* getelementptr inbounds ([20 x i8], [20 x i8]* @4, i64 0, i64 0))
   ret i32 %0
 }

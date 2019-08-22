@@ -22,7 +22,7 @@ keywords = [
     -- e
     "else", "end", 
     -- f
-    "for", "function", "file",
+    "for", "function", "file", "forward",
     -- g
     "goto",
     -- h
@@ -42,7 +42,7 @@ keywords = [
     "program", "procedure", "packed",
     -- q
     -- r
-    "real", "repeat", "record",
+    "read", "real", "repeat", "record",
     -- s
     "string", "set",
     -- t
@@ -57,6 +57,7 @@ keywords = [
     -- y
     -- z
     ]
+
 special  = [":=","+","-","*","/","=",
     "<",">","<>","<=",">=","(",")","[",
     "]",",",".",";",":","..","^"]
@@ -123,6 +124,7 @@ parseKWend       = parseReserved "end" KWend
 parseKWfile      = parseReserved "file" KWfile
 parseKWfor       = parseReserved "for" KWfor
 parseKWfunction  = parseReserved "function" KWfunction
+parseKWforward  = parseReserved "forward" KWforward
 -- g
 parseKWgoto      = parseReserved "goto" KWgoto
 -- h
@@ -149,6 +151,7 @@ parseKWprocedure = parseReserved "procedure" KWprocedure
 parseKWprogram   = parseReserved "program" KWprogram
 -- q
 -- r
+parseKWread      = parseReserved "read" KWread
 parseKWreal      = parseReserved "real" KWreal
 parseKWrepeat    = parseReserved "repeat" KWrepeat
 parseKWrecord    = parseReserved "record" KWrecord
@@ -166,8 +169,8 @@ parseKWvar       = parseReserved "var" KWvar
 -- w
 parseKWwhile     = parseReserved "while" KWwhile
 parseKWwith      = parseReserved "with" KWwith
-parseKWwrite     = parseReserved "write" KWreal
-parseKWwriteln   = parseReserved "writeln" KWreal
+parseKWwrite     = parseReserved "write" KWwrite
+parseKWwriteln   = parseReserved "writeln" KWwrite
 -- x
 -- y
 -- z

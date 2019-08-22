@@ -7,6 +7,7 @@ begin
   i[0] := 42;
   s[0] := 'a';
   f[0] := 42.0;
+  
   while (j < 5) do
   begin
     j := j + 1;

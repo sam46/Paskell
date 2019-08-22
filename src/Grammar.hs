@@ -7,9 +7,9 @@ import Data.List (find)
 data Reserved = KWand | KWdownto | KWif | KWor | KWthen
     | KWarray | KWelse | KWin | KWpacked | KWto | KWbegin
     | KWend | KWlabel | KWprocedure | KWtype | KWcase
-    | KWfile | KWmod | KWprogram | KWuntil | KWconst
+    | KWfile | KWmod | KWprogram | KWuntil | KWconst | KWread | KWwrite
     | KWfor | KWnil | KWrecord | KWvar | KWdiv | KWfunction
-    | KWnot | KWrepeat | KWwhile | KWdo | KWgoto | KWof
+    | KWnot | KWrepeat | KWwhile | KWdo | KWgoto | KWof | KWforward
     | KWset | KWwith | KWboolean | KWreal | KWinteger | KWdispose
     | KWstring | KWchar | KWnew deriving (Show, Eq)
 
@@ -35,7 +35,9 @@ type CallByRef = Bool
 data Decl 
     = DeclVar [VarDecl] 
     | DeclType [TypeDecl] 
-    | DeclConst [ConstDecl] 
+    | DeclConst [ConstDecl]
+    | DeclForwardProc Ident [(Ident,Type,CallByRef)]
+    | DeclForwardFunc Ident [(Ident,Type,CallByRef)] Type
     | DeclProc  Ident [(Ident,Type,CallByRef)] Block
     | DeclFunc Ident [(Ident,Type,CallByRef)] Type Block 
     deriving (Show, Eq)

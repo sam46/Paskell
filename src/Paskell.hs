@@ -88,6 +88,7 @@ parseDecl
     <|> (parseDeclVar)      -- variable declaration
     <|> (parseDeclFunc)     -- function declaration
     <|> (parseDeclProc)     -- procedure declaration
+    <|> (parseDeclForward)  -- forward declaration
     -- (DeclConst <$> parseDeclConst)
 
 makeOPparser :: [(String, OP)] -> Parser OP
@@ -282,6 +283,20 @@ parseChar = between (char '\'') (charTok '\'') $
     of Just x  -> return (fromSpecialChar x)
        Nothing -> if c == 'u' then error $ "parseChar: Undefined"  -- todo hex
                   else unexpected ("char literal" ++ [c]))
+
+-- | Parse forward declaration
+parseDeclForward :: Parser Decl
+parseDeclForward = do
+    parseKWforward
+    ty <- try $ parseKWprocedure <|> parseKWfunction
+    f <- parseIdent
+    params <- (try parseFormalParams) <|> (pure [])
+    semicolTok
+    case ty of
+        KWprocedure -> return $ DeclForwardProc f params
+        _  -> do
+            rtype <- parseType
+            return $ DeclForwardFunc f params rtype
 
 -- | Parse a procedure declaration
 parseDeclProc :: Parser Decl 

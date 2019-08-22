@@ -1,0 +1,5 @@
+- [ ] arrays
+- [ ] forward decl
+- [ ] user input
+- [ ] standard library
+- ...

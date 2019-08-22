@@ -15,8 +15,8 @@ define i32 @add(i32, i32, i32) {
 }
 
 define i32 @main(i32) {
-  %2 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @0, i64 0, i64 0), i8* getelementptr inbounds ([9 x i8], [9 x i8]* @1, i64 0, i64 0), i8* getelementptr inbounds ([2 x i8], [2 x i8]* @2, i64 0, i64 0))
-  %3 = call i32 @add(i32 0, i32 1, i32 2)
-  %4 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @3, i64 0, i64 0), i32 %3, i8* getelementptr inbounds ([2 x i8], [2 x i8]* @4, i64 0, i64 0))
+  %2 = tail call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @0, i64 0, i64 0), i8* getelementptr inbounds ([9 x i8], [9 x i8]* @1, i64 0, i64 0), i8* getelementptr inbounds ([2 x i8], [2 x i8]* @2, i64 0, i64 0))
+  %3 = tail call i32 @add(i32 0, i32 1, i32 2)
+  %4 = tail call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @3, i64 0, i64 0), i32 %3, i8* getelementptr inbounds ([2 x i8], [2 x i8]* @4, i64 0, i64 0))
   ret i32 %0
 }

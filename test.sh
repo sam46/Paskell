@@ -34,3 +34,7 @@ echo ''
 echo 'Hello Comment'
 .stack-work/dist/x86_64-linux-tinfo6/Cabal-2.4.0.1/build/Paskell/Paskell -c test/hellocomments.pcl outputs/hellocomments.ll
 echo ''
+
+echo 'Fibonacci Recursive'
+.stack-work/dist/x86_64-linux-tinfo6/Cabal-2.4.0.1/build/Paskell/Paskell -c test/fibonacci.pcl outputs/fibonacci.ll
+echo ''

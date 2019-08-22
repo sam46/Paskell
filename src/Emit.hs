@@ -127,12 +127,16 @@ passes = defaultPassSetSpec {
         , InstructionCombining
         -- l
         , LoopDeletion
+        -- m
+        , MemcpyOptimization
         -- p
         , PromoteMemoryToRegister
         -- s
         , SimplifyControlFlowGraph
         , SparseConditionalConstantPropagation
         , StripSymbols True
+        -- t
+        , TailCallElimination
       ]}
 
 -- LLVM-IR given parse tree
