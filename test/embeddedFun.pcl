@@ -2,6 +2,7 @@ program funfun;
 
 procedure say(s : string);
 begin
+  write('Calling say() ..\n');
   writeLn(s);
 end;
 

@@ -28,8 +28,8 @@ type IdentList = [Ident]
 data Program = Program Ident Block deriving (Show, Eq)
 data Block = Block [Decl] Statement deriving (Show, Eq)
 
-type VarDecl = (Ident, Type) -- var a,b:char; 
-type TypeDecl = (Ident, Type) -- var a,b:char; 
+type VarDecl = (Ident, Type)    -- var a,b:char; 
+type TypeDecl = (Ident, Type)   -- type int = integer; 
 type CallByRef = Bool
 
 data Decl 

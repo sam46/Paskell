@@ -12,23 +12,21 @@ define dso_local i32 @main() #0 {
   store i32 0, i32* %3, align 4
   br label %4
 
-; <label>:4:                                      ; preds = %7, %0
+; <label>:4:                                      ; preds = %8, %0
   %5 = load i32, i32* %3, align 4
-  %6 = icmp slt i32 %5, 5
-  br i1 %6, label %7, label %14
+  %6 = add nsw i32 %5, 1
+  store i32 %6, i32* %3, align 4
+  %7 = icmp slt i32 %5, 5
+  br i1 %7, label %8, label %12
 
-; <label>:7:                                      ; preds = %4
-  %8 = load i32, i32* %3, align 4
+; <label>:8:                                      ; preds = %4
   %9 = load i32, i32* %3, align 4
   %10 = sext i32 %9 to i64
   %11 = getelementptr inbounds [5 x i32], [5 x i32]* %2, i64 0, i64 %10
-  store i32 %8, i32* %11, align 4
-  %12 = load i32, i32* %3, align 4
-  %13 = add nsw i32 %12, 1
-  store i32 %13, i32* %3, align 4
+  store i32 42, i32* %11, align 4
   br label %4
 
-; <label>:14:                                     ; preds = %4
+; <label>:12:                                     ; preds = %4
   ret i32 0
 }
 

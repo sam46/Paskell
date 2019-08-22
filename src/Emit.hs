@@ -56,9 +56,9 @@ toLLVMType t = case t of
     G.TYptr t -> ptr $ toLLVMType t
     G.TYarr (Just sz) ty
         -> case ty of
-            G.TYint   -> arrType sz int
-            G.TYreal  -> arrType sz double
-            G.TYchar  -> arrType sz char
+            G.TYint   -> arrayType sz int
+            G.TYreal  -> arrayType sz double
+            G.TYchar  -> arrayType sz char
             G.TYarr _ _ -> error $ "toLLVMType: 2D Array"
     G.TYarr Nothing ty -> error $ "G.TYarr Nothing " ++ show ty
     _         -> error $ "TYident wasn't resolved.\n" ++ (show t)
@@ -200,7 +200,7 @@ genMain s = genDeclFunc (IR.DeclFunc "main" args (G.TYint) (IR.Block [] s G.Void
 
 genProgram :: IR.Program -> LLVM ()
 genProgram (IR.Program p (IR.Block ds s _) _) = do
-    addDefn printf
+    addDefns [printf, malloc]
     forM ds genDeclGlob
     genMain s
 
@@ -226,6 +226,7 @@ genStatement (IR.Assignment (IR.Designator x _ xt) expr _) = do
                 ptrv <- load (ptr $ void) var {- ptr -}
                 store ptrv rhs
     return defs
+
 -- | Generate IF statements
 genStatement (IR.StatementIf expr s1 ms2 _) = do 
     ifthen <- addBlock "if.then"
@@ -253,6 +254,7 @@ genStatement (IR.StatementIf expr s1 ms2 _) = do
     where s2 = case ms2 of 
                 Nothing -> IR.StatementEmpty
                 Just x  -> x
+
 -- | Generate For Loops
 genStatement (IR.StatementFor x expr1 todownto expr2 s _) = do
     ftest <- addBlock "for.test"
@@ -307,12 +309,14 @@ genStatement (IR.StatementWhile expr s _) = do
     -- exit
     _ <- setBlock wexit
     return $ defs1 ++ defs2 
+
 -- | Generate Procedure calls
 genStatement (IR.ProcCall f xs t) = do
     (args, defs) <- mapM genExpr xs >>= (return . unzip)
     call' (externf fnty (name' f)) (zipWith addParamAttr xs args)
     return $ concat defs
     where fnty = toLLVMfnType (toLLVMType t) (map (toLLVMType . IR.getType) xs)
+
 -- | Generate Write statements
 genStatement (IR.StatementWrite xs' _) = do
     (args, defs) <- mapM genExpr xs >>= (return . unzip)
@@ -321,6 +325,8 @@ genStatement (IR.StatementWrite xs' _) = do
     return $ concat defs
     where fstr = (foldr (++) "" (map (formatstr . IR.getType) xs')) ++ "\00"
           xs = (IR.FactorStr fstr G.TYstr) : xs' -- add printf format string to arguments
+
+genStatement _ = error $ "genStatement: Undefined"
 
 -- | printf format specifiers
 formatstr :: G.Type -> String
@@ -341,7 +347,7 @@ genExpr (IR.FactorReal x _) = return (cons $ C.Float (F.Double x), [])
 genExpr (IR.FactorStr x _)  = do 
     strglobal <- freshStrName
     def <- return $ gstrVal' (name' strglobal) x'
-    (ConstantOperand ptrv) <- getvar (toShortBS strglobal) (ptr $ arrType (length x') char)
+    (ConstantOperand ptrv) <- getvar (toShortBS strglobal) (ptr $ arrayType (length x') char)
     oper <- return $ cons $ C.GetElementPtr True (ptrv) [C.Int 32 0, C.Int 32 0]
     return (oper, [def])
     where x' = if last x /= '\00' then x ++ "\00" else x

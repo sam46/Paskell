@@ -63,9 +63,11 @@ parseDeclType = DeclType <$> ((parseKWtype <?> "expecting keyword 'type'") >>
              return $ zip xs (repeat t)})
      )) <?> "Missing or incorrect type declaration"))
 
+-- | Parse constant declaration
 parseConstDecl :: Parser [ConstDecl]
 parseConstDecl 
-    = error $ "parseConstDecl" -- todo
+    -- parse list of constants: <name> = <value>
+    = error $ "parseConstDecl"
 
 -- | Parse Program definition
 parseProgram :: Parser Program
@@ -208,7 +210,6 @@ parseFor = do
 parseStmtNew :: Parser Statement
 parseStmtNew = do
     parseKWnew
-    -- mbarraySize <- (Just $ try parseSimpleExpr) <|> (pure Nothing)
     mbarraySizeExpr <- optionMaybe $ (try parseSimpleExpr)
     ident <- parseIdent
     return $ StatementNew ident mbarraySizeExpr
@@ -218,7 +219,10 @@ parseStmtNew = do
 parseStmtDispose :: Parser Statement
 parseStmtDispose = do
     parseKWdispose
-    let isArray = True  -- todo: implement isArray.
+    braces <- try $ (charTok '[' >> charTok ']') <|> pure 'N'
+    let isArray = case braces of
+                    'N' -> False
+                    _ -> True
     ident <- parseIdent
     return $ StatementDispose ident isArray
 

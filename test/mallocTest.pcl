@@ -1,0 +1,12 @@
+program malloc;
+
+type iptr = ^integer;
+var  p : iptr;
+     i : integer;
+
+begin
+  i := 0;
+  p := @i;
+  p^ := 42;
+  writeLn(i)
+end.

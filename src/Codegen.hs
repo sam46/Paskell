@@ -124,7 +124,7 @@ gstrVal' :: Name -> String -> Definition
 gstrVal' name val =    
   GlobalDefinition globalVariableDefaults
     { name = name
-    , G.type' = arrType (length val) char
+    , G.type' = arrayType (length val) char
     , linkage = L.Private
     , unnamedAddr = Just GlobalAddr
     , isConstant = True
@@ -132,7 +132,9 @@ gstrVal' name val =
     }
   where constchar c = C.Int 8 (toInteger $ ord c)
 
--- | printf: Internal Function
+-- === External Functions == --
+
+-- | printf: Write to stdout (cstdlib)
 printf :: Definition
 printf = GlobalDefinition $ functionDefaults
   { returnType = int
@@ -142,9 +144,36 @@ printf = GlobalDefinition $ functionDefaults
 
 printfTy :: Type
 printfTy = PointerType {
-  pointerReferent  = (FunctionType int [str] True), 
-  pointerAddrSpace = AddrSpace 0
+    pointerReferent  = (FunctionType int [str] True), 
+    pointerAddrSpace = AddrSpace 0
   }
+
+-- | malloc: Allocate a block in heap space (cstdlib)
+malloc :: Definition
+malloc = GlobalDefinition $ functionDefaults
+  {
+    name = Name "malloc"
+  , parameters = ([Parameter i64 (UnName 0) []], False)
+  -- ^ only for x64. todo: lookup target machine architecture
+  , returnType = ptr i8
+  }
+
+mallocTy :: Type
+mallocTy = PointerType {
+  pointerReferent = (FunctionType (ptr i8) [i64] False)
+, pointerAddrSpace = AddrSpace 0 
+}
+
+-- | free: Deallocate a block from heap space (cstdlib)
+free :: Definition
+free = GlobalDefinition $ functionDefaults
+  {
+    name = Name "free"
+  , parameters = ([Parameter (ptr i8) (UnName 0) []], False)
+  , returnType = VoidType
+  }
+
+-- ======================== --
 
 -- | Construct function type given ret type and signature
 toLLVMfnType :: Type -> [Type] -> Type
@@ -196,8 +225,8 @@ str :: Type
 str = ptr i8
 
 -- | ArrayType
-arrType :: Int -> Type -> Type
-arrType len ty = ArrayType (fromIntegral $ len) ty
+arrayType :: Int -> Type -> Type
+arrayType len ty = ArrayType (fromIntegral $ len) ty
 
 -------------------------------------------------------------------------------
 -- Names
