@@ -166,6 +166,7 @@ parseStatement = choice [parseStmtSeq,         -- statements block
     -- parseCase, parseStmtNew, parseStmtDispose,  -- case, new, dispose
     parseWhile, parseStmtWriteLn,              -- while, writeln
     parseStmtWrite,                            -- write
+    parseStmtRead,
     pure StatementEmpty]                        -- emptyStmtBlock
 
 -- | Parse If expr then stmt1 (else stmt2)?
@@ -243,10 +244,16 @@ parseProcCall = ProcCall <$> parseIdent
 parseStmtMem :: Parser Statement
 parseStmtMem = error $ "parseStmtMem"
 
+-- | Parse Read statement
+parseStmtRead :: Parser Statement
+parseStmtRead = StatementRead <$> (parseKWread >> (betweenCharTok '(' ')' parseDesigList))
+
+-- | Parse Write statement
 parseStmtWrite :: Parser Statement
 parseStmtWrite = StatementWrite <$> (parseKWwrite >>
      ((betweenCharTok '(' ')' parseExprList)))
 
+-- | Parse WriteLn statement
 parseStmtWriteLn :: Parser Statement
 parseStmtWriteLn = StatementWriteLn <$> (parseKWwriteln >>
     ((betweenCharTok '(' ')' parseExprList)))

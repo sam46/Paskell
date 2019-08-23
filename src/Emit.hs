@@ -204,7 +204,7 @@ genMain s = genDeclFunc (IR.DeclFunc "main" args (G.TYint) (IR.Block [] s G.Void
 
 genProgram :: IR.Program -> LLVM ()
 genProgram (IR.Program p (IR.Block ds s _) _) = do
-    addDefns [printf, malloc]
+    addDefns [printf, malloc, scanf]
     forM ds genDeclGlob
     genMain s
 
@@ -314,6 +314,10 @@ genStatement (IR.StatementWhile expr s _) = do
     _ <- setBlock wexit
     return $ defs1 ++ defs2 
 
+
+-- | Generate Read Statements
+genStatement (IR.StatementRead xs' ty') = error $ "genStatement (IR.StatementRead): Not implementeds"
+    
 -- | Generate Procedure calls
 genStatement (IR.ProcCall f xs t) = do
     (args, defs) <- mapM genExpr xs >>= (return . unzip)

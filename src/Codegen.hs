@@ -148,6 +148,20 @@ printfTy = PointerType {
     pointerAddrSpace = AddrSpace 0
   }
 
+-- | scanf: Input from stdin (cstdlib)
+scanf :: Definition
+scanf = GlobalDefinition $ functionDefaults
+  { returnType = int
+  , name = Name "scanf"
+  , parameters = ([Parameter str (UnName 0) []], True)
+  }
+
+scanfTy :: Type
+scanfTy = PointerType {
+  pointerReferent  = (FunctionType int [str] True), 
+  pointerAddrSpace = AddrSpace 0
+}
+
 -- | malloc: Allocate a block in heap space (cstdlib)
 malloc :: Definition
 malloc = GlobalDefinition $ functionDefaults

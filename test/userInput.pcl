@@ -1,0 +1,6 @@
+program userInput;
+var i : integer;
+begin
+  read(i);
+  writeLn(i)
+end.

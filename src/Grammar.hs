@@ -56,7 +56,7 @@ data Statement
     | StatementNew Ident (Maybe Expr)                   -- "new" [ "[" <expr> "]" ] <l-value>
     | StatementDispose Ident Bool
     | StatementEmpty
-    | StatmentRead DesigList
+    | StatementRead DesigList
     | StatementReadLn DesigList
     | StatementWrite ExprList                           -- "goto" <id> 
     | StatementWriteLn ExprList

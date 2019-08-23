@@ -1,14 +1,22 @@
 program fibonacci;
 
+var i : integer;
+
 function fib(n : integer) : integer;
 begin
-  if (n <= 2) then
+  if (n > 2) then
+    fib := fib(n - 1) + fib(n - 2)
+  else
     fib := 1;
-  fib := fib(n - 1) + fib(n - 2);
 end;
 
 begin
 
-  writeLn(fib(2))
+  writeLn('Generating fibonacci sequence: ');
+  while (i < 30) do
+  begin
+    i := i + 1;
+    writeLn(fib(i));
+  end;
 
 end.

@@ -86,6 +86,7 @@ convDecls env (d:ds) = let
     (irds, env'') = convDecls env' ds in
     (ird:irds, env'')
 
+-- | Convert Decl to IR.Decl
 convDecl :: Env -> Decl -> (IR.Decl, Env)
 convDecl env (DeclVar xs) = let
     xs' =  map (\(x,t) -> (x, lookupType env t)) xs
@@ -119,23 +120,34 @@ resolveParamsType env params = map (\(x,t,b) -> (x,lookupType env t,b)) params
 convStatement :: Env -> Statement -> IR.Statement
 convStatement env (Assignment des expr) =  -- Assignment
     IR.Assignment (convDesignator env des) (convExpr env expr) Void
+
 -- | StatementIf
 convStatement env (StatementIf expr s1 ms2) =
     IR.StatementIf (convExpr env expr) (convStatement env s1) ((convStatement env) <$> ms2) Void
+
 -- | StatementFor
 convStatement env (StatementFor i x1 b x2 s) = -- todo: add i to s's env?
     IR.StatementFor i (convExpr env x1) b (convExpr env x2) (convStatement env s) Void
+
 -- | StatementWhile
 convStatement env (StatementWhile expr s) = 
     IR.StatementWhile (convExpr env expr) (convStatement env s) Void
+
 -- | StatementEmpty
 convStatement env StatementEmpty = IR.StatementEmpty
+
 -- | StatementSeq
 convStatement env (StatementSeq xs) = IR.StatementSeq (map (convStatement env) xs) Void
+
+-- | StatementRead (todo)
+convStatement env (StatementRead xs) = error $ "convStatement (StatementRead): Not implemented"
+
 -- | StatementWrite
 convStatement env (StatementWrite xs) = IR.StatementWrite (map (convExpr env) xs) Void
+
 -- | StatementWriteLn: Append NEWLINE at the end of string
 convStatement env (StatementWriteLn xs) = convStatement env (StatementWrite $ xs ++ [FactorStr "\n"])
+
 -- ProcCall
 convStatement env (ProcCall f args) = 
     IR.ProcCall f args''' Void
@@ -148,6 +160,7 @@ convStatement env (ProcCall f args) =
                 else let IR.FactorDesig x factty = expr'
                      in  IR.FactorDesig x (TYptr factty) 
 
+-- | Convert Designator to IR.Designator
 convDesignator :: Env -> Designator -> IR.Designator
 convDesignator env (Designator x _) = IR.Designator x [] (lookupVar env x) 
 
@@ -214,7 +227,7 @@ convExpr env (Mult x1 op x2) = let
         | otherwise = TYbool
     in IR.Mult x1' op x2' t
 
-
+-- | Typecheck program
 chkConvProgram :: Program -> Either TyErr IR.Program
 chkConvProgram p = case typechkProgram p of
     Left err -> Left err
