@@ -100,15 +100,16 @@ parseOPadd      = {-OPadd      <$>-} makeOPparser addops
 parseOPmult     = {-OPmult     <$>-} makeOPparser multops
 parseOPrelation = {-OPrelation <$>-} makeOPparser relationops
 
+-- | Parse Designator
 parseDesignator :: Parser Designator
 parseDesignator = Designator <$> parseIdent <*> try (many parseDesigProp)
 
+-- | Parse Designator Property
 parseDesigProp :: Parser DesigProp
 parseDesigProp =
     (charTok '.' >> DesigPropIdent <$> parseIdent) <|>
     (charTok '^' >> return DesigPropPtr)           <|>
-    (DesigPropExprList <$> betweenCharTok 
-        '[' ']' parseExprList1)
+    (DesigPropExprList <$> betweenCharTok '[' ']' parseExprList1)
 
 parseDesigList :: Parser DesigList
 parseDesigList = DesigList <$> many1 parseDesignator
@@ -119,11 +120,13 @@ parseExprList1 = sepBy1 parseExpr commaTok
 parseExprList :: Parser ExprList -- non-empty
 parseExprList = sepBy parseExpr commaTok
 
+-- | Parse Expression
 parseExpr :: Parser Expr
-parseExpr = (try $ Relation <$> 
-        parseSimpleExpr <*> parseOPrelation <*> parseSimpleExpr)
+parseExpr 
+     = (try $ Relation <$> parseSimpleExpr <*> parseOPrelation <*> parseSimpleExpr)
     <|> parseSimpleExpr
 
+-- | Parse Simple Expression
 parseSimpleExpr :: Parser Expr
 parseSimpleExpr = (try simpleAdd)
     <|> (try $ Unary <$> parseOPunary <*> simpleAdd)
@@ -131,15 +134,16 @@ parseSimpleExpr = (try simpleAdd)
     <|> parseTerm
     where simpleAdd = Add <$> parseTerm <*> parseOPadd <*> parseSimpleExpr
 
+-- | Parse Term
 parseTerm :: Parser Expr
-parseTerm = (try $ Mult <$> 
-        parseFactor <*> parseOPmult <*> parseTerm)
+parseTerm 
+     = (try $ Mult <$> parseFactor <*> parseOPmult <*> parseTerm)
     <|> parseFactor
 
 -- | Parse Factors
 parseFactor :: Parser Expr
-parseFactor = 
-        (parseKWnil >> return FactorNil)
+parseFactor
+     =  (parseKWnil >> return FactorNil)
     <|> (parseKWnot >> FactorNot <$> parseFactor)
     <|> (exactTok "true"  >> return FactorTrue) -- todo double check exactTok is the right choice
     <|> (exactTok "false" >> return FactorFalse) 

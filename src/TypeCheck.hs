@@ -164,7 +164,7 @@ typechkStatement env (Assignment (Designator x _) expr) = -- todo: assignment to
            || (xtype == TYstr && t == TYchar)
            || (xtype == TYreal && t == TYint)
         then Right env
-        else if (isArray xtype && getArrType xtype == t)
+        else if (isArray xtype && getArrayType xtype == t)
             then Right env
         else Left $ TypeMismatch xtype t
         where
@@ -172,10 +172,10 @@ typechkStatement env (Assignment (Designator x _) expr) = -- todo: assignment to
             isArray (TYarr _ _) = True
             isArray _ = False
             -- | Get array type
-            getArrType :: Type -> Type
-            getArrType (TYarr _ ty) = getArrType ty
-            getArrType (TYptr ty) = getArrType ty
-            getArrType ty = ty
+            getArrayType :: Type -> Type
+            getArrayType (TYarr _ ty) = getArrayType ty
+            getArrayType (TYptr ty) = getArrayType ty
+            getArrayType ty = ty
 
 typechkStatement env (StatementIf expr s1 ms2) =
     gettype env expr >>= \t ->

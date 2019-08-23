@@ -7,26 +7,15 @@ target triple = "x86_64-pc-linux-gnu"
 define dso_local i32 @main() #0 {
   %1 = alloca i32, align 4
   %2 = alloca [5 x i32], align 16
-  %3 = alloca i32, align 4
   store i32 0, i32* %1, align 4
-  store i32 0, i32* %3, align 4
-  br label %4
-
-; <label>:4:                                      ; preds = %8, %0
-  %5 = load i32, i32* %3, align 4
-  %6 = add nsw i32 %5, 1
-  store i32 %6, i32* %3, align 4
-  %7 = icmp slt i32 %5, 5
-  br i1 %7, label %8, label %12
-
-; <label>:8:                                      ; preds = %4
-  %9 = load i32, i32* %3, align 4
-  %10 = sext i32 %9 to i64
-  %11 = getelementptr inbounds [5 x i32], [5 x i32]* %2, i64 0, i64 %10
-  store i32 42, i32* %11, align 4
-  br label %4
-
-; <label>:12:                                     ; preds = %4
+  %3 = getelementptr inbounds [5 x i32], [5 x i32]* %2, i64 0, i64 0
+  store i32 1, i32* %3, align 16
+  %4 = getelementptr inbounds [5 x i32], [5 x i32]* %2, i64 0, i64 1
+  store i32 2, i32* %4, align 4
+  %5 = getelementptr inbounds [5 x i32], [5 x i32]* %2, i64 0, i64 2
+  store i32 3, i32* %5, align 8
+  %6 = getelementptr inbounds [5 x i32], [5 x i32]* %2, i64 0, i64 3
+  store i32 4, i32* %6, align 4
   ret i32 0
 }
 
