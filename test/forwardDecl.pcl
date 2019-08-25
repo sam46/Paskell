@@ -1,7 +1,0 @@
-program fd;
-
-forward procedure test();
-
-begin
-
-end.

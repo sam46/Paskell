@@ -20,7 +20,7 @@ data OP = OPplus | OPminus | OPstar | OPdiv | OPidiv | OPmod
 
 data Type = TYident Ident | TYbool
     | TYint | TYreal | TYchar | TYstr 
-    | TYptr Type | TYarr (Maybe Int) Type | Void
+    | TYptr Type | TYarr Int Type | Void
     deriving (Show, Eq, Ord)
 
 type Ident = String 

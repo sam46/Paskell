@@ -36,6 +36,7 @@ import qualified ConvertIR as Conv
 import qualified Intermediate as IR
 import Codegen
 
+import Data.Maybe (fromMaybe)
 
 -------------------------------------------------------------------------------
 -- Type conversions
@@ -54,13 +55,12 @@ toLLVMType t = case t of
     G.TYstr   -> str
     G.TYchar  -> char
     G.TYptr t -> ptr $ toLLVMType t
-    G.TYarr (Just sz) ty
+    G.TYarr sz ty
         -> case ty of
             G.TYint   -> arrayType sz int
             G.TYreal  -> arrayType sz double
             G.TYchar  -> arrayType sz char
             G.TYarr _ _ -> error $ "toLLVMType: 2D Array"
-    G.TYarr Nothing ty -> error $ "G.TYarr Nothing " ++ show ty
     _         -> error $ "TYident wasn't resolved.\n" ++ (show t)
 
 -- add ParameterAtribute to an argument given the argument and 
@@ -202,7 +202,7 @@ genMain s = genDeclFunc (IR.DeclFunc "main" args (G.TYint) (IR.Block [] s G.Void
 
 genProgram :: IR.Program -> LLVM ()
 genProgram (IR.Program p (IR.Block ds s _) _) = do
-    addDefns [printf, malloc, scanf]
+    addDefns [printf, malloc, scanf, free]
     forM ds genDeclGlob
     genMain s
 
@@ -317,7 +317,6 @@ genStatement (IR.StatementWhile expr s _) = do
 genStatement (IR.StatementRead d@(IR.Designator des desprop desty) ty) = do
     let expr' = (IR.FactorStr (formatstr' ty) G.TYstr) : [IR.FactorDesig d (G.TYptr ty)]
     (args, defs) <- mapM genExpr expr' >>= (return . unzip)
-    let ty = toLLVMType desty
     callNoCast (externf scanfTy (name' "scanf")) (zipWith addParamAttr expr' args)
     return $ concat defs
     
@@ -337,19 +336,28 @@ genStatement (IR.StatementWrite xs' _) = do
     where fstr = (foldr (++) "" (map (formatstr . IR.getType) xs')) ++ "\00"
           xs = (IR.FactorStr fstr G.TYstr) : xs' -- add printf format string to arguments
 
+-- | Generate New statements
+genStatement (IR.StatementNew ident expr ty) = do
+    error $ "genStatement (IR.StatementNew): Not implemented"
+
+-- | Generate Dispose statements
+genStatement (IR.StatementDispose ident isArrayType ty) = do
+    error $ "genStatement (IR.StatementDispose): Not implemented"
+
 genStatement _ = error $ "genStatement: Undefined"
 
 -- | printf format specifiers
 formatstr :: G.Type -> String
-formatstr G.TYint  = "%d"
-formatstr G.TYstr  = "%s"
-formatstr G.TYreal = "%lf"
-formatstr G.TYbool = "%d"
-formatstr G.TYchar = "%c"
+formatstr (G.TYint)   = "%d"
+formatstr (G.TYstr)   = "%s"
+formatstr (G.TYreal)  = "%lf"
+formatstr (G.TYbool)  = "%d"
+formatstr (G.TYchar)  = "%c"
+formatstr (G.TYptr _) = "%p"
 
--- | scanff format specifiers
+-- | scanf format specifiers
 formatstr' :: G.Type -> String
-formatstr' G.TYchar = " %c"
+formatstr' G.TYchar = " %c"     -- discard newline
 formatstr' t = formatstr t
 
 -------------------------------------------------------------------------------

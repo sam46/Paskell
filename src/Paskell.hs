@@ -26,7 +26,16 @@ parseArrayDecl = tok . try $ do
     mbsz <- optionMaybe $ betweenCharTok '[' ']' (many1 digit)
     exactTok "of"
     ty <- parseType
-    return $ TYarr (read <$> mbsz) ty
+    case mbsz of
+        Just sz -> return $ TYarr ((read :: String -> Int) sz) ty
+        _ -> return $ TYptr ty
+
+-- | Parse Pointer Declaration
+parsePtrDecl :: Parser Type
+parsePtrDecl = tok . try $ do
+    charTok '^'
+    ty <- parseType
+    return $ TYptr ty
 
 -- | Parse Type
 parseType :: Parser Type
@@ -37,7 +46,8 @@ parseType = tok $
     (TYreal  <$  stringIgnoreCase "real")     <|>
     (TYchar  <$  stringIgnoreCase "char")     <|>
     (TYstr   <$  stringIgnoreCase "string")   <|>
-    parseArrayDecl
+    parseArrayDecl                            <|>
+    parsePtrDecl
 
 
 -- | Parse Identifier List
@@ -164,14 +174,14 @@ parseStmtSeq = parseKWbegin
 -- | Parse a statement
 parseStatement :: Parser Statement 
 parseStatement = choice [parseStmtSeq,         -- statements block
-    (try parseAssignment),                      -- assignment
-    (try parseProcCall),                        -- procedure call
-    parseIf, parseFor,                          -- if, for
-    -- parseCase, parseStmtNew, parseStmtDispose,  -- case, new, dispose
+    (try parseAssignment),                     -- assignment
+    (try parseProcCall),                       -- procedure call
+    parseIf, parseFor,                         -- if, for
+    parseStmtNew, parseStmtDispose,            -- new, dispose
     parseWhile, parseStmtWriteLn,              -- while, writeln
     parseStmtWrite,                            -- write
-    parseStmtRead,
-    pure StatementEmpty]                        -- emptyStmtBlock
+    parseStmtRead,                             -- read 
+    pure StatementEmpty]                       -- emptyStmtBlock
 
 -- | Parse If expr then stmt1 (else stmt2)?
 parseIf :: Parser Statement
@@ -216,7 +226,8 @@ parseFor = do
 parseStmtNew :: Parser Statement
 parseStmtNew = do
     parseKWnew
-    mbarraySizeExpr <- optionMaybe $ (try parseSimpleExpr)
+    mbarraySizeExpr <- optionMaybe $ betweenCharTok '[' ']' parseSimpleExpr
+    -- mbarraySizeExpr <- optionMaybe $ (try parseSimpleExpr)
     ident <- parseIdent
     return $ StatementNew ident mbarraySizeExpr
 
@@ -244,9 +255,6 @@ parseProcCall :: Parser Statement
 parseProcCall = ProcCall <$> parseIdent 
     <*> ((betweenCharTok '(' ')' parseExprList) 
          <|> pure [])
-
-parseStmtMem :: Parser Statement
-parseStmtMem = error $ "parseStmtMem"
 
 -- | Parse Read statement
 parseStmtRead :: Parser Statement

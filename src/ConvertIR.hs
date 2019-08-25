@@ -5,6 +5,8 @@ import qualified Intermediate as IR
 import Paskell (parseProgram, parseDecl)
 import TypeCheck (typechkProgram, TyErr, typechkDecl)
 
+import Data.Maybe (fromJust)
+
 import Text.Parsec
 import Text.Parsec.String
 import Text.Parsec.Combinator
@@ -148,6 +150,18 @@ convStatement env (StatementWrite xs) = IR.StatementWrite (map (convExpr env) xs
 
 -- | StatementWriteLn: Append NEWLINE at the end of string
 convStatement env (StatementWriteLn xs) = convStatement env (StatementWrite $ xs ++ [FactorStr "\n"])
+
+-- | StatementNew: Allocate a block of memory in heap
+convStatement env (StatementNew ident mbexpr) =
+        IR.StatementNew ident (map (convExpr env) expr) (TYptr TYchar)
+        where
+            expr = case mbexpr of
+                    Just x -> [x]
+                    _ -> []
+
+-- | StatementNew: Allocate a block of memory in heap
+convStatement env (StatementDispose ident tyArray) =
+    IR.StatementDispose ident tyArray Void
 
 -- ProcCall
 convStatement env (ProcCall f args) = 

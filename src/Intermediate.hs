@@ -28,8 +28,8 @@ data Statement
     | StatementWhile Expr Statement Type
     | StatementRepeat Statement Expr Type
     | StatementFor Ident Expr ToDownTo Expr Statement Type
-    | StatementNew Ident Type
-    | StatementDispose Ident Type
+    | StatementNew Ident [Expr] Type
+    | StatementDispose Ident Bool Type
     | StatementEmpty
     | StatementRead Designator Type
     | StatementWrite ExprList Type

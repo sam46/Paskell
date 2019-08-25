@@ -24,7 +24,7 @@ data TyErr
     | CondTypeMismatch Type
     | VarRedecl Ident
     | FuncRedecl Ident
-    | VaraibleArgExpected Expr
+    | VariableArgExpected Expr
     | TypeRedecl Ident
     | UnknownType Ident 
     deriving (Show, Eq)
@@ -248,20 +248,26 @@ matchArgFormal :: Env -> Expr -> (Type, Bool) -> Either TyErr Type
 matchArgFormal env expr (ty, callbyref) = gettype env expr >>= \exprT -> 
     if callbyref 
     then -- has to be a Designator of the exact same type
-        if   ty /= exprT
+        if   not (isSynonym ty exprT)
         then Left $ ArgTypeMismatch ty exprT
         else if (not $ isFactorDesig expr) && callbyref -- a CallByRef argument has to be a FactorDesig 
-        then Left $ VaraibleArgExpected expr
+        then Left $ VariableArgExpected expr
         else Right ty
     else -- typecasts
         if   ty == exprT
              || (ty == TYreal && exprT == TYint)
-             || (ty == TYstr  && exprT == TYchar)
+             || (ty == TYstr  && exprT == TYptr TYchar)
+             || (ty == TYptr TYchar && exprT == TYstr)
         then Right ty
         else Left $ ArgTypeMismatch ty exprT
-    where isFactorDesig a = case a of
+    where 
+        isFactorDesig a = case a of
             FactorDesig _ -> True
             _             -> False
+
+        isSynonym (TYptr TYchar) TYstr = True
+        isSynonym TYstr (TYptr TYchar) = True
+        isSynonym ty ty' = ty == ty'
 
 -- | Tail that doesn't fail on empty lists
 tail' [] = []
