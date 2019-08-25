@@ -315,7 +315,7 @@ genStatement (IR.StatementWhile expr s _) = do
 
 -- | Generate Read Statements
 genStatement (IR.StatementRead d@(IR.Designator des desprop desty) ty) = do
-    let expr' = (IR.FactorStr "%d" G.TYstr) : [IR.FactorDesig d (G.TYptr ty)]
+    let expr' = (IR.FactorStr (formatstr' ty) G.TYstr) : [IR.FactorDesig d (G.TYptr ty)]
     (args, defs) <- mapM genExpr expr' >>= (return . unzip)
     let ty = toLLVMType desty
     callNoCast (externf scanfTy (name' "scanf")) (zipWith addParamAttr expr' args)
@@ -346,6 +346,11 @@ formatstr G.TYstr  = "%s"
 formatstr G.TYreal = "%lf"
 formatstr G.TYbool = "%d"
 formatstr G.TYchar = "%c"
+
+-- | scanff format specifiers
+formatstr' :: G.Type -> String
+formatstr' G.TYchar = " %c"
+formatstr' t = formatstr t
 
 -------------------------------------------------------------------------------
 -- Expressions

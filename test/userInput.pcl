@@ -1,6 +1,9 @@
 program userInput;
 var i : integer;
+var c : char;
 begin
   read(i);
-  writeLn(i)
+  writeLn(i);
+  read(c);
+  writeLn(c)
 end.
