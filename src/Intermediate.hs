@@ -31,8 +31,7 @@ data Statement
     | StatementNew Ident Type
     | StatementDispose Ident Type
     | StatementEmpty
-    | StatementRead DesigList Type
-    | StatementReadLn DesigList Type
+    | StatementRead Designator Type
     | StatementWrite ExprList Type
     deriving (Eq) 
 

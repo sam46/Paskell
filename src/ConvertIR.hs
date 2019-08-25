@@ -118,7 +118,8 @@ resolveParamsType env params = map (\(x,t,b) -> (x,lookupType env t,b)) params
 
 -- | Convert Statement to IR.Statement
 convStatement :: Env -> Statement -> IR.Statement
-convStatement env (Assignment des expr) =  -- Assignment
+-- | Assignment
+convStatement env (Assignment des expr) =
     IR.Assignment (convDesignator env des) (convExpr env expr) Void
 
 -- | StatementIf
@@ -139,8 +140,8 @@ convStatement env StatementEmpty = IR.StatementEmpty
 -- | StatementSeq
 convStatement env (StatementSeq xs) = IR.StatementSeq (map (convStatement env) xs) Void
 
--- | StatementRead (todo)
-convStatement env (StatementRead xs) = error $ "convStatement (StatementRead): Not implemented"
+-- | StatementRead
+convStatement env (StatementRead x@(Designator x' _)) = IR.StatementRead (convDesignator env x) (lookupVar env x')
 
 -- | StatementWrite
 convStatement env (StatementWrite xs) = IR.StatementWrite (map (convExpr env) xs) Void

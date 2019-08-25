@@ -11,7 +11,8 @@ data Reserved = KWand | KWdownto | KWif | KWor | KWthen
     | KWfor | KWnil | KWrecord | KWvar | KWdiv | KWfunction
     | KWnot | KWrepeat | KWwhile | KWdo | KWgoto | KWof | KWforward
     | KWset | KWwith | KWboolean | KWreal | KWinteger | KWdispose
-    | KWstring | KWchar | KWnew deriving (Show, Eq)
+    | KWstring | KWchar | KWnew
+    deriving (Show, Eq)
 
 data OP = OPplus | OPminus | OPstar | OPdiv | OPidiv | OPmod
     | OPand | OPeq | OPneq | OPless | OPgreater | OPle | OPge
@@ -25,8 +26,10 @@ data Type = TYident Ident | TYbool
 type Ident = String 
 type IdentList = [Ident]
 
-data Program = Program Ident Block deriving (Show, Eq)
-data Block = Block [Decl] Statement deriving (Show, Eq)
+data Program = Program Ident Block 
+             deriving (Show, Eq)
+data Block = Block [Decl] Statement
+            deriving (Show, Eq)
 
 type VarDecl = (Ident, Type)    -- var a,b:char; 
 type TypeDecl = (Ident, Type)   -- type int = integer; 
@@ -42,7 +45,8 @@ data Decl
     | DeclFunc Ident [(Ident,Type,CallByRef)] Type Block 
     deriving (Show, Eq)
 
-data ConstDecl = ConstDecl deriving (Show, Eq) -- todo 
+data ConstDecl = ConstDecl 
+                deriving (Show, Eq) -- todo 
 
 data Statement 
     = StatementSeq [Statement] 
@@ -56,8 +60,7 @@ data Statement
     | StatementNew Ident (Maybe Expr)                   -- "new" [ "[" <expr> "]" ] <l-value>
     | StatementDispose Ident Bool
     | StatementEmpty
-    | StatementRead DesigList
-    | StatementReadLn DesigList
+    | StatementRead Designator
     | StatementWrite ExprList                           -- "goto" <id> 
     | StatementWriteLn ExprList
     | StatementGoTo Ident 
@@ -65,9 +68,11 @@ data Statement
 
 type ToDownTo = Bool
 
-data Designator = Designator Ident [DesigProp] deriving (Show, Eq)
+data Designator = Designator Ident [DesigProp]
+                deriving (Show, Eq)
 
-data DesigList = DesigList [Designator] deriving (Show, Eq)
+data DesigList = DesigList [Designator]
+                deriving (Show, Eq)
 
 data DesigProp 
     = DesigPropIdent Ident 

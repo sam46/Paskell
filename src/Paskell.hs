@@ -250,7 +250,7 @@ parseStmtMem = error $ "parseStmtMem"
 
 -- | Parse Read statement
 parseStmtRead :: Parser Statement
-parseStmtRead = StatementRead <$> (parseKWread >> (betweenCharTok '(' ')' parseDesigList))
+parseStmtRead = StatementRead <$> (parseKWread >> (betweenCharTok '(' ')' parseDesignator))
 
 -- | Parse Write statement
 parseStmtWrite :: Parser Statement

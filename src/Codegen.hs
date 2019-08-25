@@ -105,9 +105,11 @@ gvar' ty name  =
     , initializer = defaultInitializer ty
     }
   where
+    -- zero initializer
+    defaultInitializer :: Type -> Maybe C.Constant
     defaultInitializer (IntegerType _) = Just $ C.Int 32 0
     defaultInitializer (FloatingPointType _) = Just $ C.Float (F.Double 0.0)
-    defaultInitializer (PointerType _ _) = Nothing
+    defaultInitializer (PointerType ty _) = Just $ C.Null (ptr $ ty)
     defaultInitializer (ArrayType sz ty)
       = case ty of 
           IntegerType bits' -> Just (C.Array int $ C.Int (fromIntegral $ bits') <$> (take (fromIntegral $ sz) $ repeat 0))
@@ -131,63 +133,6 @@ gstrVal' name val =
     , initializer = Just $ C.Array (i8) (map constchar val)
     }
   where constchar c = C.Int 8 (toInteger $ ord c)
-
--- === External Functions == --
-
--- | printf: Write to stdout (cstdlib)
-printf :: Definition
-printf = GlobalDefinition $ functionDefaults
-  { returnType = int
-  , name = Name "printf"
-  , parameters = ([Parameter str (UnName 0) []], True)
-  }
-
-printfTy :: Type
-printfTy = PointerType {
-    pointerReferent  = (FunctionType int [str] True), 
-    pointerAddrSpace = AddrSpace 0
-  }
-
--- | scanf: Input from stdin (cstdlib)
-scanf :: Definition
-scanf = GlobalDefinition $ functionDefaults
-  { returnType = int
-  , name = Name "scanf"
-  , parameters = ([Parameter str (UnName 0) []], True)
-  }
-
-scanfTy :: Type
-scanfTy = PointerType {
-  pointerReferent  = (FunctionType int [str] True), 
-  pointerAddrSpace = AddrSpace 0
-}
-
--- | malloc: Allocate a block in heap space (cstdlib)
-malloc :: Definition
-malloc = GlobalDefinition $ functionDefaults
-  {
-    name = Name "malloc"
-  , parameters = ([Parameter i64 (UnName 0) []], False)
-  -- ^ only for x64. todo: lookup target machine architecture
-  , returnType = ptr i8
-  }
-
-mallocTy :: Type
-mallocTy = PointerType {
-  pointerReferent = (FunctionType (ptr i8) [i64] False)
-, pointerAddrSpace = AddrSpace 0 
-}
-
--- | free: Deallocate a block from heap space (cstdlib)
-free :: Definition
-free = GlobalDefinition $ functionDefaults
-  {
-    name = Name "free"
-  , parameters = ([Parameter (ptr i8) (UnName 0) []], False)
-  , returnType = VoidType
-  }
-
--- ======================== --
 
 -- | Construct function type given ret type and signature
 toLLVMfnType :: Type -> [Type] -> Type
@@ -598,3 +543,61 @@ extractParams (ConstantOperand (C.GlobalReference fn _)) =
 -- | Extract function return type
 extractFnRetType (ConstantOperand (C.GlobalReference fn _)) =
   case fn of (PointerType (FunctionType t _ _) _) -> t
+
+
+-- === External Functions == --
+
+-- | printf: Write to stdout (cstdlib)
+printf :: Definition
+printf = GlobalDefinition $ functionDefaults
+  { returnType = int
+  , name = Name "printf"
+  , parameters = ([Parameter str (UnName 0) []], True)
+  }
+
+printfTy :: Type
+printfTy = PointerType {
+    pointerReferent  = (FunctionType int [str] True), 
+    pointerAddrSpace = AddrSpace 0
+  }
+
+-- | scanf: Input from stdin (cstdlib)
+scanf :: Definition
+scanf = GlobalDefinition $ functionDefaults
+  { returnType = int
+  , name = Name "scanf"
+  , parameters = ([Parameter str (UnName 0) []], True)
+  }
+
+scanfTy :: Type
+scanfTy = PointerType {
+  pointerReferent  = (FunctionType int [str] True), 
+  pointerAddrSpace = AddrSpace 0
+}
+
+-- | malloc: Allocate a block in heap space (cstdlib)
+malloc :: Definition
+malloc = GlobalDefinition $ functionDefaults
+  {
+    name = Name "malloc"
+  , parameters = ([Parameter i64 (UnName 0) []], False)
+  -- ^ only for x64. todo: lookup target machine architecture
+  , returnType = ptr i8
+  }
+
+mallocTy :: Type
+mallocTy = PointerType {
+  pointerReferent = (FunctionType (ptr i8) [i64] False)
+, pointerAddrSpace = AddrSpace 0 
+}
+
+-- | free: Deallocate a block from heap space (cstdlib)
+free :: Definition
+free = GlobalDefinition $ functionDefaults
+  {
+    name = Name "free"
+  , parameters = ([Parameter (ptr i8) (UnName 0) []], False)
+  , returnType = VoidType
+  }
+
+-- ======================== --

@@ -93,6 +93,7 @@ addFunc (sigs, ctx, tctx) (x, rest) =
         Just _   -> Left $ FuncRedecl x
         Nothing  -> Right ((x, rest) : sigs, ctx, tctx)
 
+-- | Add type of Identifier to Environment
 addType :: Env -> Ident -> Type -> Either TyErr Env
 addType (sig, ctx, (c:cs)) x t = if typeInContext c x
     then Left $ TypeRedecl x
@@ -105,6 +106,7 @@ addType env x t = error $ (show env) ++ (show x) ++ (show t)
 -- pickLeft x y = if isLeft x then x else y
 -- fromRight (Right x) = x
 
+-- | Is numerical type
 isNum :: Type -> Bool
 isNum (TYarr _ TYint) = True
 isNum (TYarr _ TYreal) = True
@@ -123,19 +125,30 @@ typechkDecls env (d:ds) =
     typechkDecl env d >>= \e -> typechkDecls e ds
 
 typechkDecl :: Env -> Decl -> Either TyErr Env
+-- | DeclVar
 typechkDecl env (DeclVar []) = Right env
 typechkDecl env (DeclVar (d:ds)) = let (x,t) = d in
     lookupType env t >>= \r ->
-    (addVar env x r) >>= \e -> typechkDecl e (DeclVar ds) 
+    (addVar env x r) >>= \e -> typechkDecl e (DeclVar ds)
+
+-- | DeclFunc
 typechkDecl env (DeclFunc x params t b) = lookupType env t >>= \r ->
     typechkDeclFunc env (DeclFunc x params' r b)
     where params' = (x,t,False) : params -- added hidden variable for return value dummy
+
+-- | DeclProc
 typechkDecl env (DeclProc x params b) = typechkDeclFunc env (DeclFunc x params Void b)
+
+-- | DeclType
 typechkDecl env (DeclType []) = Right env
 typechkDecl env (DeclType (t:ts)) = let (x,ty) = t in
-    (addType env x ty) >>= \e -> typechkDecl e (DeclType ts) 
-typechkDecl env (DeclForwardFunc _ _ _) = error $ "typechkDecl: Not implemented"
-typechkDecl env (DeclForwardProc _ _) = error $ "typechkDecl: Not implemented"
+    (addType env x ty) >>= \e -> typechkDecl e (DeclType ts)
+
+-- | DeclForward
+typechkDecl env (DeclForwardFunc _ _ _) = error $ "typechkDecl: Forward Function Not implemented"
+typechkDecl env (DeclForwardProc _ _) = error $ "typechkDecl: Forward Procedure Not implemented"
+
+-- | Unknown
 typechkDecl _ _ = error $ "typechkDecl: Not recognized"
 
 resolveParamsType :: Env -> [(Ident,Type,CallByRef)] -> Either TyErr [(Ident,Type,CallByRef)]
@@ -156,8 +169,8 @@ typechkDeclFunc env (DeclFunc x params t b) =
         typechkDecls (newBlock e) (map (\(i,ty,_) -> DeclVar [(i, ty)]) resParams) >>= \e2 ->
             typechkBlock e2 b >> Right e
 
-
 typechkStatement :: Env -> Statement -> Either TyErr Env
+-- | Assignment
 typechkStatement env (Assignment (Designator x _) expr) = -- todo: assignment to array
     gettype env expr >>= \t -> lookupVar env x >>= \xtype -> do
         if xtype == t                      
@@ -167,16 +180,8 @@ typechkStatement env (Assignment (Designator x _) expr) = -- todo: assignment to
         else if (isArray xtype && getArrayType xtype == t)
             then Right env
         else Left $ TypeMismatch xtype t
-        where
-            isArray :: Type -> Bool
-            isArray (TYarr _ _) = True
-            isArray _ = False
-            -- | Get array type
-            getArrayType :: Type -> Type
-            getArrayType (TYarr _ ty) = getArrayType ty
-            getArrayType (TYptr ty) = getArrayType ty
-            getArrayType ty = ty
 
+-- | If
 typechkStatement env (StatementIf expr s1 ms2) =
     gettype env expr >>= \t ->
         if t /= TYbool 
@@ -187,6 +192,7 @@ typechkStatement env (StatementIf expr s1 ms2) =
             Just tchk2 -> tchk1 >> tchk2 >> Right env  
             Nothing    -> tchk1 >> Right env
 
+-- | For
 typechkStatement env (StatementFor i x1 _ x2 s) = -- todo: add i to s's env?
     lookupVar env i >>= \t -> 
         if (t /= TYint) && (t /= TYchar)
@@ -199,21 +205,34 @@ typechkStatement env (StatementFor i x1 _ x2 s) = -- todo: add i to s's env?
                 then Left $ TypeMismatch t t2 
                 else typechkStatement env s
 
+-- | While
 typechkStatement env (StatementWhile expr s) = 
     gettype env expr >>= \t -> 
     if t /= TYbool then Left $ CondTypeMismatch t
     else typechkStatement env s
 
+-- | Empty
 typechkStatement env StatementEmpty = Right env
 
+-- | Block
 typechkStatement env (StatementSeq xs) =
     foldr (>>) (Right env) (map (typechkStatement env) xs)
 
+-- | Write
 typechkStatement env (StatementWrite xs) = 
     foldr (>>) (Right env) (map (gettype env) xs)
 typechkStatement env (StatementWriteLn xs) = 
     typechkStatement env (StatementWrite xs)
 
+-- | Read
+typechkStatement env (StatementRead (Designator x _)) = 
+    lookupVar env x
+    >>= \t -> if t `elem` [TYchar, TYint]
+              then Right env
+              else error $ "typechkStatement: StatementRead - Type Not Recognized"
+
+
+-- | Procedure Call
 typechkStatement env (ProcCall x args) = lookupFun env x >>=
     \(t, formalTs) -> 
         if (length formalTs) /= (length args)
@@ -221,7 +240,7 @@ typechkStatement env (ProcCall x args) = lookupFun env x >>=
         else case foldr (>>) (Right t) (zipWith (matchArgFormal env) args formalTs)
              of Right _ -> Right env
                 Left err -> Left err
-
+-- | Unknown
 typechkStatement env _ = Right env -- todo
 
 -- check if argument matches expected formal parameter
@@ -229,7 +248,7 @@ matchArgFormal :: Env -> Expr -> (Type, Bool) -> Either TyErr Type
 matchArgFormal env expr (ty, callbyref) = gettype env expr >>= \exprT -> 
     if callbyref 
     then -- has to be a Designator of the exact same type
-        if   exprT /= ty 
+        if   ty /= exprT
         then Left $ ArgTypeMismatch ty exprT
         else if (not $ isFactorDesig expr) && callbyref -- a CallByRef argument has to be a FactorDesig 
         then Left $ VaraibleArgExpected expr
@@ -244,9 +263,11 @@ matchArgFormal env expr (ty, callbyref) = gettype env expr >>= \exprT ->
             FactorDesig _ -> True
             _             -> False
 
+-- | Tail that doesn't fail on empty lists
 tail' [] = []
 tail' xs = tail xs
 
+-- | Get type of expression
 gettype :: Env -> Expr -> Either TyErr Type
 gettype env FactorTrue          = Right TYbool
 gettype env FactorFalse         = Right TYbool
@@ -256,7 +277,7 @@ gettype env (FactorStr _)       = Right TYstr
 gettype env (FactorChar _)      = Right TYchar
 gettype env (FactorNot x)       = undefined
 
--- error here: no args
+-- | FuncCall
 gettype env (FuncCall x args) = lookupFun env x >>=
     \(t, f : formalTs) -> 
         -- discard the dummy formal parameter
@@ -269,11 +290,13 @@ gettype env (FuncCall x args) = lookupFun env x >>=
 gettype env (FactorDesig (Designator x _)) = 
     lookupVar env x
 
+-- | Unary
 gettype env (Unary op x) = 
     gettype env x >>= \t ->
         if isNum t then Right t 
         else Left $ TypeMismatchNum t
 
+-- | Relation
 gettype env (Relation x1 op x2) =
     t1 >>= \v1 -> t2 >>= \v2 ->
         if (v1 == v2) || (isNum v1 && isNum v2)
@@ -281,6 +304,7 @@ gettype env (Relation x1 op x2) =
         else Left $ TypeMismatch v1 v2
     where [t1, t2] = (gettype env) <$> [x1, x2]
 
+-- | Add
 gettype env (Add x1 op x2)
     | op `elem` [OPplus, OPminus] = -- +|-
         t1 >>= \v1 -> t2 >>= \v2 ->
@@ -294,6 +318,7 @@ gettype env (Add x1 op x2)
             else t1
     where [t1, t2] = (gettype env) <$> [x1, x2]
 
+-- | Mult
 gettype env (Mult x1 op x2)
     | op == OPstar =    -- *
         t1 >>= \v1 -> t2 >>= \v2 ->
@@ -320,3 +345,14 @@ gettype env (Mult x1 op x2)
 typechkStr s env = case p' parseStatement s of 
     Right st -> typechkStatement env st
     Left err -> error $ "Parse error:\n\t" ++ s ++ "\nin:" ++ show err
+
+-- | Get array type
+getArrayType :: Type -> Type
+getArrayType (TYarr _ ty) = getArrayType ty
+getArrayType (TYptr ty) = getArrayType ty
+getArrayType ty = ty
+
+-- | Is Array
+isArray :: Type -> Bool
+isArray (TYarr _ _) = True
+isArray _ = False

@@ -1,7 +1,7 @@
 ; ModuleID = 'MainModule'
 source_filename = "test/str_variable.pcl"
 
-@s = common global i8*
+@s = common global i8* null
 @0 = private unnamed_addr constant [13 x i8] c"Hello World!\00"
 @1 = private unnamed_addr constant [5 x i8] c"%s%s\00"
 @2 = private unnamed_addr constant [2 x i8] c"\0A\00"

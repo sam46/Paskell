@@ -1,7 +1,7 @@
 ; ModuleID = 'MainModule'
 source_filename = "test/writeTest.pcl"
 
-@a = common global i8*
+@a = common global i8* null
 @b = common global i32 0
 @c = common global double 0.000000e+00
 @0 = private unnamed_addr constant [12 x i8] c"Hello World\00"

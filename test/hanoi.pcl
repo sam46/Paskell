@@ -23,7 +23,7 @@ program solve;
 
 begin
   writeLn('numberOfRings: ');
-  numberOfRings := readInteger();
+  read(numberOfRings);
   writeLn('Solution:\n\n');
   hanoi('left', 'right', 'middle', numberOfRings)
 end.

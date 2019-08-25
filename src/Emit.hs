@@ -182,7 +182,6 @@ genDeclVar :: IR.Decl -> Codegen ()
 genDeclVar (IR.DeclVar xs _) = do
     forM xs $ \(i,t) -> do
         var <- alloca' (toLLVMType $ t)     {- ptr -}
-        -- var <- alloca (toLLVMType $ t)
         assign (toShortBS i) var
     return ()
 
@@ -190,7 +189,6 @@ genDeclGlob :: IR.Decl -> LLVM ()
 genDeclGlob d@(IR.DeclVar _ _) = genDeclVarGlob d
 genDeclGlob d@(IR.DeclFunc _ _ _ _ _) = genDeclFunc d 
 genDeclGlob _ = return () 
-
 
 genDeclVarGlob :: IR.Decl -> LLVM ()
 genDeclVarGlob (IR.DeclVar xs _) = do
@@ -316,7 +314,12 @@ genStatement (IR.StatementWhile expr s _) = do
 
 
 -- | Generate Read Statements
-genStatement (IR.StatementRead xs' ty') = error $ "genStatement (IR.StatementRead): Not implementeds"
+genStatement (IR.StatementRead d@(IR.Designator des desprop desty) ty) = do
+    let expr' = (IR.FactorStr "%d" G.TYstr) : [IR.FactorDesig d (G.TYptr ty)]
+    (args, defs) <- mapM genExpr expr' >>= (return . unzip)
+    let ty = toLLVMType desty
+    callNoCast (externf scanfTy (name' "scanf")) (zipWith addParamAttr expr' args)
+    return $ concat defs
     
 -- | Generate Procedure calls
 genStatement (IR.ProcCall f xs t) = do
