@@ -15,7 +15,7 @@ import Utils (p')
 import Paskell as P
 
 import LLVM.AST
-import LLVM.AST.Type (ptr)
+import LLVM.AST.Type (ptr, i8)
 import LLVM.AST.AddrSpace
 import LLVM.AST.Attribute (ParameterAttribute)
 import qualified LLVM.AST as AST
@@ -51,7 +51,7 @@ toLLVMType t = case t of
     G.TYint   -> int
     G.TYbool  -> bool
     G.TYreal  -> double
-    G.Void    -> void
+    G.Void    -> void'
     G.TYstr   -> str
     G.TYchar  -> char
     G.TYptr t -> ptr $ toLLVMType t
@@ -184,6 +184,7 @@ genDeclVar (IR.DeclVar xs _) = do
         var <- alloca' (toLLVMType $ t)     {- ptr -}
         assign (toShortBS i) var
     return ()
+genDeclVar _ = return ()
 
 genDeclGlob :: IR.Decl -> LLVM ()
 genDeclGlob d@(IR.DeclVar _ _) = genDeclVarGlob d
@@ -194,6 +195,7 @@ genDeclVarGlob :: IR.Decl -> LLVM ()
 genDeclVarGlob (IR.DeclVar xs _) = do
     forM xs $ \(i,t) -> gvar (toLLVMType t) (name' i)
     return ()
+genDeclVarGlob _ = return ()
 
 -- generate entry point main()
 genMain :: IR.Statement -> LLVM ()
@@ -218,16 +220,25 @@ genBlock (IR.Block ds s _) = do
 genStatement :: IR.Statement -> Codegen [Definition]
 genStatement (IR.StatementEmpty) = return []
 genStatement (IR.StatementSeq xs _) = (forM xs genStatement) >>= (return . concat)
-genStatement (IR.Assignment (IR.Designator x _ xt) expr _) = do
+genStatement (IR.Assignment (IR.Designator x IR.DesigPropNone xt) expr _) = do
     (rhs, defs) <- genExpr expr
     let ty = toLLVMType xt
     var <- getvar (toShortBS x) (ptr $ ty)  -- var is a pointer {- ptr -}
     if not (isPtrPtr var)    
         then store var rhs -- store value at memory referred to by pointer
         else do            -- if var is a pointer to pointer, this means we have something like *x = 123 and we should derference the pointer first
-                ptrv <- load (ptr $ void) var {- ptr -}
+                ptrv <- load (ptr $ void') var {- ptr -}
                 store ptrv rhs
     return defs
+
+-- | Assignment Array (todo: fix bug with pointer)
+genStatement (IR.Assignment (IR.Designator x (IR.DesigPropArray xexpr) xt) expr _) = do
+    (rhs, defs) <- genExpr expr
+    (offset, odefs) <- genExpr (head xexpr)
+    let ty = toLLVMType xt
+    xop <- getvar (toShortBS x) (ptr $ ty)
+    getElementPtr' (ty) (xop) [offset] -- ? --
+    return $ defs ++ odefs
 
 -- | Generate IF statements
 genStatement (IR.StatementIf expr s1 ms2 _) = do 
@@ -286,7 +297,7 @@ genStatement (IR.StatementFor x expr1 todownto expr2 s _) = do
     -- for.exit
     setBlock fexit
     return $ defs1 ++ defs2 ++ defs3 ++ defs4
-    where loopvar = IR.Designator x [] (IR.getType expr1)
+    where loopvar = IR.Designator x IR.DesigPropNone (IR.getType expr1)
           varfactor = IR.FactorDesig loopvar (IR.getType expr1)
           (optest, opstep) = if todownto then (OPle, OPplus) else (OPge, OPminus)
           step = IR.Add varfactor opstep (IR.FactorInt 1 G.TYint) (IR.getType expr1)
@@ -330,7 +341,6 @@ genStatement (IR.ProcCall f xs t) = do
 -- | Generate Write statements
 genStatement (IR.StatementWrite xs' _) = do
     (args, defs) <- mapM genExpr xs >>= (return . unzip)
-    -- error $ show $ (zipWith addParamAttr xs args)
     callNoCast (externf printfTy (name' "printf")) (zipWith addParamAttr xs args)
     return $ concat defs
     where fstr = (foldr (++) "" (map (formatstr . IR.getType) xs')) ++ "\00"
@@ -338,12 +348,21 @@ genStatement (IR.StatementWrite xs' _) = do
 
 -- | Generate New statements
 genStatement (IR.StatementNew ident expr ty) = do
-    error $ "genStatement (IR.StatementNew): Not implemented"
+    (args, defs) <- genExpr expr
+    callNoCast (externf mallocTy (name' "malloc")) ([])
+    -- error $ "genStatement (IR.StatementNew): Not implemented"
+    return $ defs
 
 -- | Generate Dispose statements
 genStatement (IR.StatementDispose ident isArrayType ty) = do
-    error $ "genStatement (IR.StatementDispose): Not implemented"
+    let expr = IR.FactorDesig (IR.Designator ident (IR.DesigPropArray []) ty) (G.TYptr ty)
+    (args, defs) <- genExpr (expr)
+    args' <- bitcast args (ptr $ i8)
+    callNoCast' (externf freeTy (name' "free")) [(args', [])]
+    return $ defs
+    -- error $ "genStatement (IR.StatementDispose): Not implemented"
 
+-- | Not recognized Statement
 genStatement _ = error $ "genStatement: Undefined"
 
 -- | printf format specifiers
@@ -353,7 +372,8 @@ formatstr (G.TYstr)   = "%s"
 formatstr (G.TYreal)  = "%lf"
 formatstr (G.TYbool)  = "%d"
 formatstr (G.TYchar)  = "%c"
-formatstr (G.TYptr _) = "%p"
+formatstr (G.TYptr ty) = "Pointer: " ++ formatstr ty    -- todo: fix this (dereference)
+formatstr (G.TYarr _ ty) = "Array: " ++ formatstr ty    -- todo: fix this (dereference)
 
 -- | scanf format specifiers
 formatstr' :: G.Type -> String
@@ -378,7 +398,7 @@ genExpr (IR.FactorStr x _)  = do
 
 genExpr (IR.FactorTrue _)   = return (cons $ C.Int 1 1, []) -- True
 genExpr (IR.FactorFalse _)  = return (cons $ C.Int 1 0, []) -- False
-
+-- | Generate Relational operations
 genExpr (IR.Relation x1 op x2 _) = let
     (t1,t2) = (IR.getType x1, IR.getType x2)
     cmpFloat y1 y2 = do
@@ -422,6 +442,7 @@ genExpr (IR.Add x1 op x2 t) = do
             (if op == OPplus then fadd else fsub) fy1 fy2
     return (oper, defs1 ++ defs2)
 
+-- | Generate Multiplicative operations
 genExpr (IR.Mult x1 op x2 t) = do
     let (t1,t2) = (IR.getType x1, IR.getType x2)
     (y1, defs1) <- genExpr x1
@@ -450,6 +471,7 @@ genExpr (IR.Unary op x t) =  do
         OPminus -> fst <$> (genExpr $ IR.Add (IR.FactorInt 0 G.TYint) op x t) -- -x = 0 - x
     return (oper, defs)
 
+-- | Generate Function Call
 genExpr (IR.FuncCall f xs t) = do
     (args, defs) <- mapM genExpr xs >>= (return.unzip)
     oper <- call (externf fnty (name' f)) (zipWith addParamAttr xs args)
@@ -457,7 +479,19 @@ genExpr (IR.FuncCall f xs t) = do
     where fnty = toLLVMfnType (toLLVMType t) (map (toLLVMType . IR.getType) xs)
         -- error $ (show $ map IR.getType xs)
           
-genExpr (IR.FactorDesig (IR.Designator x _ xt) dt) =
+genExpr (IR.FactorDesig (IR.Designator x IR.DesigPropNone xt) dt) =
     (getvar (toShortBS x) (ptr $ toLLVMType xt)) {-- ptr --}
     >>= (if dt == xt then load (toLLVMType dt) else return . id)
+    >>= \oper -> return (oper, [])
+
+genExpr (IR.FactorDesig (IR.Designator x (IR.DesigPropArray (expr : exprs)) xt) dt) = do
+    (offset, _) <- genExpr expr
+    let ty = toLLVMType dt
+    xop <- getvar (toShortBS x) (ptr $ ty)
+    oper <- if dt == xt then getElementPtr' (ty) xop [offset] else return offset
+    return (oper, [])
+
+genExpr (IR.FactorDesig (IR.Designator x _ xt) dt) =
+    (getvar (toShortBS x) (ptr $ toLLVMType xt)) {-- ptr --}
+    >>= (if dt == xt then load (toLLVMType xt) else return . id)
     >>= \oper -> return (oper, [])

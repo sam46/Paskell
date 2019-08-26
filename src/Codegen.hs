@@ -164,8 +164,8 @@ double :: Type
 double = FloatingPointType DoubleFP
 
 -- | An abbreviation for 'VoidType'
-void :: Type
-void = VoidType
+void' :: Type
+void' = VoidType
 
 -- | Integer 32 bits
 int :: Type
@@ -449,6 +449,9 @@ call fn args = do  -- figure out the signature, and typecast args as necessary
 callNoCast :: Operand -> [(Operand, [A.ParameterAttribute])] -> Codegen Operand
 callNoCast fn args = instr (extractFnRetType fn) $ Call Nothing CC.C [] (Right fn) args [] []
 
+callNoCast' :: Operand -> [(Operand, [A.ParameterAttribute])] -> Codegen ()
+callNoCast' fn args = unnminstr $ Call Nothing CC.C [] (Right fn) args [] []
+
 -- Procedure Call (retvoid funcall)
 call' :: Operand -> [(Operand, [A.ParameterAttribute])] -> Codegen ()
 call' fn args = do -- figure out the signature, and typecast args as necessary
@@ -506,11 +509,11 @@ zero = cons $ C.Int 32 0
 getElementPtr :: Type -> Operand -> Codegen Operand
 getElementPtr ty op = instr (ty) $ GetElementPtr True op [zero, zero] [] {- ptr -}
 
-{-
+
 -- | Typecast
 bitcast :: Operand -> Type -> Codegen Operand
-bitcast op tp = instr $ BitCast op tp []
--}
+bitcast op tp = instr tp $ BitCast op tp []
+
 
 -- | Check if integer type
 isIntVal x = case x of
@@ -596,8 +599,20 @@ free :: Definition
 free = GlobalDefinition $ functionDefaults
   {
     name = Name "free"
-  , parameters = ([Parameter (ptr i8) (UnName 0) []], False)
-  , returnType = VoidType
+  , parameters = ([Parameter (ptr $ i8) (UnName 0) []], False)
+  , returnType = void'
   }
 
+freeTy :: Type
+freeTy = PointerType {
+  pointerReferent = FunctionType (void') [ptr $ i8] False
+, pointerAddrSpace = AddrSpace 0
+}
+
 -- ======================== --
+
+create_ptr :: Operand -> [Operand] -> Codegen Operand -- used for table indexing
+create_ptr table indexes = instr i32 (GetElementPtr False table indexes [])
+
+getElementPtr' :: Type -> Operand -> [Operand] -> Codegen Operand
+getElementPtr' ty oper offset = instr ty (GetElementPtr True oper (zero : offset) [])

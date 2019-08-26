@@ -28,7 +28,7 @@ data Statement
     | StatementWhile Expr Statement Type
     | StatementRepeat Statement Expr Type
     | StatementFor Ident Expr ToDownTo Expr Statement Type
-    | StatementNew Ident [Expr] Type
+    | StatementNew Ident Expr Type
     | StatementDispose Ident Bool Type
     | StatementEmpty
     | StatementRead Designator Type
@@ -36,15 +36,16 @@ data Statement
     deriving (Eq) 
 
 data Designator 
-    = Designator Ident [DesigProp] Type
-    | DesignatorArr Ident Expr Type
+    = Designator Ident DesigProp Type
     deriving (Eq)
 
 data DesigList = DesigList [Designator] Type deriving (Show, Eq)
 data DesigProp 
     = DesigPropIdent Ident  Type
-    | DesigPropExprList ExprList  Type
-    | DesigPropPtr  Type
+    | DesigPropExprList ExprList Type
+    | DesigPropPtr Type
+    | DesigPropArray [Expr]
+    | DesigPropNone
     deriving (Show, Eq)
 
 type ExprList = [Expr]

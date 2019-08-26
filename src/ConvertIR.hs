@@ -153,15 +153,15 @@ convStatement env (StatementWriteLn xs) = convStatement env (StatementWrite $ xs
 
 -- | StatementNew: Allocate a block of memory in heap
 convStatement env (StatementNew ident mbexpr) =
-        IR.StatementNew ident (map (convExpr env) expr) (TYptr TYchar)
+        IR.StatementNew ident ((convExpr env) expr) (TYptr TYchar)
         where
             expr = case mbexpr of
-                    Just x -> [x]
-                    _ -> []
+                    Just x -> x
+                    _ -> FactorInt 0
 
 -- | StatementNew: Allocate a block of memory in heap
 convStatement env (StatementDispose ident tyArray) =
-    IR.StatementDispose ident tyArray Void
+    IR.StatementDispose ident tyArray (lookupVar env ident)
 
 -- ProcCall
 convStatement env (ProcCall f args) = 
@@ -177,7 +177,8 @@ convStatement env (ProcCall f args) =
 
 -- | Convert Designator to IR.Designator
 convDesignator :: Env -> Designator -> IR.Designator
-convDesignator env (Designator x _) = IR.Designator x [] (lookupVar env x) 
+convDesignator env (Designator x DesigPropNone) = IR.Designator x IR.DesigPropNone (lookupVar env x) 
+convDesignator env (Designator x (DesigPropArray expr)) = IR.Designator x (IR.DesigPropArray $ (map (convExpr env) expr)) (lookupVar env x)
 
 -- | Convert Expr to IR.Expr
 convExpr :: Env -> Expr -> IR.Expr
@@ -207,9 +208,9 @@ convExpr env (FuncCall f args) =
                 else let IR.FactorDesig x factty = expr'
                      in  IR.FactorDesig x (TYptr factty) 
 
-convExpr env (FactorDesig des) = let 
-    (Designator x _) = des
-    in IR.FactorDesig (convDesignator env des) (lookupVar env x)
+convExpr env (FactorDesig des@(Designator ident _)) = let 
+    in IR.FactorDesig (convDesignator env des) (lookupVar env ident)
+    
 -- +, -
 convExpr env (Unary op x) = let 
     x' = convExpr env x

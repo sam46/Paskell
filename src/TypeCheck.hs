@@ -171,14 +171,19 @@ typechkDeclFunc env (DeclFunc x params t b) =
 
 typechkStatement :: Env -> Statement -> Either TyErr Env
 -- | Assignment
-typechkStatement env (Assignment (Designator x _) expr) = -- todo: assignment to array
+typechkStatement env (Assignment (Designator x DesigPropNone) expr) = -- todo: assignment to array
     gettype env expr >>= \t -> lookupVar env x >>= \xtype -> do
         if xtype == t                      
            || (xtype == TYstr && t == TYchar)
            || (xtype == TYreal && t == TYint)
         then Right env
-        else if (isArray xtype && getArrayType xtype == t)
-            then Right env
+        else Left $ TypeMismatch xtype t
+        
+-- | Assignment Array
+typechkStatement env (Assignment (Designator x (DesigPropArray _)) expr) = 
+    gettype env expr >>= \t -> lookupVar env x >>= \xtype -> do
+        if (getArrayType xtype == t)
+        then Right env
         else Left $ TypeMismatch xtype t
 
 -- | If

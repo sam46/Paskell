@@ -112,14 +112,15 @@ parseOPrelation = {-OPrelation <$>-} makeOPparser relationops
 
 -- | Parse Designator
 parseDesignator :: Parser Designator
-parseDesignator = Designator <$> parseIdent <*> try (many parseDesigProp)
+parseDesignator = Designator <$> parseIdent <*> try (parseDesigProp)
 
 -- | Parse Designator Property
 parseDesigProp :: Parser DesigProp
-parseDesigProp =
+parseDesigProp = try $
     (charTok '.' >> DesigPropIdent <$> parseIdent) <|>
     (charTok '^' >> return DesigPropPtr)           <|>
-    (DesigPropExprList <$> betweenCharTok '[' ']' parseExprList1)
+    (DesigPropArray <$> betweenCharTok '[' ']' parseExprList1)  -- comma separated expressions
+    <|> (whitespace >> return DesigPropNone)
 
 parseDesigList :: Parser DesigList
 parseDesigList = DesigList <$> many1 parseDesignator

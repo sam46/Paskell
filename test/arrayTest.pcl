@@ -1,8 +1,15 @@
 program arrayTest;
 var i : array [5] of integer;
+var j : integer;
 begin
   i[0] := 1;
   i[1] := 2;
   i[2] := 3;
-  i[3] := 4
+  i[3] := 4;
+  j := 0;
+  while (j < 5) do
+  begin
+    writeLn(i[j]);
+    j := j + 1;
+  end;
 end.

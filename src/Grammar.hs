@@ -68,7 +68,7 @@ data Statement
 
 type ToDownTo = Bool
 
-data Designator = Designator Ident [DesigProp]
+data Designator = Designator Ident DesigProp
                 deriving (Show, Eq)
 
 data DesigList = DesigList [Designator]
@@ -78,7 +78,8 @@ data DesigProp
     = DesigPropIdent Ident 
     | DesigPropExprList ExprList 
     | DesigPropPtr
-    | DesigPropArr Expr
+    | DesigPropArray [Expr]
+    | DesigPropNone
     deriving (Show, Eq)
 
 type ExprList = [Expr]

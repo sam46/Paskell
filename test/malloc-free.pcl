@@ -1,0 +1,6 @@
+program memory;
+var ip : ^integer;
+begin
+  new ip;
+  dispose ip;
+end.
