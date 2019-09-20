@@ -19,6 +19,34 @@ A (reduced) Pascal compiler in Haskell that compiles to LLVM
 - [x] IR pretty-printer
 - [x] LLVM Code generation 
 
+### Building:
+
+##### With docker:
+```
+> make bash
+```
+to build the compiler and launch a shell session where the compiler and llvm utitlies are in `$PATH` and ready out-of-the-box.
+
+Alternatively, `make build` will build the same image without starting a shell session. 
+
+##### Without docker:
+You need to have llvm installed
+```
+> sudo apt-get install llvm-5.0
+```
+`lli` should be in `$PATH` to be able to execute Pascal programs
+
+Then, you can use Cabal or Stack.  
+To build using Cabal:
+
+```
+> cd Paskell/
+> cabal install -j
+```
+this will install all dependencies and produce an executable in 
+`dist/build/Paskell/`
+  
+You can also build using Stack.
 
 ### Usage
 Once the executable is built, it can be used to compile Pascal source files to llvm-ir, or internal IR used by the compiler:  
@@ -46,30 +74,12 @@ Example:
  - translate it to a native assembly executable of a specific architecture (x86, ARM, etc)  
    `> llc -march=x86-64 fib.bc -o fib.s`
  - link many modules into one program 
- 
-### Building the compiler from source:
-You need to have llvm installed
-```
-> sudo apt-get install llvm-5.0
-```
-`lli` should be in $PATH to be able to execute Pascal programs
-
-Then, you can use Cabal or Stack.  
-To build using Cabal:
-
-```
-> cd Paskell/
-> cabal install -j
-```
-this will install all dependencies and produce an executable in 
-`dist/build/Paskell/`
-  
-You can also build using Stack.
 
 ### Tests
-Various tests, testing utilities and sample Pascal programs are   
-at [src/tests.hs](https://github.com/sam46/Paskell/blob/master/src/tests.hs)  
-All can be run from GHCI.
+```
+> make test
+```
+to run the test suite using docker.
 
 ### TODO's
 - finish nested functions/procedures:  
