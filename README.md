@@ -23,17 +23,17 @@ A (reduced) Pascal compiler in Haskell that compiles to LLVM
 ### Usage
 Once the executable is built, it can be used to compile Pascal source files to llvm-ir, or internal IR used by the compiler:  
 
-  `Paskell -c src`      compile to llvm-ir  
-  `Paskell -c src dest` compile to llvm-ir and save in dest  
-  `Paskell -ir src`     produce internal IR   
-  `Paskell -x src`      execute pascal source. Equivalent to 
-                        `Paskell -c src | lli`  
-  `Paskell -h`          (for help)  
+  `paskell -c src`      compile to llvm-ir  
+  `paskell -c src dest` compile to llvm-ir and save in dest  
+  `paskell -ir src`     produce internal IR   
+  `paskell -x src`      execute pascal source. Equivalent to 
+                        `paskell -c src | lli`  
+  `paskell -h`          (for help)  
   
 Example:
 
 ```
-> ./Paskell -c fib.pas fib.ll
+> ./paskell -c fib.pas fib.ll
 ```
 
  Since the output is llvm-ir, we can leverage the many tools LLVM provide to:

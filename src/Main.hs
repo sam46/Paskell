@@ -19,12 +19,12 @@ import System.Process
 -- msg = "Paskell version unknown.\n" 
 --     ++ "Type ':l path' to compile a pascal source file.\n"
 helpmsg = "Usage:\n  "
-    ++ "Paskell -c src      compile to llvm-ir\n  "
-    ++ "Paskell -c src dest compile to llvm-ir and save in dest\n  "
-    ++ "Paskell -ir src     produce IR\n  "
-    ++ "Paskell -x src      execute pascal source. Equivalent to Paskell -c src | lli\n  " 
-    -- ++ "Paskell -repl\n\t" 
-    ++ "Paskell -h          (for help)"
+    ++ "paskell -c src      compile to llvm-ir\n  "
+    ++ "paskell -c src dest compile to llvm-ir and save in dest\n  "
+    ++ "paskell -ir src     produce IR\n  "
+    ++ "paskell -x src      execute pascal source. Equivalent to paskell -c src | lli\n  " 
+    -- ++ "paskell -repl\n\t" 
+    ++ "paskell -h          (for help)"
 
 strip s =  Text.unpack $ Text.strip $ Text.pack s
 
