@@ -2,7 +2,20 @@
 [![Build Status](https://travis-ci.org/sam46/Paskell.svg?branch=master)](https://travis-ci.org/sam46/Paskell)
 A (reduced) Pascal compiler in Haskell that compiles to LLVM
 
-### Features:   
+- [Paskell](#paskell)
+    + [Features](#features)
+    + [Progress](#progress)
+    + [Building](#building)
+        * [With docker](#with-docker)
+        * [Without docker](#without-docker)
+    + [Usage](#usage)
+    + [Tests](#tests)
+    + [Implementation](#implementation)
+    + [TODO](#todo)
+    + [Contributions](#contributions)
+    + [References](#references)
+  
+### Features   
 - Declarations: var, type (aliases)
 - Types: integer, boolean, string, char, real
 - Control Flow: if, while, for    
@@ -19,9 +32,9 @@ A (reduced) Pascal compiler in Haskell that compiles to LLVM
 - [x] IR pretty-printer
 - [x] LLVM Code generation 
 
-### Building:
+### Building
 
-##### With docker:
+##### With docker
 ```
 > make bash
 ```
@@ -29,7 +42,7 @@ to build the compiler and launch a shell session where the compiler and llvm uti
 
 Alternatively, `make build` will build the same image without starting a shell session. 
 
-##### Without docker:
+##### Without docker
 You need to have llvm installed
 ```
 > sudo apt-get install llvm-5.0
@@ -81,7 +94,15 @@ Example:
 ```
 to run the test suite using docker.
 
-### TODO's
+### Implementation
+This is a 4-pass compiler:  
+
+**pass 1**: lex/parsing  
+**pass 2**: type checking  
+**pass 3**: constructing IR: type-annotation, type resolution, (future: identifier-renaming, nested-function extraction)  
+**pass 4**: code generation  
+  
+### TODO
 - finish nested functions/procedures:  
   this only requires pulling nested functions to global scope  
   and renaming them during the type-annotation pass
@@ -91,16 +112,8 @@ to run the test suite using docker.
 - arrays
 - case statements
 - forward declaration
-
-### Implementation
-This is a 4-pass compiler:  
-
-**pass 1**: lex/parsing  
-**pass 2**: type checking  
-**pass 3**: constructing IR: type-annotation, type resolution, (future: identifier-renaming, nested-function extraction)  
-**pass 4**: code generation  
   
-### Contributions:    
+### Contributions    
 Bug reports, added features, etc are welcome  
 
 ### References
