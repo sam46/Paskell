@@ -5,10 +5,11 @@ A (reduced) Pascal compiler in Haskell that compiles to LLVM
 - [Paskell](#paskell)
     + [Features](#features)
     + [Progress](#progress)
+    + [Usage](#usage)
+    + [Demo](#demo)
     + [Building](#building)
         * [With docker](#with-docker)
         * [Without docker](#without-docker)
-    + [Usage](#usage)
     + [Tests](#tests)
     + [Implementation](#implementation)
     + [TODO](#todo)
@@ -32,35 +33,6 @@ A (reduced) Pascal compiler in Haskell that compiles to LLVM
 - [x] IR pretty-printer
 - [x] LLVM Code generation 
 
-### Building
-
-##### With docker
-```
-> make bash
-```
-to build the compiler and launch a shell session where the compiler and llvm utitlies are in `$PATH` and ready out-of-the-box.
-
-Alternatively, `make build` will build the same image without starting a shell session. 
-
-##### Without docker
-You need to have llvm installed
-```
-> sudo apt-get install llvm-5.0
-```
-`lli` should be in `$PATH` to be able to execute Pascal programs
-
-Then, you can use Cabal or Stack.  
-To build using Cabal:
-
-```
-> cd Paskell/
-> cabal install -j
-```
-this will install all dependencies and produce an executable in 
-`dist/build/Paskell/`
-  
-You can also build using Stack.
-
 ### Usage
 Once the executable is built, it can be used to compile Pascal source files to llvm-ir, or internal IR used by the compiler:  
 
@@ -71,26 +43,64 @@ Once the executable is built, it can be used to compile Pascal source files to l
                         `paskell -c src | lli`  
   `paskell -h`          (for help)  
   
-Example:
-
+### Demo:
+The compiler is complemented with the `llvm` utilities 
 ```
-> ./paskell -c fib.pas fib.ll
+$ paskell -c fib.pas fib.ll
 ```
 
  Since the output is llvm-ir, we can leverage the many tools LLVM provide to:
  - execute it using the llvm interpreter  
-    `> lli fib.ll`
+    `$ lli fib.ll`
  - convert it to bitcode llvm assembly (.bc)  
-    `> llvm-as fib.ll -o fib.bc`
+    `$ llvm-as fib.ll -o fib.bc`
  - optimize the code using various settings, for example  
-    `> opt -mem2reg fib.bc` 
+    `$ opt -mem2reg fib.bc` 
  - translate it to a native assembly executable of a specific architecture (x86, ARM, etc)  
-   `> llc -march=x86-64 fib.bc -o fib.s`
+   `$ llc -march=x86-64 fib.bc -o fib.s`
  - link many modules into one program 
+
+### Building
+
+##### With docker
+```
+$ make bash
+```
+to build the compiler and launch a shell session where the compiler and llvm utitlies are in `$PATH` and ready out-of-the-box.
+
+###### Alternatively
+```
+$ make build
+```
+will build the same image tagged `paskell`
+which can be used with `docker run` and volumes.
+For example:
+```
+$ docker run -v /path/to/original_file.pas:/path/to/file.pas paskell paskell -c /path/to/file.pas
+```
+
+##### Without docker
+You need to have llvm installed
+```
+$ sudo apt-get install llvm-5.0
+```
+`lli` should be in `$PATH` to be able to execute Pascal programs
+
+Then, you can use Cabal or Stack.  
+To build using Cabal:
+
+```
+$ cd Paskell/
+$ cabal install -j
+```
+this will install all dependencies and produce an executable in 
+`dist/build/Paskell/`
+  
+You can also build using Stack.
 
 ### Tests
 ```
-> make test
+$ make test
 ```
 to run the test suite using docker.
 
