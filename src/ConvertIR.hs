@@ -178,7 +178,9 @@ convStatement env (ProcCall f args) =
 -- | Convert Designator to IR.Designator
 convDesignator :: Env -> Designator -> IR.Designator
 convDesignator env (Designator x DesigPropNone) = IR.Designator x IR.DesigPropNone (lookupVar env x) 
-convDesignator env (Designator x (DesigPropArray expr)) = IR.Designator x (IR.DesigPropArray $ (map (convExpr env) expr)) (lookupVar env x)
+convDesignator env (Designator x (DesigPropArray expr)) = do
+    let ty = lookupVar env x
+    IR.Designator x (IR.DesigPropArray (map (convExpr env) expr)) (ty)
 
 -- | Convert Expr to IR.Expr
 convExpr :: Env -> Expr -> IR.Expr
